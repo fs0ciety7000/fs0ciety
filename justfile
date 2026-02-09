@@ -30,26 +30,32 @@ install:
     cd backend && cargo fetch
 
 # ── Database ────────────────────────────────────────────────
+# Runs surreal CLI inside the dev Docker container (no local install needed).
+
+db_compose := "docker compose -f docker-compose.dev.yml"
 
 # Apply SurrealDB migrations.
 migrate:
-    surreal import --conn http://localhost:8000 \
+    {{db_compose}} exec -T surrealdb surreal sql \
+        --conn http://localhost:8000 \
         --user root --pass changeme \
         --ns fs0ciety --db main \
-        database/migrations/001_init.surql
+        < database/migrations/001_init.surql
     @echo "Migrations applied."
 
 # Seed the database with admin user + sample posts.
 seed: migrate
-    surreal import --conn http://localhost:8000 \
+    {{db_compose}} exec -T surrealdb surreal sql \
+        --conn http://localhost:8000 \
         --user root --pass changeme \
         --ns fs0ciety --db main \
-        database/seeds/001_admin_and_posts.surql
+        < database/seeds/001_admin_and_posts.surql
     @echo "Seed data applied (admin user + sample posts)."
 
 # Open SurrealDB SQL shell.
 db-shell:
-    surreal sql --conn http://localhost:8000 \
+    {{db_compose}} exec surrealdb surreal sql \
+        --conn http://localhost:8000 \
         --user root --pass changeme \
         --ns fs0ciety --db main
 

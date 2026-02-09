@@ -2,7 +2,7 @@ use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::IntoResponse,
 };
-use futures::{SinkExt, StreamExt};
+use futures::StreamExt;
 use serde_json::json;
 use std::time::Duration;
 use tokio::time::interval;

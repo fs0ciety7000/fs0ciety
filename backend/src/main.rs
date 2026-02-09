@@ -88,7 +88,8 @@ async fn main() {
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .merge(SwaggerUi::new("/swagger-ui")
+            .url("/api-docs/openapi.json", ApiDoc::openapi()))
         // Middleware
         .layer(cors)
         .layer(TraceLayer::new_for_http());

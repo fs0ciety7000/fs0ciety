@@ -30,34 +30,49 @@ install:
     cd backend && cargo fetch
 
 # ── Database ────────────────────────────────────────────────
-# Runs surreal CLI inside the dev Docker container (no local install needed).
+# Uses the SurrealDB HTTP endpoint (port 8000) — works with both podman & docker.
 
 db_compose := "docker compose -f docker-compose.dev.yml"
+db_url     := "http://localhost:8000"
 
 # Apply SurrealDB migrations.
 migrate:
-    {{db_compose}} exec -T surrealdb surreal sql \
-        --conn http://localhost:8000 \
-        --user root --pass changeme \
-        --ns fs0ciety --db main \
-        < database/migrations/001_init.surql
-    @echo "Migrations applied."
+    curl -s -u root:changeme \
+        -H "surreal-ns: fs0ciety" \
+        -H "surreal-db: main" \
+        -H "Accept: application/json" \
+        --data-binary @database/migrations/001_init.surql \
+        {{db_url}}/sql
+    @echo "\nMigrations applied."
 
 # Seed the database with admin user + sample posts.
 seed: migrate
-    {{db_compose}} exec -T surrealdb surreal sql \
-        --conn http://localhost:8000 \
-        --user root --pass changeme \
-        --ns fs0ciety --db main \
-        < database/seeds/001_admin_and_posts.surql
-    @echo "Seed data applied (admin user + sample posts)."
+    curl -s -u root:changeme \
+        -H "surreal-ns: fs0ciety" \
+        -H "surreal-db: main" \
+        -H "Accept: application/json" \
+        --data-binary @database/seeds/001_admin_and_posts.surql \
+        {{db_url}}/sql
+    @echo "\nSeed data applied (admin user + sample posts)."
 
-# Open SurrealDB SQL shell.
+# Open SurrealDB SQL shell (requires surreal CLI or use db-query).
 db-shell:
-    {{db_compose}} exec surrealdb surreal sql \
-        --conn http://localhost:8000 \
-        --user root --pass changeme \
-        --ns fs0ciety --db main
+    @echo "Interactive shell — paste SurrealQL, press Ctrl+D to execute:"
+    @curl -s -u root:changeme \
+        -H "surreal-ns: fs0ciety" \
+        -H "surreal-db: main" \
+        -H "Accept: application/json" \
+        --data-binary @- \
+        {{db_url}}/sql
+
+# Run a single SurrealQL query: just db-query "SELECT * FROM users"
+db-query q:
+    @curl -s -u root:changeme \
+        -H "surreal-ns: fs0ciety" \
+        -H "surreal-db: main" \
+        -H "Accept: application/json" \
+        -d '{{q}}' \
+        {{db_url}}/sql | python3 -m json.tool 2>/dev/null || cat
 
 # ── Build ───────────────────────────────────────────────────
 

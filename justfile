@@ -39,6 +39,14 @@ migrate:
         database/migrations/001_init.surql
     @echo "Migrations applied."
 
+# Seed the database with admin user + sample posts.
+seed: migrate
+    surreal import --conn http://localhost:8000 \
+        --user root --pass changeme \
+        --ns fs0ciety --db main \
+        database/seeds/001_admin_and_posts.surql
+    @echo "Seed data applied (admin user + sample posts)."
+
 # Open SurrealDB SQL shell.
 db-shell:
     surreal sql --conn http://localhost:8000 \

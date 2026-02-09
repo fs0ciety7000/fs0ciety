@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { TerminalProvider } from "@/providers/TerminalProvider";
-import { CRTScreen } from "@/components/effects/CRTScreen";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="bg-terminal-black text-terminal-green font-mono antialiased">
-        <TerminalProvider>
-          <CRTScreen>{children}</CRTScreen>
-        </TerminalProvider>
+        {children}
       </body>
     </html>
   );

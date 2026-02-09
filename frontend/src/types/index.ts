@@ -1,0 +1,65 @@
+/** Terminal command line entry. */
+export interface TerminalLine {
+  id: string;
+  type: "input" | "output" | "error" | "system" | "ascii";
+  content: string;
+  timestamp: number;
+}
+
+/** Terminal command definition. */
+export interface TerminalCommand {
+  name: string;
+  description: string;
+  usage?: string;
+  execute: (args: string[], ctx: TerminalContext) => TerminalLine[];
+}
+
+/** Context passed to terminal commands. */
+export interface TerminalContext {
+  addLines: (lines: TerminalLine[]) => void;
+  clearLines: () => void;
+  setPrompt: (prompt: string) => void;
+  navigate: (path: string) => void;
+  currentPath: string;
+}
+
+/** Seedbox real-time stats from WebSocket. */
+export interface SeedboxStats {
+  downloadSpeed: number;
+  uploadSpeed: number;
+  diskUsed: number;
+  diskTotal: number;
+  activeTorrents: number;
+  seedingTorrents: number;
+}
+
+/** Service health status. */
+export interface ServiceHealth {
+  name: string;
+  online: boolean;
+  latencyMs: number | null;
+}
+
+/** Blog post metadata. */
+export interface PostMeta {
+  slug: string;
+  title: string;
+  tags: string[];
+  published: boolean;
+  createdAt: string;
+}
+
+/** Full blog post. */
+export interface Post extends PostMeta {
+  content: string;
+  author: string;
+  updatedAt: string;
+}
+
+/** Auth state. */
+export interface AuthState {
+  authenticated: boolean;
+  username: string | null;
+  role: "admin" | "guest" | null;
+  token: string | null;
+}

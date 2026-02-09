@@ -5,14 +5,15 @@ FROM rust:1.84-bookworm AS builder
 WORKDIR /app
 
 # Cache dependencies by copying manifests first.
-COPY Cargo.toml Cargo.lock* ./
+COPY backend/Cargo.toml backend/Cargo.lock* ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs && \
     cargo build --release && \
     rm -rf src
 
-# Copy real source and build.
-COPY src ./src
-COPY ../database ./database
+# Copie des sources réelles
+COPY backend/src ./src
+COPY database ./database 
+# On s'assure que Cargo trouve bien le workspace ou les dépendances locales
 RUN touch src/main.rs && cargo build --release
 
 # Stage 2: Minimal runtime

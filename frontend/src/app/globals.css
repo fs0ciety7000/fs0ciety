@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* ── fs0ciety Global Styles ────────────────────────────────── */
+
+@theme {
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  --color-terminal-green: #00FF41;
+  --color-terminal-green-dim: #00CC33;
+  --color-terminal-red: #FF0033;
+  --color-terminal-red-dim: #CC0029;
+  --color-terminal-amber: #FFB000;
+  --color-terminal-cyan: #00D4FF;
+  --color-terminal-black: #0A0A0A;
+  --color-terminal-black-light: #111111;
+  --color-terminal-gray: #1A1A1A;
+  --color-terminal-gray-light: #2A2A2A;
+}
+
+/* ── Base ──────────────────────────────────────────────────── */
+
+html {
+  background-color: #0A0A0A;
+  color: #00FF41;
+  font-family: var(--font-mono);
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: #00FF41;
+  color: #0A0A0A;
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00FF41;
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00CC33;
+}
+
+/* ── CRT Effect Overlay ───────────────────────────────────── */
+
+.crt-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+}
+
+.crt-vignette {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* ── Glitch Clip Paths ────────────────────────────────────── */
+
+.glitch-clip-1 {
+  clip-path: polygon(0 0, 100% 0, 100% 33%, 0 33%);
+}
+
+.glitch-clip-2 {
+  clip-path: polygon(0 33%, 100% 33%, 100% 66%, 0 66%);
+}
+
+.glitch-clip-3 {
+  clip-path: polygon(0 66%, 100% 66%, 100% 100%, 0 100%);
+}
+
+/* ── Terminal Cursor ──────────────────────────────────────── */
+
+.terminal-cursor::after {
+  content: "█";
+  animation: blink 1s step-end infinite;
+  color: #00FF41;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Border Retro (shadcn override) ───────────────────────── */
+
+.border-retro {
+  border: 1px solid #00FF41;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.15);
+}
+
+.border-retro-red {
+  border: 1px solid #FF0033;
+  box-shadow: 0 0 10px rgba(255, 0, 51, 0.15);
+}

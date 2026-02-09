@@ -1,0 +1,16 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  fs0ciety — Development Docker Compose                     ║
+# ║  Run: docker compose -f docker-compose.dev.yml up           ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v2
+    command: start --user root --pass changeme memory
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "surreal", "is-ready", "--conn", "http://localhost:8000"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

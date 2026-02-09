@@ -1,0 +1,54 @@
+[package]
+name = "fs0ciety-backend"
+version = "0.1.0"
+edition = "2021"
+description = "fs0ciety — Axum backend for the terminal blog & seedbox dashboard"
+license = "MIT"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["ws", "macros"] }
+axum-extra = { version = "0.10", features = ["typed-header"] }
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.5", features = ["timeout"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Database
+surrealdb = { version = "2" }
+
+# Auth
+jsonwebtoken = "9"
+argon2 = "0.5"
+
+# HTTP client (for proxy to Sonarr/Radarr/Plex/qBit)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Config
+dotenvy = "0.15"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# OpenAPI doc generation
+utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-swagger-ui = { version = "8", features = ["axum"] }
+
+# Misc
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+futures = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

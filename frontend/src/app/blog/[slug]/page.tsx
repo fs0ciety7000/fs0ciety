@@ -75,6 +75,10 @@ export default function BlogPostPage() {
           <time>{date}</time>
           <span className="text-terminal-gray-light">|</span>
           <span>{post.author}</span>
+          <span className="text-terminal-gray-light">|</span>
+          <span>{post.readingTime} min read</span>
+          <span className="text-terminal-gray-light">|</span>
+          <span>{post.wordCount} words</span>
         </div>
 
         {/* Tags */}

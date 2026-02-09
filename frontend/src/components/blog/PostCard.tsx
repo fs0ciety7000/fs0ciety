@@ -15,15 +15,26 @@ export function PostCard({ post }: PostCardProps) {
   return (
     <article className="group border border-terminal-gray-light hover:border-terminal-green/40 bg-terminal-black-light transition-colors">
       <Link href={`/blog/${post.slug}`} className="block p-6">
-        {/* Date */}
-        <time className="text-xs font-mono text-terminal-green-dim opacity-50 block mb-2">
-          {date}
-        </time>
+        {/* Meta row */}
+        <div className="flex items-center gap-3 mb-2 text-xs font-mono text-terminal-green-dim opacity-50">
+          <time>{date}</time>
+          <span>&middot;</span>
+          <span>{post.readingTime} min read</span>
+          <span>&middot;</span>
+          <span>{post.wordCount} words</span>
+        </div>
 
         {/* Title */}
-        <h2 className="text-lg font-mono font-bold text-terminal-green group-hover:text-terminal-green-dim transition-colors mb-3">
+        <h2 className="text-lg font-mono font-bold text-terminal-green group-hover:text-terminal-green-dim transition-colors mb-2">
           {post.title}
         </h2>
+
+        {/* Excerpt */}
+        {post.excerpt && (
+          <p className="text-sm text-[#a3a3a3] font-sans mb-3 line-clamp-2">
+            {post.excerpt}
+          </p>
+        )}
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2">

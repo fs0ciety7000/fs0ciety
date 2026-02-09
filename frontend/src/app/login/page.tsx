@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { GlitchText } from "@/components/effects/GlitchText";
 import { TypewriterText } from "@/components/effects/TypewriterText";
+import { api } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,11 +21,13 @@ export default function LoginPage() {
     // Simulate SSH handshake delay.
     await new Promise((r) => setTimeout(r, 1500));
 
-    // Mock auth — replace with real API call.
-    if (username === "admin" && password === "admin") {
+    try {
+      const res = await api.login(username, password);
+      localStorage.setItem("fs0ciety_token", res.token);
+      localStorage.setItem("fs0ciety_user", JSON.stringify(res.user));
       setStatus("granted");
-      setTimeout(() => router.push("/dashboard"), 1000);
-    } else {
+      setTimeout(() => router.push("/admin"), 1000);
+    } catch {
       setStatus("denied");
       setTimeout(() => setStatus("idle"), 2000);
     }

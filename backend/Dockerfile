@@ -1,27 +1,19 @@
-# ── fs0ciety Backend — Multi-stage Rust Build ─────────────────
-
-# Stage 1: Build with full toolchain
+# Stage 1: Build
 FROM rust:1.84-bookworm AS builder
 WORKDIR /app
 
-# Cache dependencies by copying manifests first.
+# 1. On copie d'abord tous les fichiers de définition de projet
+# Incluant le dossier database si Cargo.toml y fait référence
 COPY backend/Cargo.toml backend/Cargo.lock* ./
+COPY database ../database 
+
+# 2. On crée le squelette pour simuler un build et mettre en cache les deps
 RUN mkdir src && echo "fn main() {}" > src/main.rs && \
     cargo build --release && \
     rm -rf src
 
-# Copie des sources réelles
+# 3. Maintenant on copie le vrai code source du backend
 COPY backend/src ./src
-COPY database ./database 
-# On s'assure que Cargo trouve bien le workspace ou les dépendances locales
+
+# 4. On re-build (cela sera très rapide car les deps sont cachées)
 RUN touch src/main.rs && cargo build --release
-
-# Stage 2: Minimal runtime
-FROM gcr.io/distroless/cc-debian12 AS runner
-
-COPY --from=builder /app/target/release/fs0ciety-backend /usr/local/bin/fs0ciety-backend
-
-EXPOSE 3001
-ENV BACKEND_PORT=3001
-
-ENTRYPOINT ["fs0ciety-backend"]

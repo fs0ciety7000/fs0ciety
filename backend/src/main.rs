@@ -28,6 +28,13 @@ use utoipa_swagger_ui::SwaggerUi;
         routes::auth::login,
         routes::posts::list_posts,
         routes::posts::get_post,
+        routes::posts::list_tags,
+        routes::posts::admin_list_posts,
+        routes::posts::admin_get_post,
+        routes::posts::create_post,
+        routes::posts::update_post,
+        routes::posts::delete_post,
+        routes::posts::admin_stats,
     ),
     components(schemas(
         models::User,
@@ -47,6 +54,7 @@ use utoipa_swagger_ui::SwaggerUi;
         (name = "auth", description = "Authentication"),
         (name = "seedbox", description = "Seedbox dashboard & proxy"),
         (name = "blog", description = "Blog posts"),
+        (name = "admin", description = "Admin dashboard"),
     )
 )]
 struct ApiDoc;
@@ -87,9 +95,14 @@ async fn main() {
         .route("/api/sonarr/calendar", get(routes::sonarr::get_calendar))
         // Seedbox stats
         .route("/api/seedbox/stats", get(routes::seedbox::get_stats))
-        // Blog posts
+        // Blog posts (public)
         .route("/api/posts", get(routes::posts::list_posts))
         .route("/api/posts/{slug}", get(routes::posts::get_post))
+        .route("/api/tags", get(routes::posts::list_tags))
+        // Admin — blog management
+        .route("/api/admin/posts", get(routes::posts::admin_list_posts).post(routes::posts::create_post))
+        .route("/api/admin/posts/{slug}", get(routes::posts::admin_get_post).put(routes::posts::update_post).delete(routes::posts::delete_post))
+        .route("/api/admin/stats", get(routes::posts::admin_stats))
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI

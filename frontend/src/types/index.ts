@@ -47,6 +47,9 @@ export interface PostMeta {
   tags: string[];
   published: boolean;
   createdAt: string;
+  readingTime: number;
+  wordCount: number;
+  excerpt: string;
 }
 
 /** Full blog post. */
@@ -54,6 +57,24 @@ export interface Post extends PostMeta {
   content: string;
   author: string;
   updatedAt: string;
+}
+
+/** Payload for creating/updating a post. */
+export interface PostPayload {
+  title: string;
+  slug: string;
+  content: string;
+  tags: string[];
+  published: boolean;
+}
+
+/** Dashboard stats returned by /api/admin/stats. */
+export interface AdminStats {
+  totalPosts: number;
+  publishedPosts: number;
+  draftPosts: number;
+  totalTags: number;
+  totalWords: number;
 }
 
 /** Auth state. */

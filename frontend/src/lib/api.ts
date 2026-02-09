@@ -29,6 +29,10 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
+  // Blog
+  posts: () => request<{ posts: import("@/types").PostMeta[]; total: number }>("/api/posts"),
+  post: (slug: string) => request<import("@/types").Post>(`/api/posts/${slug}`),
+
   // Seedbox
   seedboxStats: () => request("/api/seedbox/stats"),
   sonarrSeries: () => request("/api/sonarr/series"),

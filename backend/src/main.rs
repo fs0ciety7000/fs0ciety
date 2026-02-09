@@ -26,6 +26,8 @@ use utoipa_swagger_ui::SwaggerUi;
         routes::sonarr::get_calendar,
         routes::seedbox::get_stats,
         routes::auth::login,
+        routes::posts::list_posts,
+        routes::posts::get_post,
     ),
     components(schemas(
         models::User,
@@ -85,6 +87,9 @@ async fn main() {
         .route("/api/sonarr/calendar", get(routes::sonarr::get_calendar))
         // Seedbox stats
         .route("/api/seedbox/stats", get(routes::seedbox::get_stats))
+        // Blog posts
+        .route("/api/posts", get(routes::posts::list_posts))
+        .route("/api/posts/{slug}", get(routes::posts::get_post))
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI

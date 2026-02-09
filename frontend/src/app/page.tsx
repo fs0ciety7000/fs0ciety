@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { TerminalProvider } from "@/providers/TerminalProvider";
+import { CRTScreen } from "@/components/effects/CRTScreen";
 import { BootSequence } from "@/components/boot/BootSequence";
 import { Terminal } from "@/components/terminal/Terminal";
 
@@ -9,9 +11,11 @@ export default function Home() {
 
   const handleBootComplete = useCallback(() => setBooted(true), []);
 
-  if (!booted) {
-    return <BootSequence onComplete={handleBootComplete} />;
-  }
-
-  return <Terminal />;
+  return (
+    <TerminalProvider>
+      <CRTScreen>
+        {booted ? <Terminal /> : <BootSequence onComplete={handleBootComplete} />}
+      </CRTScreen>
+    </TerminalProvider>
+  );
 }

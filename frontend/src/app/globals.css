@@ -4,6 +4,7 @@
 
 @theme {
   --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --color-terminal-green: #00FF41;
   --color-terminal-green-dim: #00CC33;
   --color-terminal-red: #FF0033;
@@ -118,4 +119,110 @@ body {
 .border-retro-red {
   border: 1px solid #FF0033;
   box-shadow: 0 0 10px rgba(255, 0, 51, 0.15);
+}
+
+/* ── Blog Prose ───────────────────────────────────────────── */
+/* Readable typography for the classic blog, still dark-themed */
+
+.prose-fs0ciety {
+  color: #d4d4d4;
+  font-family: var(--font-sans);
+  line-height: 1.8;
+}
+
+.prose-fs0ciety h1,
+.prose-fs0ciety h2,
+.prose-fs0ciety h3,
+.prose-fs0ciety h4 {
+  color: #00FF41;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  margin-top: 2em;
+  margin-bottom: 0.75em;
+}
+
+.prose-fs0ciety h1 { font-size: 2rem; }
+.prose-fs0ciety h2 { font-size: 1.5rem; border-bottom: 1px solid #2A2A2A; padding-bottom: 0.4em; }
+.prose-fs0ciety h3 { font-size: 1.25rem; }
+
+.prose-fs0ciety p {
+  margin-bottom: 1.25em;
+}
+
+.prose-fs0ciety a {
+  color: #00D4FF;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+
+.prose-fs0ciety a:hover {
+  color: #00FF41;
+}
+
+.prose-fs0ciety strong {
+  color: #e4e4e4;
+  font-weight: 600;
+}
+
+.prose-fs0ciety code {
+  font-family: var(--font-mono);
+  background: #1A1A1A;
+  color: #00FF41;
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  font-size: 0.875em;
+}
+
+.prose-fs0ciety pre {
+  background: #111111;
+  border: 1px solid #2A2A2A;
+  padding: 1.25em;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  border-radius: 0;
+}
+
+.prose-fs0ciety pre code {
+  background: transparent;
+  padding: 0;
+  color: #d4d4d4;
+}
+
+.prose-fs0ciety blockquote {
+  border-left: 3px solid #00FF41;
+  padding-left: 1em;
+  color: #a3a3a3;
+  font-style: italic;
+  margin: 1.5em 0;
+}
+
+.prose-fs0ciety ul,
+.prose-fs0ciety ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.25em;
+}
+
+.prose-fs0ciety li {
+  margin-bottom: 0.3em;
+}
+
+.prose-fs0ciety ul li::marker {
+  color: #00FF41;
+}
+
+.prose-fs0ciety ol li::marker {
+  color: #00FF41;
+  font-family: var(--font-mono);
+}
+
+.prose-fs0ciety img {
+  border: 1px solid #2A2A2A;
+  margin: 1.5em 0;
+}
+
+.prose-fs0ciety hr {
+  border: none;
+  border-top: 1px solid #2A2A2A;
+  margin: 2em 0;
 }

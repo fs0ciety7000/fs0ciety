@@ -1,31 +1,16 @@
 # ╔══════════════════════════════════════════════════════════════╗
-# ║  fs0ciety — Production Docker Compose                      ║
-# ║  Services: Traefik, Frontend, Backend, SurrealDB           ║
+# ║  fs0ciety — Docker Compose for Coolify                     ║
+# ║  Services: Frontend, Backend, SurrealDB                    ║
+# ║  Traefik is managed by Coolify — no need to include it.    ║
 # ╚══════════════════════════════════════════════════════════════╝
+#
+# Subdomains:
+#   fs0ciety.org         → frontend  (terminal home)
+#   blog.fs0ciety.org    → frontend  (/blog)
+#   dash.fs0ciety.org    → frontend  (/dashboard)
+#   api.fs0ciety.org     → backend   (or /api on any domain)
 
 services:
-  # ── Reverse Proxy (Traefik + TLS) ─────────────────────────
-  traefik:
-    image: traefik:v3.2
-    command:
-      - "--api.insecure=false"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt:/letsencrypt
-    restart: unless-stopped
-
   # ── Frontend (Next.js 15) ─────────────────────────────────
   frontend:
     build:
@@ -68,21 +53,8 @@ services:
       - QBITTORRENT_URL=${QBITTORRENT_URL}
       - QBITTORRENT_USER=${QBITTORRENT_USER}
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
-    labels:
-      - "traefik.enable=true"
-      # API routes
-      - "traefik.http.routers.backend.rule=Host(`${DOMAIN}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend.entrypoints=websecure"
-      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.backend.loadbalancer.server.port=3001"
-      # WebSocket route
-      - "traefik.http.routers.backend-ws.rule=Host(`${DOMAIN}`) && PathPrefix(`/ws`)"
-      - "traefik.http.routers.backend-ws.entrypoints=websecure"
-      - "traefik.http.routers.backend-ws.tls.certresolver=letsencrypt"
-      # Swagger
-      - "traefik.http.routers.swagger.rule=Host(`${DOMAIN}`) && PathPrefix(`/swagger-ui`)"
-      - "traefik.http.routers.swagger.entrypoints=websecure"
-      - "traefik.http.routers.swagger.tls.certresolver=letsencrypt"
+    expose:
+      - "3001"
     depends_on:
       surrealdb:
         condition: service_healthy
@@ -95,12 +67,11 @@ services:
     volumes:
       - surrealdb_data:/data
     healthcheck:
-      test: ["CMD", "surreal", "is-ready", "--conn", "http://localhost:8000"]
+      test: ["CMD", "/surreal", "is-ready", "--conn", "http://localhost:8000"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
 volumes:
-  letsencrypt:
   surrealdb_data:

@@ -1,6 +1,9 @@
 # Stage 1: Build
 FROM rust:1.84-bookworm AS builder
-WORKDIR /app
+
+# Replicate repo layout so include_str! paths resolve identically:
+#   /build/backend/src/db/migrations.rs  →  ../../../database/  →  /build/database/
+WORKDIR /build/backend
 
 # 1. On copie la structure nécessaire
 # On crée les dossiers AVANT de copier pour éviter les erreurs de contexte

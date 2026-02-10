@@ -65,10 +65,14 @@ impl Config {
             public_url: env::var("PUBLIC_URL")
                 .unwrap_or_else(|_| "https://fs0ciety.org".into()),
             admin_api_key: env::var("ADMIN_API_KEY").unwrap_or_default(),
-            plex_external_url: env::var("PLEX_EXTERNAL_URL").unwrap_or_default(),
-            sonarr_external_url: env::var("SONARR_EXTERNAL_URL").unwrap_or_default(),
-            radarr_external_url: env::var("RADARR_EXTERNAL_URL").unwrap_or_default(),
-            qbittorrent_external_url: env::var("QBITTORRENT_EXTERNAL_URL").unwrap_or_default(),
+            plex_external_url: env::var("PLEX_EXTERNAL_URL")
+                .unwrap_or_else(|_| "https://app.plex.tv/desktop".into()),
+            sonarr_external_url: env::var("SONARR_EXTERNAL_URL")
+                .unwrap_or_else(|_| "https://sonarr.niftybee.box.ca".into()),
+            radarr_external_url: env::var("RADARR_EXTERNAL_URL")
+                .unwrap_or_else(|_| "https://radarr.niftybee.box.ca".into()),
+            qbittorrent_external_url: env::var("QBITTORRENT_EXTERNAL_URL")
+                .unwrap_or_else(|_| "https://qbittorrent.niftybee.box.ca".into()),
         }
     }
 

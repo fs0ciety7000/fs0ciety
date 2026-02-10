@@ -115,10 +115,36 @@ export const api = {
         body: JSON.stringify(data),
         headers: authHeaders(token),
       }),
+    updateUser: (username: string, data: Record<string, unknown>, token: string) =>
+      request<{ message: string; username: string }>(`/api/admin/users/${username}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+        headers: authHeaders(token),
+      }),
     deleteUser: (username: string, token: string) =>
       request<{ deleted: boolean; username: string }>(`/api/admin/users/${username}`, {
         method: "DELETE",
         headers: authHeaders(token),
       }),
+  },
+
+  // Public profiles
+  profile: (username: string) =>
+    request<UserPublic>(`/api/users/${username}`),
+
+  // File upload
+  upload: async (file: File, token: string): Promise<{ url: string; filename: string }> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || `Upload failed: ${res.status}`);
+    }
+    return res.json();
   },
 };

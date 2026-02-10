@@ -91,6 +91,8 @@ export interface UserPublic {
   username: string;
   role: string;
   email: string | null;
+  bio: string | null;
+  avatar_url: string | null;
   created_at: string;
   last_login: string | null;
 }

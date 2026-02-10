@@ -22,6 +22,10 @@ pub struct User {
     pub password_hash: String,
     pub role: UserRole,
     pub email: Option<String>,
+    #[serde(default)]
+    pub bio: Option<String>,
+    #[serde(default)]
+    pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
@@ -54,12 +58,25 @@ pub struct ChangePasswordRequest {
     pub new_password: String,
 }
 
+/// Admin update user request (all fields optional).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateUserRequest {
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub role: Option<UserRole>,
+    pub password: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
 /// Safe user representation for API responses (no password_hash).
 #[derive(Debug, Serialize, ToSchema)]
 pub struct UserPublic {
     pub username: String,
     pub role: UserRole,
     pub email: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
     pub created_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
 }

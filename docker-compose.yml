@@ -65,14 +65,15 @@ services:
     restart: unless-stopped
 
   # ── Database (SurrealDB) ──────────────────────────────────
-  # Expose port 8000 so Coolify can route db.fs0ciety.org to it.
-  # Configure in Coolify UI → surrealdb service → Domains: db.fs0ciety.org
+  # Port 8000 published to host so Surrealist can connect.
+  # Connect from Surrealist: ws://<server-ip>:8000/rpc
+  #   namespace: fs0ciety, database: main
   surrealdb:
     image: surrealdb/surrealdb:v2
     user: root
     command: start --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:-changeme} rocksdb:/data/srdb.db
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - surrealdb_data:/data
     restart: unless-stopped

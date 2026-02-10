@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SeedboxStats } from "@/types";
 
-// Derive WebSocket URL from current page origin (same-origin via Traefik).
+// WebSocket connects directly to the backend (api. subdomain).
+// Next.js rewrites can proxy HTTP but NOT WebSocket upgrades.
 function getWsUrl(): string {
   if (typeof window === "undefined") return "ws://localhost:3001/ws";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws`;
+  // Replace the current host with the api subdomain.
+  const host = window.location.host;
+  const domain = host.replace(/^(blog\.|dash\.)/, "");
+  return `${proto}//api.${domain}/ws`;
 }
 
 /** Hook for real-time seedbox stats via WebSocket. */

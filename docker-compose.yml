@@ -1,14 +1,14 @@
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  fs0ciety — Docker Compose for Coolify                     ║
 # ║  Services: Frontend, Backend, SurrealDB                    ║
-# ║  Traefik is managed by Coolify — no need to include it.    ║
+# ║  Traefik is managed by Coolify — do NOT add labels here.   ║
 # ╚══════════════════════════════════════════════════════════════╝
 #
-# Subdomains:
+# Domains (configured in Coolify UI):
 #   fs0ciety.org         → frontend  (terminal home)
-#   blog.fs0ciety.org    → frontend  (/blog)
-#   dash.fs0ciety.org    → frontend  (/dashboard)
-#   api.fs0ciety.org     → backend   (or /api on any domain)
+#   blog.fs0ciety.org    → frontend  (/blog — via Next.js middleware)
+#   dash.fs0ciety.org    → frontend  (/dashboard — via Next.js middleware)
+#   api.fs0ciety.org     → backend
 
 services:
   # ── Frontend (Next.js 15) ─────────────────────────────────
@@ -17,16 +17,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_API_URL=https://${DOMAIN:-fs0ciety.org}
-      - NEXT_PUBLIC_WS_URL=wss://${DOMAIN:-fs0ciety.org}/ws
       - NEXT_PUBLIC_DOMAIN=${DOMAIN:-fs0ciety.org}
       - INTERNAL_API_URL=http://backend:3001
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-fs0ciety.org}`) || Host(`blog.${DOMAIN:-fs0ciety.org}`) || Host(`dash.${DOMAIN:-fs0ciety.org}`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    expose:
+      - "3000"
     depends_on:
       - backend
     restart: unless-stopped
@@ -57,14 +51,6 @@ services:
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
     expose:
       - "3001"
-    labels:
-      - "traefik.enable=true"
-      # Route /api/* and /ws to backend (higher priority than frontend catch-all)
-      - "traefik.http.routers.backend-api.rule=(Host(`${DOMAIN:-fs0ciety.org}`) || Host(`blog.${DOMAIN:-fs0ciety.org}`) || Host(`dash.${DOMAIN:-fs0ciety.org}`)) && (PathPrefix(`/api`) || Path(`/ws`))"
-      - "traefik.http.routers.backend-api.entrypoints=websecure"
-      - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.backend-api.priority=100"
-      - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
     depends_on:
       - surrealdb
     restart: unless-stopped

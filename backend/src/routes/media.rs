@@ -20,23 +20,31 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
         proxy.radarr_history(),
     );
 
+    let plex_base = &proxy.config.plex_url;
+    let plex_token = &proxy.config.plex_token;
+
     // ── Plex: now playing ──
     let now_playing = match &plex_sessions {
         Ok(data) => {
             let sessions = &data["MediaContainer"]["Metadata"];
             if let Some(arr) = sessions.as_array() {
-                arr.iter().map(|s| json!({
-                    "title": s["title"],
-                    "grandparentTitle": s["grandparentTitle"],
-                    "type": s["type"],
-                    "user": s["User"]["title"],
-                    "player": s["Player"]["title"],
-                    "state": s["Player"]["state"],
-                    "progress": calculate_progress(
-                        s["viewOffset"].as_u64().unwrap_or(0),
-                        s["duration"].as_u64().unwrap_or(1),
-                    ),
-                })).collect::<Vec<_>>()
+                arr.iter().map(|s| {
+                    let thumb = plex_thumb_url(plex_base, plex_token, s);
+                    json!({
+                        "title": s["title"],
+                        "parentTitle": s["parentTitle"],
+                        "grandparentTitle": s["grandparentTitle"],
+                        "type": s["type"],
+                        "user": s["User"]["title"],
+                        "player": s["Player"]["title"],
+                        "state": s["Player"]["state"],
+                        "thumb": thumb,
+                        "progress": calculate_progress(
+                            s["viewOffset"].as_u64().unwrap_or(0),
+                            s["duration"].as_u64().unwrap_or(1),
+                        ),
+                    })
+                }).collect::<Vec<_>>()
             } else {
                 vec![]
             }
@@ -52,13 +60,19 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
         Ok(data) => {
             let metadata = &data["MediaContainer"]["Metadata"];
             if let Some(arr) = metadata.as_array() {
-                arr.iter().take(10).map(|m| json!({
-                    "title": m["title"],
-                    "grandparentTitle": m["grandparentTitle"],
-                    "type": m["type"],
-                    "year": m["year"],
-                    "addedAt": m["addedAt"],
-                })).collect::<Vec<_>>()
+                arr.iter().take(10).map(|m| {
+                    let thumb = plex_thumb_url(plex_base, plex_token, m);
+                    // For seasons: parentTitle = series name, title = "Season X"
+                    // For episodes: grandparentTitle = series, parentTitle = season
+                    let display_title = plex_display_title(m);
+                    json!({
+                        "title": display_title,
+                        "type": m["type"],
+                        "year": m["year"],
+                        "addedAt": m["addedAt"],
+                        "thumb": thumb,
+                    })
+                }).collect::<Vec<_>>()
             } else {
                 vec![]
             }
@@ -141,4 +155,42 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
 fn calculate_progress(offset: u64, duration: u64) -> u64 {
     if duration == 0 { return 0; }
     (offset * 100) / duration
+}
+
+/// Build a proxied Plex thumbnail URL.
+/// Uses the best available thumb: grandparent > parent > item.
+fn plex_thumb_url(base: &str, token: &str, item: &Value) -> Option<String> {
+    let thumb = item["grandparentThumb"].as_str()
+        .or_else(|| item["parentThumb"].as_str())
+        .or_else(|| item["thumb"].as_str());
+    thumb.map(|t| format!("{}/photo/:/transcode?width=120&height=180&minSize=1&url={}&X-Plex-Token={}", base, t, token))
+}
+
+/// Build a display title for Plex items.
+/// Handles: movie → "Title", season → "Series — Season X", episode → "Series — S01E02 Title"
+fn plex_display_title(item: &Value) -> String {
+    let media_type = item["type"].as_str().unwrap_or("");
+    let title = item["title"].as_str().unwrap_or("Unknown");
+
+    match media_type {
+        "season" => {
+            // parentTitle = series name, title = "Season X"
+            if let Some(series) = item["parentTitle"].as_str() {
+                format!("{} — {}", series, title)
+            } else {
+                title.to_string()
+            }
+        }
+        "episode" => {
+            let series = item["grandparentTitle"].as_str().unwrap_or("");
+            let season = item["parentIndex"].as_u64().unwrap_or(0);
+            let ep = item["index"].as_u64().unwrap_or(0);
+            if !series.is_empty() {
+                format!("{} — S{:02}E{:02} {}", series, season, ep, title)
+            } else {
+                title.to_string()
+            }
+        }
+        _ => title.to_string(), // movie, clip, etc.
+    }
 }

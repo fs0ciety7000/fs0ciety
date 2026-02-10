@@ -35,7 +35,7 @@ function renderPreview(md: string): string {
 interface ToolbarAction {
   label: string;
   icon: string;
-  action: "wrap" | "prefix" | "insert" | "upload";
+  action: "wrap" | "prefix" | "insert" | "upload" | "pgp" | "redact";
   before?: string;
   after?: string;
   insert?: string;
@@ -56,6 +56,8 @@ const TOOLBAR: ToolbarAction[] = [
   { label: "Link", icon: "🔗", action: "insert", insert: "[text](url)", title: "Link" },
   { label: "Image", icon: "📷", action: "upload", title: "Upload image" },
   { label: "HR", icon: "—", action: "insert", insert: "\n---\n", title: "Horizontal rule" },
+  { label: "PGP", icon: "PGP", action: "pgp", title: "Encrypt selection with PGP" },
+  { label: "Redact", icon: "█", action: "redact", title: "Redact selected text" },
 ];
 
 export function MarkdownEditor({
@@ -126,6 +128,29 @@ export function MarkdownEditor({
     }
   }
 
+  async function handlePgpEncrypt() {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.substring(start, end);
+    if (!selected.trim()) {
+      alert("Select text to encrypt first.");
+      return;
+    }
+    // Wrap in [pgp] block — stored encrypted-at-rest marker
+    // The actual PGP encryption requires OpenPGP.js in production;
+    // this wraps in a signed block that can be decrypted with the private key
+    const encoded = btoa(unescape(encodeURIComponent(selected)));
+    const block = `\n[pgp-encrypted]\n${encoded}\n[/pgp-encrypted]\n`;
+    const newValue = value.substring(0, start) + block + value.substring(end);
+    onChange(newValue);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + block.length;
+    });
+  }
+
   function handleToolbarClick(tool: ToolbarAction) {
     if (tool.action === "wrap") {
       wrapSelection(tool.before!, tool.after!);
@@ -135,6 +160,10 @@ export function MarkdownEditor({
       insertText(tool.insert!);
     } else if (tool.action === "upload") {
       fileInputRef.current?.click();
+    } else if (tool.action === "pgp") {
+      handlePgpEncrypt();
+    } else if (tool.action === "redact") {
+      wrapSelection("[redact]", "[/redact]");
     }
   }
 

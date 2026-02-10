@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
+import { CipherLoading } from "@/components/blog/CipherText";
 import type { PostMeta } from "@/types";
 
 const API_BASE = "";
@@ -73,9 +74,7 @@ function BlogPageContent() {
 
       {/* Posts */}
       {loading ? (
-        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
-          Loading posts...
-        </div>
+        <CipherLoading text="$ cat /var/log/thoughts/*" />
       ) : filtered.length === 0 ? (
         <div className="font-mono text-terminal-green-dim text-sm">
           No posts found. {activeTag && "Try clearing the filter."}
@@ -94,11 +93,7 @@ function BlogPageContent() {
 export default function BlogPage() {
   return (
     <Suspense
-      fallback={
-        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
-          Loading...
-        </div>
-      }
+      fallback={<CipherLoading text="Initializing /var/log/thoughts..." />}
     >
       <BlogPageContent />
     </Suspense>

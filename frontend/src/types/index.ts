@@ -88,6 +88,17 @@ export interface AuthState {
   token: string | null;
 }
 
+/** Audit log entry from /api/admin/audit. */
+export interface AuditLogEntry {
+  event_type: string;
+  username: string;
+  ip: string;
+  user_agent: string;
+  success: boolean;
+  details: string;
+  timestamp: string;
+}
+
 /** User info returned by admin API. */
 export interface UserPublic {
   username: string;

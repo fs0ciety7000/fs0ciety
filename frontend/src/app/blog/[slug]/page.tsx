@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "@/types";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
+import { CipherLoading } from "@/components/blog/CipherText";
 
 const API_BASE = "";
 
@@ -62,11 +63,7 @@ export default function BlogPostPage() {
   }, [html]);
 
   if (loading) {
-    return (
-      <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
-        Fetching /{params.slug}...
-      </div>
-    );
+    return <CipherLoading text={`$ cat /var/log/thoughts/${params.slug}`} />;
   }
 
   if (error || !post) {
@@ -229,6 +226,18 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
     toc.push({ level, text, id });
     return `<h${level} id="${id}">${text}</h${level}>`;
   });
+
+  // [redact]...[/redact] — renders as a black bar with glitch-reveal on hover
+  processed = processed.replace(
+    /\[redact\]([\s\S]*?)\[\/redact\]/g,
+    '<span class="redacted" title="[REDACTED]">$1</span>'
+  );
+
+  // [pgp-encrypted]...[/pgp-encrypted] — renders as a locked PGP block
+  processed = processed.replace(
+    /\[pgp-encrypted\]\n?([\s\S]*?)\n?\[\/pgp-encrypted\]/g,
+    '<div class="border border-terminal-purple/30 bg-terminal-purple/5 p-4 my-4 font-mono text-xs"><span class="text-terminal-purple font-bold">PGP ENCRYPTED BLOCK</span><pre class="mt-2 text-terminal-purple-dim/60 break-all whitespace-pre-wrap select-all">$1</pre></div>'
+  );
 
   // Inline code
   processed = processed.replace(/`([^`]+)`/g, "<code>$1</code>");

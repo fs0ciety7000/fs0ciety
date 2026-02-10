@@ -18,6 +18,7 @@ export default function BlogLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col bg-terminal-black text-[#d4d4d4]">
+      <div className="noise-overlay" aria-hidden="true" />
       <BlogHeader />
       <SearchDialog />
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-10">

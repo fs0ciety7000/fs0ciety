@@ -162,6 +162,8 @@ async fn main() {
         .route("/api/admin/posts", get(routes::posts::admin_list_posts).post(routes::posts::create_post))
         .route("/api/admin/posts/{slug}", get(routes::posts::admin_get_post).put(routes::posts::update_post).delete(routes::posts::delete_post))
         .route("/api/admin/stats", get(routes::posts::admin_stats))
+        // Admin — audit logs
+        .route("/api/admin/audit", get(routes::audit::get_audit_logs))
         // Admin — user management
         .route("/api/admin/users", get(routes::users::list_users).post(routes::users::create_user))
         .route("/api/admin/users/{username}", get(routes::users::get_profile).put(routes::users::update_user).delete(routes::users::delete_user))

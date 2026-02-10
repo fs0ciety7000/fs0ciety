@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/admin/posts/new", label: "New Post", icon: "+" },
   { href: "/admin/posts/upload", label: "Upload MDX", icon: "^" },
   { href: "/admin/users", label: "Users", icon: "@" },
+  { href: "/admin/audit", label: "Audit Log", icon: "!" },
   { href: "/admin/settings", label: "Settings", icon: "*" },
 ];
 

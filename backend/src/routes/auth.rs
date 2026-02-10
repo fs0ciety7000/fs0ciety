@@ -1,5 +1,6 @@
 use axum::extract::State;
 use axum::Json;
+use axum::http::HeaderMap;
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
@@ -11,7 +12,31 @@ use tracing::{info, warn};
 use crate::error::AppError;
 use crate::middleware::{AuthUser, Claims};
 use crate::models::{ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, UpdateProfileRequest, User};
+use crate::routes::audit;
 use crate::AppState;
+
+/// Extract client IP from headers (X-Forwarded-For, X-Real-IP, or fallback).
+fn extract_ip(headers: &HeaderMap) -> String {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.split(',').next().unwrap_or("unknown").trim().to_string())
+        .or_else(|| {
+            headers.get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(String::from)
+        })
+        .unwrap_or_else(|| "unknown".into())
+}
+
+/// Extract User-Agent from headers.
+fn extract_ua(headers: &HeaderMap) -> String {
+    headers
+        .get("user-agent")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("unknown")
+        .to_string()
+}
 
 /// POST /api/auth/login — authenticate against SurrealDB + argon2.
 #[utoipa::path(
@@ -26,9 +51,12 @@ use crate::AppState;
 )]
 pub async fn login(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<Value>, AppError> {
     let username = req.username.clone();
+    let ip = extract_ip(&headers);
+    let ua = extract_ua(&headers);
 
     // Look up user in SurrealDB.
     let result: Vec<User> = state.db
@@ -39,14 +67,23 @@ pub async fn login(
         .take(0)
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-    let user = result.into_iter().next().ok_or(AppError::Unauthorized)?;
+    let user = match result.into_iter().next() {
+        Some(u) => u,
+        None => {
+            warn!("Login failed: unknown user '{}'", username);
+            audit::record_audit(&state.db, "login", &username, &ip, &ua, false, "unknown user").await;
+            return Err(AppError::Unauthorized);
+        }
+    };
 
     // Verify password with argon2.
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|_| AppError::Internal("Invalid password hash in database".into()))?;
-    Argon2::default()
-        .verify_password(req.password.as_bytes(), &parsed_hash)
-        .map_err(|_| AppError::Unauthorized)?;
+    if Argon2::default().verify_password(req.password.as_bytes(), &parsed_hash).is_err() {
+        warn!("Login failed: wrong password for '{}'", username);
+        audit::record_audit(&state.db, "login", &username, &ip, &ua, false, "wrong password").await;
+        return Err(AppError::Unauthorized);
+    }
 
     // Update last_login.
     let _ = state.db
@@ -74,7 +111,8 @@ pub async fn login(
     )
     .map_err(|e| AppError::Internal(format!("JWT encode error: {}", e)))?;
 
-    info!("User '{}' logged in", user.username);
+    info!("User '{}' logged in from {}", user.username, ip);
+    audit::record_audit(&state.db, "login", &user.username, &ip, &ua, true, "ACCESS GRANTED").await;
 
     Ok(Json(json!({
         "token": token,

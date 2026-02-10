@@ -11,6 +11,10 @@
   --color-terminal-red-dim: #CC0029;
   --color-terminal-amber: #FFB000;
   --color-terminal-cyan: #00D4FF;
+  --color-terminal-purple: #9B30FF;
+  --color-terminal-purple-dim: #7B22CC;
+  --color-terminal-cobalt: #0066FF;
+  --color-terminal-cobalt-dim: #004FCC;
   --color-terminal-black: #0A0A0A;
   --color-terminal-black-light: #111111;
   --color-terminal-gray: #1A1A1A;
@@ -299,18 +303,19 @@ html {
   border-color: #FFB000;
 }
 
-/* ── Syntax Highlighting (Terminal Theme) ────────────────── */
+/* ── Syntax Highlighting (Desert / Low-Fi Theme) ─────────── */
+/* Inspired by Vim Desert + Monokai — muted, warm tones */
 
-.tok-kw  { color: #FF0033; }
-.tok-str { color: #FFB000; }
-.tok-cm  { color: #555555; font-style: italic; }
-.tok-num { color: #00D4FF; }
-.tok-fn  { color: #00FF41; }
-.tok-op  { color: #FF0033; }
-.tok-type { color: #00D4FF; }
-.tok-const { color: #AAFFAA; }
-.tok-attr { color: #FFB000; }
-.tok-dec { color: #FF0033; }
+.tok-kw  { color: #CC7832; }
+.tok-str { color: #6A8759; }
+.tok-cm  { color: #808080; font-style: italic; }
+.tok-num { color: #6897BB; }
+.tok-fn  { color: #FFC66D; }
+.tok-op  { color: #CC7832; }
+.tok-type { color: #A9B7C6; }
+.tok-const { color: #9876AA; }
+.tok-attr { color: #BABABA; }
+.tok-dec { color: #BBB529; }
 
 /* ── Post Card Glitch Hover ─────────────────────────────── */
 
@@ -440,3 +445,111 @@ html {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ── Static Noise / Film Grain Overlay ───────────────────── */
+/* Adds a subtle digital noise texture over the #0A0A0A bg   */
+
+.noise-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+  mix-blend-mode: overlay;
+}
+
+/* Animate the noise position for a "live" grain effect */
+@keyframes noise-drift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, 2px); }
+  100% { transform: translate(0, 0); }
+}
+
+.noise-overlay {
+  animation: noise-drift 0.3s steps(4) infinite;
+}
+
+/* ── [REDACTED] Text ─────────────────────────────────────── */
+
+.redacted {
+  position: relative;
+  display: inline;
+  background: #000;
+  color: transparent;
+  cursor: pointer;
+  padding: 0 0.2em;
+  border-radius: 1px;
+  transition: color 0.3s, background 0.3s;
+  user-select: none;
+}
+
+/* The black bar */
+.redacted::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #111;
+  border: 1px solid #333;
+  transition: opacity 0.3s;
+}
+
+/* Hover reveal with glitch */
+.redacted:hover {
+  background: transparent;
+  color: #FF0033;
+  animation: redact-glitch 0.2s ease-in-out;
+}
+
+.redacted:hover::after {
+  opacity: 0;
+}
+
+/* Admin can always see redacted text (with dim styling) */
+.redacted.redacted-admin {
+  color: #FF003380;
+  background: transparent;
+}
+
+.redacted.redacted-admin::after {
+  opacity: 0;
+}
+
+.redacted.redacted-admin:hover {
+  color: #FF0033;
+}
+
+@keyframes redact-glitch {
+  0% { transform: translate(0); }
+  20% { transform: translate(-2px, 1px); }
+  40% { transform: translate(2px, -1px); }
+  60% { transform: translate(-1px, -1px); }
+  80% { transform: translate(1px, 1px); }
+  100% { transform: translate(0); }
+}
+
+/* ── Security Status Badge (Footer) ──────────────────────── */
+
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.6rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.security-badge .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.security-badge .dot-ok { background: #00FF41; box-shadow: 0 0 4px #00FF4180; }
+.security-badge .dot-warn { background: #FFB000; box-shadow: 0 0 4px #FFB00080; }
+.security-badge .dot-err { background: #FF0033; box-shadow: 0 0 4px #FF003380; }

@@ -14,12 +14,23 @@ const FOOTER_QUOTES = [
   "In a world of locked rooms, the man with the key is king.",
 ];
 
+function SecurityBadge({ label, ok }: { label: string; ok: boolean }) {
+  return (
+    <span className="security-badge">
+      <span className={`dot ${ok ? "dot-ok" : "dot-err"}`} />
+      <span>{label}: {ok ? "OK" : "ERR"}</span>
+    </span>
+  );
+}
+
 export function BlogFooter() {
   const year = new Date().getFullYear();
   const [quote, setQuote] = useState(FOOTER_QUOTES[0]);
+  const [isHttps, setIsHttps] = useState(true);
 
   useEffect(() => {
     setQuote(FOOTER_QUOTES[Math.floor(Math.random() * FOOTER_QUOTES.length)]);
+    setIsHttps(window.location.protocol === "https:");
   }, []);
 
   const hrefs = useSubdomainHrefs({
@@ -83,6 +94,13 @@ export function BlogFooter() {
               mastodon
             </a>
           </div>
+        </div>
+
+        {/* Security status bar */}
+        <div className="flex items-center justify-center gap-4 mt-4 opacity-30 hover:opacity-60 transition-opacity">
+          <SecurityBadge label="SSL" ok={isHttps} />
+          <SecurityBadge label="Headers" ok={true} />
+          <SecurityBadge label="EXIF-Strip" ok={true} />
         </div>
       </div>
     </footer>

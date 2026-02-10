@@ -1,7 +1,7 @@
 use axum::extract::{Multipart, State};
 use axum::Json;
 use serde_json::{json, Value};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::error::AppError;
 use crate::middleware::AuthUser;
@@ -10,7 +10,59 @@ use crate::AppState;
 const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10 MB
 const UPLOAD_DIR: &str = "/data/uploads";
 
+/// Strip EXIF metadata from JPEG images to preserve author anonymity.
+/// Removes APP1 (EXIF/XMP) segments that may contain GPS, camera model, etc.
+fn strip_exif_jpeg(data: &[u8]) -> Vec<u8> {
+    use img_parts::jpeg::Jpeg;
+    use img_parts::ImageEXIF;
+    use std::io::Cursor;
+
+    match Jpeg::from_bytes(data.to_vec().into()) {
+        Ok(mut jpeg) => {
+            jpeg.set_exif(None);
+            let mut out = Vec::new();
+            if jpeg.encoder().write_to(&mut Cursor::new(&mut out)).is_ok() {
+                info!("EXIF metadata stripped from JPEG upload");
+                out
+            } else {
+                warn!("Failed to re-encode JPEG after EXIF strip, using original");
+                data.to_vec()
+            }
+        }
+        Err(_) => {
+            warn!("Failed to parse JPEG for EXIF stripping, using original");
+            data.to_vec()
+        }
+    }
+}
+
+/// Strip metadata from PNG images (tEXt, iTXt, zTXt chunks).
+fn strip_exif_png(data: &[u8]) -> Vec<u8> {
+    use img_parts::png::Png;
+    use img_parts::ImageEXIF;
+    use std::io::Cursor;
+
+    match Png::from_bytes(data.to_vec().into()) {
+        Ok(mut png) => {
+            png.set_exif(None);
+            let mut out = Vec::new();
+            if png.encoder().write_to(&mut Cursor::new(&mut out)).is_ok() {
+                info!("EXIF metadata stripped from PNG upload");
+                out
+            } else {
+                warn!("Failed to re-encode PNG after EXIF strip, using original");
+                data.to_vec()
+            }
+        }
+        Err(_) => {
+            warn!("Failed to parse PNG for EXIF stripping, using original");
+            data.to_vec()
+        }
+    }
+}
+
 /// POST /api/upload — upload a file (authenticated users only).
+/// Automatically strips EXIF metadata from JPEG/PNG uploads.
 /// Returns the public URL for the uploaded file.
 pub async fn upload_file(
     _state: State<AppState>,
@@ -49,6 +101,14 @@ pub async fn upload_file(
             return Err(AppError::BadRequest("File too large (max 10 MB)".into()));
         }
 
+        // Strip EXIF/metadata from supported image types.
+        let clean_data = match content_type.as_str() {
+            "image/jpeg" => strip_exif_jpeg(&data),
+            "image/png" => strip_exif_png(&data),
+            // GIF, WebP, SVG: pass through as-is
+            _ => data.to_vec(),
+        };
+
         // Generate unique filename.
         let ext = extension_from_content_type(&content_type)
             .or_else(|| extension_from_name(&original_name))
@@ -56,19 +116,24 @@ pub async fn upload_file(
         let unique_name = format!("{}_{}.{}", chrono::Utc::now().format("%Y%m%d%H%M%S"), uuid::Uuid::new_v4().simple(), ext);
         let file_path = format!("{}/{}", UPLOAD_DIR, unique_name);
 
-        tokio::fs::write(&file_path, &data)
+        tokio::fs::write(&file_path, &clean_data)
             .await
             .map_err(|e| AppError::Internal(format!("Write error: {}", e)))?;
 
         let url = format!("/api/uploads/{}", unique_name);
-        info!("File uploaded: {} ({} bytes) -> {}", original_name, data.len(), url);
+        info!(
+            "File uploaded: {} ({} -> {} bytes, exif_stripped={}) -> {}",
+            original_name, data.len(), clean_data.len(),
+            clean_data.len() != data.len(), url
+        );
 
         return Ok(Json(json!({
             "url": url,
             "filename": unique_name,
             "original_name": original_name,
-            "size": data.len(),
+            "size": clean_data.len(),
             "content_type": content_type,
+            "exif_stripped": clean_data.len() != data.len(),
         })));
     }
 

@@ -19,7 +19,7 @@ export default function AdminDashboard() {
         // Sort by createdAt desc, take first 5
         const sorted = [...p.posts].sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0)
         );
         setRecentPosts(sorted.slice(0, 5));
       })
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-terminal-green-dim hidden sm:table-cell">
-                      {new Date(post.createdAt).toLocaleDateString()}
+                      {(() => { const d = new Date(post.createdAt); return isNaN(d.getTime()) ? "—" : d.toLocaleDateString(); })()}
                     </td>
                     <td className="px-4 py-3 text-xs font-mono text-terminal-green-dim hidden lg:table-cell">
                       {post.readingTime} min

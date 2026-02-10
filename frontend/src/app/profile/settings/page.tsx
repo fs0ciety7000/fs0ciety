@@ -161,6 +161,12 @@ export default function ProfileSettingsPage() {
               ← profile
             </button>
             <button
+              onClick={() => router.push("/blog")}
+              className="text-xs font-mono border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
+            >
+              ← blog
+            </button>
+            <button
               onClick={() => router.push("/")}
               className="text-xs font-mono border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
             >

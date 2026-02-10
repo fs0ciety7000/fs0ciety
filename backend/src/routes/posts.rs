@@ -51,7 +51,7 @@ fn excerpt(content: &str, max_len: usize) -> String {
     }
 }
 
-/// Enrich a post with reading_time, word_count, excerpt.
+/// Enrich a post with reading_time, word_count, excerpt, and normalize datetimes.
 fn enrich(p: &Value) -> Value {
     let content = p["content"].as_str().unwrap_or("");
     let (wc, rt) = content_stats(content);
@@ -59,7 +59,31 @@ fn enrich(p: &Value) -> Value {
     enriched["readingTime"] = json!(rt);
     enriched["wordCount"] = json!(wc);
     enriched["excerpt"] = json!(excerpt(content, 160));
+    // Normalize SurrealDB datetimes to plain ISO strings (both snake_case and camelCase).
+    let created = extract_datetime(&p["created_at"]);
+    let updated = extract_datetime(&p["updated_at"]);
+    enriched["created_at"] = created.clone();
+    enriched["updated_at"] = updated.clone();
+    enriched["createdAt"] = created;
+    enriched["updatedAt"] = updated;
     enriched
+}
+
+/// Extract a datetime value from SurrealDB, handling both plain strings and
+/// tagged objects like `{"$surrealdb::sql::Datetime": "..."}`.
+fn extract_datetime(v: &Value) -> Value {
+    if let Some(s) = v.as_str() {
+        return json!(s);
+    }
+    // SurrealDB v2 may serialize datetimes as tagged objects.
+    if let Some(obj) = v.as_object() {
+        for val in obj.values() {
+            if let Some(s) = val.as_str() {
+                return json!(s);
+            }
+        }
+    }
+    Value::Null
 }
 
 /// Build a summary (no content body).
@@ -70,8 +94,8 @@ fn to_summary(p: &Value) -> Value {
         "tags": p["tags"],
         "published": p["published"],
         "author": p["author"],
-        "createdAt": p["created_at"],
-        "updatedAt": p["updated_at"],
+        "createdAt": extract_datetime(&p["created_at"]),
+        "updatedAt": extract_datetime(&p["updated_at"]),
         "readingTime": p["readingTime"],
         "wordCount": p["wordCount"],
         "excerpt": p["excerpt"],

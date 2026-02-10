@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
 import type { PostMeta } from "@/types";
@@ -8,9 +9,15 @@ import type { PostMeta } from "@/types";
 const API_BASE = "";
 
 export default function BlogPage() {
+  const searchParams = useSearchParams();
   const [posts, setPosts] = useState<PostMeta[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const tagParam = searchParams.get("tag");
+  const [activeTag, setActiveTag] = useState<string | null>(tagParam);
+
+  useEffect(() => {
+    setActiveTag(tagParam);
+  }, [tagParam]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/posts`)
@@ -41,6 +48,20 @@ export default function BlogPage() {
         <p className="text-sm text-[#a3a3a3] font-sans">
           Writings on security, systems, infrastructure, and the spaces in between.
         </p>
+        <div className="mt-3">
+          <button
+            onClick={() => {
+              const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true });
+              window.dispatchEvent(event);
+            }}
+            className="text-xs font-mono text-terminal-green-dim/50 hover:text-terminal-green-dim transition-colors flex items-center gap-2"
+          >
+            <span>$ grep</span>
+            <kbd className="border border-terminal-gray-light px-1.5 py-0.5 text-[10px]">
+              Ctrl+K
+            </kbd>
+          </button>
+        </div>
       </div>
 
       {/* Tag filter */}

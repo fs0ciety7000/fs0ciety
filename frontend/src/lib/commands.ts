@@ -40,7 +40,7 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  help              Show this help message"),
       out("  ls                List blog posts"),
       out("  cat <slug>        Read a blog post"),
-      out("  whoami            Display current user"),
+      out("  whoami [-v]       Display current user / env"),
       out("  status            System health check"),
       out("  dashboard         Open command center"),
       out("  clear             Clear terminal"),
@@ -51,6 +51,8 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  fingerprint       Show key fingerprint"),
       out("  verify <slug>     Verify post integrity hash"),
       out("  canary            Show warrant canary status"),
+      sys("├──────────────────────── SEARCH ───────────────┤"),
+      out("  grep <query>      Search blog posts"),
       sys("└─────────────────────────────────────────────┘"),
     ],
   },
@@ -139,7 +141,39 @@ export const COMMANDS: Record<string, TerminalCommand> = {
   whoami: {
     name: "whoami",
     description: "Display current user",
-    execute: () => [out("guest@fs0ciety")],
+    usage: "whoami [-v]",
+    execute: (args) => {
+      if (args.includes("-v") || args.includes("--verbose")) {
+        const nav = navigator as Navigator & {
+          deviceMemory?: number;
+          connection?: { effectiveType?: string };
+        };
+        return [
+          sys("╔══════════════════════════════════════════╗"),
+          sys("║         CLIENT ENVIRONMENT                ║"),
+          sys("╠══════════════════════════════════════════╣"),
+          out(`  user:       guest@fs0ciety`),
+          out(`  platform:   ${nav.platform || "unknown"}`),
+          out(`  language:   ${nav.language}`),
+          out(`  cores:      ${nav.hardwareConcurrency || "?"}`),
+          out(`  memory:     ${nav.deviceMemory ? nav.deviceMemory + " GB" : "hidden"}`),
+          out(`  screen:     ${screen.width}x${screen.height}`),
+          out(`  color:      ${screen.colorDepth}-bit`),
+          out(`  dpr:        ${window.devicePixelRatio}x`),
+          out(`  touch:      ${("ontouchstart" in window) ? "yes" : "no"}`),
+          out(`  timezone:   ${Intl.DateTimeFormat().resolvedOptions().timeZone}`),
+          out(`  dnt:        ${nav.doNotTrack || "unset"}`),
+          out(`  cookies:    ${nav.cookieEnabled ? "enabled" : "disabled"}`),
+          out(`  connection: ${nav.connection?.effectiveType || "unknown"}`),
+          out(`  protocol:   ${window.location.protocol}`),
+          sys("╚══════════════════════════════════════════╝"),
+          out(""),
+          out("  Run 'nmap' for service scan."),
+          out("  Visit /blog/fingerprint for full analysis."),
+        ];
+      }
+      return [out("guest@fs0ciety")];
+    },
   },
 
   status: {
@@ -307,6 +341,70 @@ export const COMMANDS: Record<string, TerminalCommand> = {
         out(""),
         out("  Redirecting to full canary page..."),
       ];
+    },
+  },
+
+  // ── Recon commands ─────────────────────────────────────
+
+  grep: {
+    name: "grep",
+    description: "Search blog posts",
+    usage: "grep <query>",
+    execute: (args, ctx) => {
+      const query = args.join(" ");
+      if (!query) {
+        return [err("Usage: grep <query>"), err("Searches post titles, tags, and excerpts.")];
+      }
+
+      fetch("/api/posts")
+        .then((r) => {
+          if (!r.ok) throw new Error("failed");
+          return r.json();
+        })
+        .then(
+          (data: {
+            posts: {
+              slug: string;
+              title: string;
+              tags: string[];
+              excerpt: string;
+              readingTime: number;
+            }[];
+          }) => {
+            const q = query.toLowerCase();
+            const matches = (data.posts ?? []).filter(
+              (p) =>
+                p.title.toLowerCase().includes(q) ||
+                p.tags.some((t) => t.toLowerCase().includes(q)) ||
+                p.excerpt?.toLowerCase().includes(q) ||
+                p.slug.toLowerCase().includes(q)
+            );
+
+            if (!matches.length) {
+              ctx.addLines([out(`  No matches for '${query}'.`)]);
+              return;
+            }
+
+            const lines: TerminalLine[] = [
+              sys(`Found ${matches.length} match${matches.length !== 1 ? "es" : ""}:`),
+              out(""),
+            ];
+            for (const m of matches) {
+              lines.push(
+                out(`  \x1b[32m${m.slug}\x1b[0m  ${m.title}`),
+                out(`    ${m.tags.map((t) => `#${t}`).join(" ")} · ${m.readingTime} min read`)
+              );
+            }
+            lines.push(out(""));
+            lines.push(out("  Use 'cat <slug>' to read a post."));
+            ctx.addLines(lines);
+          }
+        )
+        .catch(() => {
+          ctx.addLines([err("Failed to search — API offline?")]);
+        });
+
+      return [sys(`grep: searching for '${query}'...`)];
     },
   },
 };

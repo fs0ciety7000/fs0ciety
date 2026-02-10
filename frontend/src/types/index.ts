@@ -53,6 +53,7 @@ export interface PostMeta {
   wordCount: number;
   excerpt: string;
   contentHash: string;
+  views: number;
 }
 
 /** Full blog post. */

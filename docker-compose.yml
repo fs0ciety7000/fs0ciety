@@ -1,14 +1,16 @@
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  fs0ciety — Docker Compose for Coolify                     ║
 # ║  Services: Frontend, Backend, SurrealDB                    ║
-# ║  Traefik is managed by Coolify — do NOT add labels here.   ║
+# ║  Coolify manages the main domain router (fs0ciety.org).    ║
+# ║  Subdomain routers are added here with unique names so     ║
+# ║  they don't conflict with Coolify's auto-generated config. ║
 # ╚══════════════════════════════════════════════════════════════╝
 #
-# Domains (configured in Coolify UI):
-#   fs0ciety.org         → frontend  (terminal home)
+# Domains:
+#   fs0ciety.org         → frontend  (Coolify manages this)
 #   blog.fs0ciety.org    → frontend  (/blog — via Next.js middleware)
 #   dash.fs0ciety.org    → frontend  (/dashboard — via Next.js middleware)
-#   api.fs0ciety.org     → backend
+#   api.fs0ciety.org     → backend   (Coolify manages this)
 
 services:
   # ── Frontend (Next.js 15) ─────────────────────────────────
@@ -21,6 +23,20 @@ services:
       - INTERNAL_API_URL=http://backend:3001
     expose:
       - "3000"
+    labels:
+      # Subdomain routers — unique names to avoid Coolify conflicts
+      - "traefik.http.routers.fs0ciety-blog.rule=Host(`blog.${DOMAIN:-fs0ciety.org}`)"
+      - "traefik.http.routers.fs0ciety-blog.entrypoints=https"
+      - "traefik.http.routers.fs0ciety-blog.tls=true"
+      - "traefik.http.routers.fs0ciety-blog.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.fs0ciety-blog.service=fs0ciety-blog-svc"
+      - "traefik.http.services.fs0ciety-blog-svc.loadbalancer.server.port=3000"
+      - "traefik.http.routers.fs0ciety-dash.rule=Host(`dash.${DOMAIN:-fs0ciety.org}`)"
+      - "traefik.http.routers.fs0ciety-dash.entrypoints=https"
+      - "traefik.http.routers.fs0ciety-dash.tls=true"
+      - "traefik.http.routers.fs0ciety-dash.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.fs0ciety-dash.service=fs0ciety-dash-svc"
+      - "traefik.http.services.fs0ciety-dash-svc.loadbalancer.server.port=3000"
     depends_on:
       - backend
     restart: unless-stopped

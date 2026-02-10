@@ -8,7 +8,6 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ASCIIChart } from "@/components/dashboard/ASCIIChart";
 import { ServiceStatus } from "@/components/dashboard/ServiceStatus";
 import { formatBytes, formatSpeed } from "@/lib/utils";
-import Image from "next/image";
 
 interface MediaData {
   plex: {
@@ -118,15 +117,13 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8 pb-4 border-b border-terminal-gray-light">
         <div className="flex items-center gap-4">
-          <Image
-            src="/mask.png"
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
             alt="fs0ciety"
             width={40}
             height={40}
             className="opacity-70 hover:opacity-100 transition-opacity"
-            style={{
-              filter: "brightness(0) saturate(100%) invert(72%) sepia(98%) saturate(1200%) hue-rotate(85deg) brightness(104%) contrast(106%)",
-            }}
           />
           <div>
             <GlitchText

@@ -15,8 +15,8 @@ const GLITCH_LINES = [
 ];
 
 /**
- * MaskReveal — displays the fsociety mask with a cinematic
- * fade-in, glitch scanlines, and terminal text before dissolving.
+ * MaskReveal — displays the fsociety GIF with green tint,
+ * CRT scanlines, glitch text, then dissolves into the terminal.
  */
 export function MaskReveal({ onComplete }: MaskRevealProps) {
   const [phase, setPhase] = useState<"enter" | "hold" | "text" | "exit">("enter");
@@ -25,21 +25,14 @@ export function MaskReveal({ onComplete }: MaskRevealProps) {
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
 
-    // Phase 1: enter (fade in) — 800ms
     timers.push(setTimeout(() => setPhase("hold"), 800));
-
-    // Phase 2: hold — show text lines sequentially
     timers.push(setTimeout(() => setPhase("text"), 1200));
 
-    // Show text lines one by one
     GLITCH_LINES.forEach((_, i) => {
       timers.push(setTimeout(() => setVisibleLines(i + 1), 1500 + i * 400));
     });
 
-    // Phase 3: exit (fade out) — after all text shown
     timers.push(setTimeout(() => setPhase("exit"), 1500 + GLITCH_LINES.length * 400 + 600));
-
-    // Complete — hand off to terminal
     timers.push(setTimeout(onComplete, 1500 + GLITCH_LINES.length * 400 + 1400));
 
     return () => timers.forEach(clearTimeout);
@@ -47,47 +40,49 @@ export function MaskReveal({ onComplete }: MaskRevealProps) {
 
   return (
     <div className="min-h-screen bg-terminal-black flex flex-col items-center justify-center font-mono relative overflow-hidden">
-      {/* Scanline overlay */}
+      {/* CRT scanline overlay */}
       <div
-        className="pointer-events-none absolute inset-0 z-10"
+        className="pointer-events-none absolute inset-0 z-30"
         style={{
           background:
-            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.03) 2px, rgba(0,255,65,0.03) 4px)",
+            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.04) 2px, rgba(0,255,65,0.04) 4px)",
         }}
       />
 
-      {/* Mask image */}
+      {/* Green tint overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 z-20"
+        style={{
+          background: "radial-gradient(ellipse at center, rgba(0,255,65,0.08) 0%, rgba(0,20,5,0.6) 100%)",
+          mixBlendMode: "screen",
+        }}
+      />
+
+      {/* GIF animation */}
       <AnimatePresence>
         {phase !== "exit" && (
           <motion.div
-            className="relative z-20"
-            initial={{ opacity: 0, scale: 0.8, filter: "blur(10px)" }}
+            className="relative z-10 flex items-center justify-center"
+            initial={{ opacity: 0, scale: 0.9, filter: "blur(6px)" }}
             animate={{
-              opacity: phase === "enter" ? [0, 0.6, 1] : 1,
+              opacity: phase === "enter" ? [0, 0.7, 1] : 1,
               scale: 1,
               filter: "blur(0px)",
             }}
-            exit={{ opacity: 0, scale: 1.1, filter: "blur(8px)" }}
+            exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
             transition={{
               duration: phase === "enter" ? 0.8 : 0.6,
               ease: "easeOut",
             }}
           >
-            {/* Green glow behind mask */}
-            <div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: "radial-gradient(circle, rgba(0,255,65,0.15) 0%, transparent 70%)",
-                transform: "scale(1.5)",
-              }}
-            />
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/mask.png"
+              src="/fsociety-reveal.gif"
               alt=""
-              className="w-48 h-48 md:w-64 md:h-64 relative"
+              className="w-[320px] h-[240px] md:w-[480px] md:h-[360px] object-contain"
               style={{
-                filter: "brightness(0) saturate(100%) invert(72%) sepia(98%) saturate(1200%) hue-rotate(85deg) brightness(104%) contrast(106%)",
+                filter:
+                  "brightness(0.7) saturate(0.3) sepia(1) hue-rotate(85deg) saturate(3) brightness(0.9) contrast(1.2)",
               }}
             />
           </motion.div>
@@ -95,7 +90,7 @@ export function MaskReveal({ onComplete }: MaskRevealProps) {
       </AnimatePresence>
 
       {/* Glitch text lines */}
-      <div className="mt-8 z-20 text-center space-y-2 min-h-[120px]">
+      <div className="mt-8 z-40 text-center space-y-2 min-h-[120px]">
         {GLITCH_LINES.slice(0, visibleLines).map((line, i) => (
           <motion.div
             key={i}
@@ -115,10 +110,10 @@ export function MaskReveal({ onComplete }: MaskRevealProps) {
 
       {/* Flicker effect */}
       <motion.div
-        className="absolute inset-0 bg-terminal-green z-30 pointer-events-none"
+        className="absolute inset-0 bg-terminal-green z-50 pointer-events-none"
         initial={{ opacity: 0 }}
         animate={{
-          opacity: [0, 0.05, 0, 0.03, 0, 0.02, 0],
+          opacity: [0, 0.04, 0, 0.02, 0, 0.03, 0],
         }}
         transition={{
           duration: 2,

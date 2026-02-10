@@ -49,7 +49,7 @@ export default function BlogPostPage() {
     );
   }
 
-  const d = new Date(post.created_at ?? post.createdAt);
+  const d = new Date(post.createdAt);
   const date = isNaN(d.getTime())
     ? "—"
     : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });

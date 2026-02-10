@@ -57,6 +57,14 @@ services:
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
     expose:
       - "3001"
+    labels:
+      - "traefik.enable=true"
+      # Route /api/* and /ws to backend (higher priority than frontend catch-all)
+      - "traefik.http.routers.backend-api.rule=(Host(`${DOMAIN:-fs0ciety.org}`) || Host(`blog.${DOMAIN:-fs0ciety.org}`) || Host(`dash.${DOMAIN:-fs0ciety.org}`)) && (PathPrefix(`/api`) || Path(`/ws`))"
+      - "traefik.http.routers.backend-api.entrypoints=websecure"
+      - "traefik.http.routers.backend-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.backend-api.priority=100"
+      - "traefik.http.services.backend-api.loadbalancer.server.port=3001"
     depends_on:
       - surrealdb
     restart: unless-stopped

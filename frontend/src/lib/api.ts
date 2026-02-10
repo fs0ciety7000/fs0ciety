@@ -1,6 +1,8 @@
 import type { Post, PostMeta, PostPayload, AdminStats, UserPublic } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// Same-origin: Traefik routes /api/* to the backend.
+// In local dev, Next.js rewrites (next.config.ts) proxy to localhost:3001.
+const API_BASE = "";
 
 /** Typed fetch wrapper for the Axum backend. */
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

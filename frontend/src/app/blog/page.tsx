@@ -5,7 +5,7 @@ import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
 import type { PostMeta } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = "";
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<PostMeta[]>([]);

@@ -7,17 +7,18 @@ RUN apt-get update && apt-get install -y \
     cmake \
     protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /app
+WORKDIR /build/backend
 
-COPY Cargo.toml Cargo.lock* ./
-COPY src ./src
+COPY backend/Cargo.toml backend/Cargo.lock* ./
+COPY backend/src ./src
+COPY database /build/database
 
 RUN cargo build --release
 
 # Stage 2: Runtime
 FROM gcr.io/distroless/cc-debian12 AS runner
 
-COPY --from=builder /app/target/release/fs0ciety-backend /usr/local/bin/fs0ciety-backend
+COPY --from=builder /build/backend/target/release/fs0ciety-backend /usr/local/bin/fs0ciety-backend
 
 EXPOSE 3001
 ENV BACKEND_PORT=3001

@@ -131,6 +131,15 @@ export const api = {
       request<{ logs: AuditLogEntry[]; total: number }>("/api/admin/audit", {
         headers: authHeaders(token),
       }),
+    // Maintenance mode
+    getMaintenance: () =>
+      request<{ enabled: boolean }>("/api/maintenance"),
+    setMaintenance: (enabled: boolean, token: string) =>
+      request<{ enabled: boolean; message: string }>("/api/admin/maintenance", {
+        method: "PUT",
+        body: JSON.stringify({ enabled }),
+        headers: authHeaders(token),
+      }),
   },
 
   // Public profiles

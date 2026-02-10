@@ -179,6 +179,9 @@ async fn main() {
         .route("/wp-login.php", get(routes::honeypot::honeypot_trap))
         .route("/.git/config", get(routes::honeypot::honeypot_trap))
         .route("/api/honeypot/intruders", get(routes::honeypot::list_intruders))
+        // Maintenance mode
+        .route("/api/maintenance", get(routes::maintenance::get_maintenance))
+        .route("/api/admin/maintenance", put(routes::maintenance::set_maintenance))
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI

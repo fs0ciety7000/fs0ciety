@@ -26,6 +26,9 @@ function img(src: string): TerminalLine {
   return { id: uid(), type: "image", content: src, timestamp: Date.now() };
 }
 
+const PGP_FINGERPRINT = "6145 0220 51E0 CB3E";
+const PGP_UID = "phant0mhex <phant0mhex@proton.me>";
+
 export const COMMANDS: Record<string, TerminalCommand> = {
   help: {
     name: "help",
@@ -43,6 +46,11 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  clear             Clear terminal"),
       out("  neofetch          System info"),
       out("  uname             OS info"),
+      sys("├─────────────────────── SECURITY ─────────────┤"),
+      out("  gpg               Show PGP public key"),
+      out("  fingerprint       Show key fingerprint"),
+      out("  verify <slug>     Verify post integrity hash"),
+      out("  canary            Show warrant canary status"),
       sys("└─────────────────────────────────────────────┘"),
     ],
   },
@@ -148,6 +156,106 @@ export const COMMANDS: Record<string, TerminalCommand> = {
     execute: (_args, ctx) => {
       ctx.navigate("/login");
       return [sys("Initiating SSH handshake...")];
+    },
+  },
+
+  // ── Security commands ────────────────────────────────────
+
+  gpg: {
+    name: "gpg",
+    description: "Show PGP public key info",
+    execute: (_args, ctx) => {
+      setTimeout(() => ctx.navigate("/blog/pgp"), 1500);
+      return [
+        sys("╔══════════════════════════════════════════╗"),
+        sys("║           PGP PUBLIC KEY INFO             ║"),
+        sys("╠══════════════════════════════════════════╣"),
+        out(`  uid:          ${PGP_UID}`),
+        out(`  fingerprint:  ${PGP_FINGERPRINT}`),
+        out("  algo:         RSA 4096"),
+        out("  expires:      never"),
+        sys("╚══════════════════════════════════════════╝"),
+        out(""),
+        out("  Redirecting to full key page..."),
+        out("  Run 'fingerprint' for quick verify."),
+      ];
+    },
+  },
+
+  fingerprint: {
+    name: "fingerprint",
+    description: "Show PGP key fingerprint",
+    execute: () => [
+      sys("PGP Key Fingerprint:"),
+      out(""),
+      out(`  ${PGP_FINGERPRINT}`),
+      out(""),
+      out(`  uid: ${PGP_UID}`),
+      out("  Verify via independent channel before trusting."),
+    ],
+  },
+
+  verify: {
+    name: "verify",
+    description: "Verify post integrity hash",
+    usage: "verify <slug>",
+    execute: (args, ctx) => {
+      if (!args[0]) {
+        return [
+          err("Usage: verify <slug>"),
+          err("Fetches the post and displays its SHA-256 content hash."),
+        ];
+      }
+      const slug = args[0];
+
+      // Async fetch — add lines after command returns
+      fetch(`/api/posts/${slug}`)
+        .then((r) => {
+          if (!r.ok) throw new Error("not found");
+          return r.json();
+        })
+        .then((post) => {
+          ctx.addLines([
+            sys(`╔══ INTEGRITY CHECK: ${slug} ══╗`),
+            out(""),
+            out(`  title:   ${post.title}`),
+            out(`  author:  ${post.author}`),
+            out(`  sha256:  ${post.contentHash}`),
+            out(`  words:   ${post.wordCount}`),
+            out(""),
+            out("  Status: [+] Hash computed server-side."),
+            out("  Compare against independently published hash."),
+            sys("╚════════════════════════════════════════╝"),
+          ]);
+        })
+        .catch(() => {
+          ctx.addLines([err(`Post '${slug}' not found or not published.`)]);
+        });
+
+      return [sys(`Fetching integrity data for '${slug}'...`)];
+    },
+  },
+
+  canary: {
+    name: "canary",
+    description: "Show warrant canary status",
+    execute: (_args, ctx) => {
+      setTimeout(() => ctx.navigate("/blog/pgp"), 2000);
+      return [
+        sys("╔══════════════════════════════════════════╗"),
+        sys("║         WARRANT CANARY STATUS             ║"),
+        sys("╠══════════════════════════════════════════╣"),
+        out("  [+] No NSLs received"),
+        out("  [+] No gag orders received"),
+        out("  [+] No warrants for user data"),
+        out("  [+] No searches/seizures on infra"),
+        out("  [+] No backdoors planted"),
+        out(""),
+        out(`  Last updated: ${new Date().toISOString().split("T")[0]}`),
+        sys("╚══════════════════════════════════════════╝"),
+        out(""),
+        out("  Redirecting to full canary page..."),
+      ];
     },
   },
 };

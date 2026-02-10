@@ -101,6 +101,14 @@ export default function BlogPostPage() {
           <span>{post.wordCount} words</span>
         </div>
 
+        {/* Integrity hash */}
+        {post.contentHash && (
+          <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-terminal-green-dim opacity-40">
+            <span className="text-terminal-amber">sha256</span>
+            <span className="select-all">{post.contentHash}</span>
+          </div>
+        )}
+
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-4">
           {post.tags.map((tag) => (

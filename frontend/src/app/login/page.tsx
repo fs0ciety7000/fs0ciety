@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { GlitchText } from "@/components/effects/GlitchText";
 import { TypewriterText } from "@/components/effects/TypewriterText";
 import { api } from "@/lib/api";
+import { setAuth } from "@/lib/auth-cookie";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,8 +24,7 @@ export default function LoginPage() {
 
     try {
       const res = await api.login(username, password);
-      localStorage.setItem("fs0ciety_token", res.token);
-      localStorage.setItem("fs0ciety_user", JSON.stringify(res.user));
+      setAuth(res.token, res.user);
       setStatus("granted");
       setTimeout(() => router.push("/admin"), 1000);
     } catch {

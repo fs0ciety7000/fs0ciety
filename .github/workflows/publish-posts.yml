@@ -5,12 +5,21 @@ on:
     branches: [main]
     paths:
       - 'content/posts/**'
+  workflow_dispatch: {}
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Wait for deployment
+        run: |
+          # Give Coolify time to redeploy containers so the API is up.
+          echo "Waiting 90s for Coolify deployment to finish..."
+          sleep 90
 
       - name: Publish changed MDX files
         env:
@@ -18,13 +27,28 @@ jobs:
           FS0CIETY_URL: https://fs0ciety.org
         run: |
           # Find MDX files changed in this push.
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'content/posts/*.mdx' || true)
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'content/posts/*.mdx' 2>/dev/null || true)
+
+          # Fallback: if diff fails (force-push, first commit, etc.), publish all posts.
           if [ -z "$CHANGED" ]; then
-            echo "No MDX files changed."
+            echo "No diff-based changes found, publishing all MDX files..."
+            CHANGED=$(find content/posts -name '*.mdx' ! -name '_template.mdx' 2>/dev/null || true)
+          fi
+
+          if [ -z "$CHANGED" ]; then
+            echo "No MDX files to publish."
             exit 0
           fi
+
+          FAIL=0
           for file in $CHANGED; do
             if [ -f "$file" ]; then
-              ./scripts/publish.sh "$file"
+              echo "Publishing: $file"
+              ./scripts/publish.sh "$file" || FAIL=1
             fi
           done
+
+          if [ "$FAIL" -eq 1 ]; then
+            echo "::error::One or more posts failed to publish"
+            exit 1
+          fi

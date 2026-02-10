@@ -1,6 +1,7 @@
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
+use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AppError {
@@ -33,6 +34,11 @@ impl IntoResponse for AppError {
             AppError::Proxy(msg) => (StatusCode::BAD_GATEWAY, msg.clone()),
             AppError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.clone()),
         };
+
+        // Log server errors so they appear in container logs.
+        if status.is_server_error() {
+            error!("AppError {}: {}", status.as_u16(), message);
+        }
 
         let body = json!({
             "error": true,

@@ -35,7 +35,6 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  whoami            Display current user"),
       out("  status            System health check"),
       out("  dashboard         Open command center"),
-      out("  ssh               Open admin login"),
       out("  clear             Clear terminal"),
       out("  neofetch          System info"),
       out("  uname             OS info"),

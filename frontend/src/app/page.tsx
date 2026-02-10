@@ -4,17 +4,23 @@ import { useCallback, useState } from "react";
 import { TerminalProvider } from "@/providers/TerminalProvider";
 import { CRTScreen } from "@/components/effects/CRTScreen";
 import { BootSequence } from "@/components/boot/BootSequence";
+import { MaskReveal } from "@/components/effects/MaskReveal";
 import { Terminal } from "@/components/terminal/Terminal";
 
-export default function Home() {
-  const [booted, setBooted] = useState(false);
+type Phase = "boot" | "reveal" | "terminal";
 
-  const handleBootComplete = useCallback(() => setBooted(true), []);
+export default function Home() {
+  const [phase, setPhase] = useState<Phase>("boot");
+
+  const handleBootComplete = useCallback(() => setPhase("reveal"), []);
+  const handleRevealComplete = useCallback(() => setPhase("terminal"), []);
 
   return (
     <TerminalProvider>
       <CRTScreen>
-        {booted ? <Terminal /> : <BootSequence onComplete={handleBootComplete} />}
+        {phase === "boot" && <BootSequence onComplete={handleBootComplete} />}
+        {phase === "reveal" && <MaskReveal onComplete={handleRevealComplete} />}
+        {phase === "terminal" && <Terminal />}
       </CRTScreen>
     </TerminalProvider>
   );

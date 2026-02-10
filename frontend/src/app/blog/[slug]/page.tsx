@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "@/types";
+import { ReadingProgress } from "@/components/blog/ReadingProgress";
 
 const API_BASE = "";
 
@@ -41,6 +42,25 @@ export default function BlogPostPage() {
     return renderMarkdownWithToc(post.content);
   }, [post]);
 
+  // Wire up copy-to-clipboard on code blocks
+  useEffect(() => {
+    if (!html) return;
+    const buttons = document.querySelectorAll<HTMLButtonElement>(".code-copy-btn");
+    function handler(this: HTMLButtonElement) {
+      const code = this.getAttribute("data-code") || "";
+      navigator.clipboard.writeText(code).then(() => {
+        this.textContent = "Copied!";
+        this.classList.add("copied");
+        setTimeout(() => {
+          this.textContent = "Copy";
+          this.classList.remove("copied");
+        }, 2000);
+      });
+    }
+    buttons.forEach((btn) => btn.addEventListener("click", handler));
+    return () => buttons.forEach((btn) => btn.removeEventListener("click", handler));
+  }, [html]);
+
   if (loading) {
     return (
       <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
@@ -72,6 +92,8 @@ export default function BlogPostPage() {
 
   return (
     <article>
+      <ReadingProgress />
+
       {/* Back link */}
       <Link
         href="/blog"
@@ -182,7 +204,14 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
   const codeBlocks: string[] = [];
   let processed = md.replace(/```(\w*)\n([\s\S]*?)```/g, (_match, lang, code) => {
     const idx = codeBlocks.length;
-    codeBlocks.push(`<pre><code class="language-${lang}">${escapeHtml(code)}</code></pre>`);
+    const highlighted = highlightCode(code, lang);
+    const codeForCopy = escapeAttr(code.replace(/\n$/, ""));
+    const langLabel = lang
+      ? `<span class="code-lang">${escapeHtml(lang)}</span>`
+      : "";
+    codeBlocks.push(
+      `<div class="code-block">${langLabel}<button class="code-copy-btn" data-code="${codeForCopy}">Copy</button><pre><code class="language-${lang}">${highlighted}</code></pre></div>`
+    );
     return `\x00CODEBLOCK_${idx}\x00`;
   });
 
@@ -244,4 +273,97 @@ function escapeHtml(text: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function escapeAttr(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/'/g, "&#39;");
+}
+
+// ── Simple regex-based syntax highlighter ────────────────
+
+const HASH_COMMENT_LANGS = new Set([
+  "py", "python", "sh", "bash", "zsh", "rb", "ruby", "yaml", "yml", "toml",
+  "r", "perl", "pl", "dockerfile", "makefile", "make", "conf", "ini", "fish",
+]);
+
+function highlightCode(raw: string, lang: string): string {
+  const usesHash = HASH_COMMENT_LANGS.has(lang.toLowerCase());
+
+  const patterns: [string, RegExp][] = [
+    // Line comments
+    ["cm", /^\/\/.*/],
+    // Block comments
+    ["cm", /^\/\*[\s\S]*?\*\//],
+    // Double-quoted strings
+    ["str", /^"(?:[^"\\]|\\.)*"/],
+    // Single-quoted strings
+    ["str", /^'(?:[^'\\]|\\.)*'/],
+    // Template literals
+    ["str", /^`(?:[^`\\]|\\.)*`/],
+    // Decorators / attributes
+    ["dec", /^@\w+/],
+    ["dec", /^#!\[[\s\S]*?\]/],
+    ["dec", /^#\[[\s\S]*?\]/],
+    // Numbers (hex, float, int)
+    ["num", /^(?:0x[\da-fA-F]+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?(?:e[+-]?\d+)?)/],
+    // Keywords
+    [
+      "kw",
+      /^(?:function|const|let|var|if|else|return|import|export|from|class|extends|new|this|super|for|while|do|switch|case|break|continue|throw|try|catch|finally|typeof|instanceof|in|of|async|await|yield|default|void|delete|static|get|set|interface|type|enum|implements|namespace|declare|abstract|as|is|pub|fn|struct|impl|use|mod|crate|match|loop|mut|ref|move|trait|where|unsafe|extern|dyn|macro|def|elif|pass|with|raise|lambda|global|nonlocal|assert|class|except|print|println|eprintln|echo|fi|then|done|esac)\b/,
+    ],
+    // Constants / booleans
+    ["const", /^(?:true|false|null|undefined|NaN|Infinity|None|True|False|nil|self|Self|NULL|TRUE|FALSE)\b/],
+    // Common types
+    [
+      "type",
+      /^(?:string|number|boolean|any|void|never|object|unknown|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|bool|str|char|String|Vec|HashMap|HashSet|Option|Result|Box|Rc|Arc|usize|isize|int|float|dict|list|tuple|set|bytes|Array|Map|Set|Promise|Record)\b/,
+    ],
+    // Function calls
+    ["fn", /^[a-zA-Z_]\w*(?=\s*\()/],
+    // Operators
+    ["op", /^(?:=>|===|!==|==|!=|<=|>=|&&|\|\||\.\.\.|\.\.|\-\>|::|\?\?|<\-)/],
+  ];
+
+  // Add hash comments for applicable languages
+  if (usesHash) {
+    patterns.splice(2, 0, ["cm", /^#.*/]);
+  }
+
+  const tokens: { type: string; text: string }[] = [];
+  let remaining = raw;
+
+  while (remaining.length > 0) {
+    let matched = false;
+    for (const [type, re] of patterns) {
+      const m = remaining.match(re);
+      if (m) {
+        tokens.push({ type, text: m[0] });
+        remaining = remaining.slice(m[0].length);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      const last = tokens[tokens.length - 1];
+      if (last && last.type === "plain") {
+        last.text += remaining[0];
+      } else {
+        tokens.push({ type: "plain", text: remaining[0] });
+      }
+      remaining = remaining.slice(1);
+    }
+  }
+
+  return tokens
+    .map(({ type, text }) => {
+      const escaped = escapeHtml(text);
+      if (type === "plain") return escaped;
+      return `<span class="tok-${type}">${escaped}</span>`;
+    })
+    .join("");
 }

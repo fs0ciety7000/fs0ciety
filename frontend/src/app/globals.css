@@ -241,3 +241,73 @@ body {
 html {
   scroll-behavior: smooth;
 }
+
+/* ── Code Block Container ────────────────────────────────── */
+
+.prose-fs0ciety .code-block {
+  position: relative;
+  margin: 1.5em 0;
+}
+
+.prose-fs0ciety .code-block pre {
+  margin: 0;
+}
+
+.prose-fs0ciety .code-lang {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0.2rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #555;
+  background: #1A1A1A;
+  border-right: 1px solid #2A2A2A;
+  border-bottom: 1px solid #2A2A2A;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prose-fs0ciety .code-copy-btn {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #555;
+  background: #1A1A1A;
+  border: 1px solid #2A2A2A;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+  z-index: 1;
+}
+
+.prose-fs0ciety .code-block:hover .code-copy-btn {
+  opacity: 1;
+}
+
+.prose-fs0ciety .code-copy-btn:hover {
+  color: #00FF41;
+  border-color: #00FF41;
+  background: #111;
+}
+
+.prose-fs0ciety .code-copy-btn.copied {
+  color: #FFB000;
+  border-color: #FFB000;
+}
+
+/* ── Syntax Highlighting (Terminal Theme) ────────────────── */
+
+.tok-kw  { color: #FF0033; }
+.tok-str { color: #FFB000; }
+.tok-cm  { color: #555555; font-style: italic; }
+.tok-num { color: #00D4FF; }
+.tok-fn  { color: #00FF41; }
+.tok-op  { color: #FF0033; }
+.tok-type { color: #00D4FF; }
+.tok-const { color: #AAFFAA; }
+.tok-attr { color: #FFB000; }
+.tok-dec { color: #FF0033; }

@@ -3,27 +3,21 @@ FROM rust:1.84-bookworm AS builder
 WORKDIR /app
 
 # 1. Création explicite de la structure de dossiers
-# On le fait à la racine /app pour être sûr que les chemins existent
-RUN mkdir -p backend/src database/src
+RUN mkdir -p backend/src
 
 # 2. Copie des fichiers de configuration (Manifests)
 COPY backend/Cargo.toml backend/Cargo.lock* ./backend/
-COPY database/Cargo.toml ./database/
 
-# 3. Création des fichiers "Dummy" (Fantômes) pour le cache
-# On remplit les fichiers main.rs et lib.rs pour que Cargo croie que le projet est complet
+# 3. Création des fichiers "Dummy" pour le cache des dépendances
 RUN echo "fn main() {}" > backend/src/main.rs && \
-    touch backend/src/lib.rs && \
-    touch database/src/lib.rs
+    touch backend/src/lib.rs
 
 # 4. Build des dépendances (Mise en cache)
 WORKDIR /app/backend
-# Cargo va compiler toutes les bibliothèques (y compris database) sans ton code source final
 RUN cargo build --release && rm -rf src
 
 # 5. Copie du VRAI code source
 WORKDIR /app
-COPY database/src ./database/src
 COPY backend/src ./backend/src
 
 # 6. Build final du binaire

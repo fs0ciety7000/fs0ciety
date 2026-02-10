@@ -51,6 +51,7 @@ interface MediaData {
       eventType: string;
     }>;
   };
+  service_links?: Record<string, string>;
 }
 
 function timeAgo(dateStr: string | number): string {
@@ -125,6 +126,7 @@ export default function DashboardPage() {
   }
 
   const svc = stats?.services;
+  const links = media?.service_links ?? {};
 
   if (!authorized) {
     return (
@@ -267,21 +269,25 @@ export default function DashboardPage() {
               name="Plex"
               online={svc?.plex?.online ?? false}
               latencyMs={svc?.plex?.latency_ms}
+              href={links.plex}
             />
             <ServiceStatus
               name="Sonarr"
               online={svc?.sonarr?.online ?? false}
               latencyMs={svc?.sonarr?.latency_ms}
+              href={links.sonarr}
             />
             <ServiceStatus
               name="Radarr"
               online={svc?.radarr?.online ?? false}
               latencyMs={svc?.radarr?.latency_ms}
+              href={links.radarr}
             />
             <ServiceStatus
               name="qBittorrent"
               online={svc?.qbittorrent?.online ?? false}
               latencyMs={svc?.qbittorrent?.latency_ms}
+              href={links.qbittorrent}
             />
           </div>
         </div>

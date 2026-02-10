@@ -6,12 +6,24 @@ interface ServiceStatusProps {
   name: string;
   online: boolean;
   latencyMs?: number | null;
+  href?: string;
 }
 
-export function ServiceStatus({ name, online, latencyMs }: ServiceStatusProps) {
+export function ServiceStatus({ name, online, latencyMs, href }: ServiceStatusProps) {
   return (
     <div className="flex items-center justify-between font-mono text-sm py-1">
-      <span className="text-terminal-green-dim">{name}</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-terminal-green-dim hover:text-terminal-cyan transition-colors"
+        >
+          {name} <span className="opacity-40">↗</span>
+        </a>
+      ) : (
+        <span className="text-terminal-green-dim">{name}</span>
+      )}
       <div className="flex items-center gap-3">
         {latencyMs != null && (
           <span className="text-xs text-terminal-green opacity-40 tabular-nums">

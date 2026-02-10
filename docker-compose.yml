@@ -3,9 +3,10 @@
 # ║  Services: Frontend, Backend, SurrealDB                    ║
 # ║  ALL Traefik routing is managed by Coolify — NO labels.    ║
 # ║                                                            ║
-# ║  Subdomain setup (Coolify UI → frontend service):          ║
-# ║    Domains field: fs0ciety.org,blog.fs0ciety.org,          ║
-# ║                   dash.fs0ciety.org                        ║
+# ║  Subdomain setup (Coolify UI → per service):               ║
+# ║    frontend: fs0ciety.org, blog.fs0ciety.org,              ║
+# ║              dash.fs0ciety.org                              ║
+# ║    surrealdb: db.fs0ciety.org                              ║
 # ║  Next.js middleware rewrites blog./dash. to /blog /dash.   ║
 # ╚══════════════════════════════════════════════════════════════╝
 
@@ -51,6 +52,10 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - PUBLIC_URL=${PUBLIC_URL:-https://fs0ciety.org}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - PLEX_EXTERNAL_URL=${PLEX_EXTERNAL_URL}
+      - SONARR_EXTERNAL_URL=${SONARR_EXTERNAL_URL}
+      - RADARR_EXTERNAL_URL=${RADARR_EXTERNAL_URL}
+      - QBITTORRENT_EXTERNAL_URL=${QBITTORRENT_EXTERNAL_URL}
     volumes:
       - uploads_data:/data/uploads
     expose:
@@ -60,10 +65,14 @@ services:
     restart: unless-stopped
 
   # ── Database (SurrealDB) ──────────────────────────────────
+  # Expose port 8000 so Coolify can route db.fs0ciety.org to it.
+  # Configure in Coolify UI → surrealdb service → Domains: db.fs0ciety.org
   surrealdb:
     image: surrealdb/surrealdb:v2
     user: root
     command: start --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:-changeme} rocksdb:/data/srdb.db
+    expose:
+      - "8000"
     volumes:
       - surrealdb_data:/data
     restart: unless-stopped

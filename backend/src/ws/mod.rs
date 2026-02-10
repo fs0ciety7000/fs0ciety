@@ -6,7 +6,7 @@ use futures::StreamExt;
 use serde_json::json;
 use std::time::{Duration, Instant};
 use tokio::time::interval;
-use tracing::{info, warn};
+use tracing::{info, warn, debug};
 
 use crate::AppState;
 
@@ -27,18 +27,26 @@ async fn check_health(client: &reqwest::Client, url: &str, headers: Vec<(&str, &
     }
     match req.send().await {
         Ok(resp) if resp.status().is_success() || resp.status().is_redirection() => {
-            (true, Some(start.elapsed().as_millis() as u64))
+            let latency = start.elapsed().as_millis() as u64;
+            debug!("WS health OK: {} ({}ms)", url, latency);
+            (true, Some(latency))
         }
         Ok(resp) => {
+            let latency = start.elapsed().as_millis() as u64;
             let code = resp.status().as_u16();
             // 401/403 still means the service is reachable.
             if code == 401 || code == 403 {
-                (true, Some(start.elapsed().as_millis() as u64))
+                debug!("WS health OK (auth needed): {} → {} ({}ms)", url, code, latency);
+                (true, Some(latency))
             } else {
-                (false, Some(start.elapsed().as_millis() as u64))
+                warn!("WS health FAILED: {} → HTTP {} ({}ms)", url, code, latency);
+                (false, Some(latency))
             }
         }
-        Err(_) => (false, None),
+        Err(e) => {
+            warn!("WS health ERROR: {} → {}", url, e);
+            (false, None)
+        }
     }
 }
 
@@ -55,13 +63,24 @@ async fn check_qbit_health(proxy: &crate::proxy::ProxyClient) -> (bool, Option<u
 
     match req.send().await {
         Ok(resp) if resp.status().is_success() => {
-            (true, Some(start.elapsed().as_millis() as u64))
+            let latency = start.elapsed().as_millis() as u64;
+            debug!("WS qBit health OK: {} ({}ms)", url, latency);
+            (true, Some(latency))
         }
         Ok(resp) if resp.status().as_u16() == 403 => {
-            (true, Some(start.elapsed().as_millis() as u64))
+            let latency = start.elapsed().as_millis() as u64;
+            debug!("WS qBit health OK (auth needed): {} ({}ms)", url, latency);
+            (true, Some(latency))
         }
-        Ok(_) => (false, Some(start.elapsed().as_millis() as u64)),
-        Err(_) => (false, None),
+        Ok(resp) => {
+            let latency = start.elapsed().as_millis() as u64;
+            warn!("WS qBit health FAILED: {} → HTTP {} ({}ms)", url, resp.status().as_u16(), latency);
+            (false, Some(latency))
+        }
+        Err(e) => {
+            warn!("WS qBit health ERROR: {} → {}", url, e);
+            (false, None)
+        }
     }
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { subdomainHref } from "@/lib/urls";
 
 export function BlogHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -50,30 +51,30 @@ export function BlogHeader() {
           >
             posts
           </Link>
-          <Link
-            href="/"
+          <a
+            href={subdomainHref("/")}
             className="text-terminal-green-dim hover:text-terminal-green transition-colors flex items-center gap-1"
           >
             <span className="text-terminal-green opacity-50">$</span>
             terminal
-          </Link>
+          </a>
           {isLoggedIn && (
-            <Link
-              href="/profile"
+            <a
+              href={subdomainHref("/profile")}
               className="text-terminal-cyan hover:text-terminal-green transition-colors flex items-center gap-1"
             >
               <span className="opacity-50">~</span>
               profile
-            </Link>
+            </a>
           )}
           {isAdmin && (
-            <Link
-              href="/admin"
+            <a
+              href={subdomainHref("/admin")}
               className="text-terminal-amber hover:text-terminal-green transition-colors flex items-center gap-1"
             >
               <span className="opacity-50">@</span>
               admin
-            </Link>
+            </a>
           )}
         </nav>
       </div>

@@ -1,4 +1,6 @@
-import Link from "next/link";
+"use client";
+
+import { subdomainHref } from "@/lib/urls";
 
 export function BlogFooter() {
   const year = new Date().getFullYear();
@@ -14,18 +16,25 @@ export function BlogFooter() {
             <span>&quot;Control is an illusion.&quot;</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              href="/"
+            <a
+              href={subdomainHref("/")}
               className="hover:text-terminal-green transition-colors"
             >
               terminal
-            </Link>
-            <Link
-              href="/dashboard"
+            </a>
+            <a
+              href={subdomainHref("/dashboard")}
               className="hover:text-terminal-green transition-colors"
             >
               dashboard
-            </Link>
+            </a>
+            <a
+              href="/blog/pgp"
+              className="hover:text-terminal-green transition-colors flex items-center gap-1"
+            >
+              <span className="text-terminal-green opacity-50">#</span>
+              pgp
+            </a>
           </div>
         </div>
       </div>

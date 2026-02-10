@@ -22,6 +22,27 @@ const nextConfig: NextConfig = {
         source: "/ws",
         destination: `${backendUrl}/ws`,
       },
+      // Honeypot traps — proxy to backend so intruder hits get logged
+      {
+        source: "/.env",
+        destination: `${backendUrl}/.env`,
+      },
+      {
+        source: "/.git/config",
+        destination: `${backendUrl}/.git/config`,
+      },
+      {
+        source: "/wp-admin",
+        destination: `${backendUrl}/wp-admin`,
+      },
+      {
+        source: "/wp-login.php",
+        destination: `${backendUrl}/wp-login.php`,
+      },
+      {
+        source: "/admin/config",
+        destination: `${backendUrl}/admin/config`,
+      },
     ];
   },
 };

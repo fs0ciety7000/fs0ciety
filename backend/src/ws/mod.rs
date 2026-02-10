@@ -29,6 +29,37 @@ async fn check_health(client: &reqwest::Client, url: &str, headers: Vec<(&str, &
         Ok(resp) if resp.status().is_success() || resp.status().is_redirection() => {
             (true, Some(start.elapsed().as_millis() as u64))
         }
+        Ok(resp) => {
+            let code = resp.status().as_u16();
+            // 401/403 still means the service is reachable.
+            if code == 401 || code == 403 {
+                (true, Some(start.elapsed().as_millis() as u64))
+            } else {
+                (false, Some(start.elapsed().as_millis() as u64))
+            }
+        }
+        Err(_) => (false, None),
+    }
+}
+
+/// Check qBittorrent health with session cookie.
+async fn check_qbit_health(proxy: &crate::proxy::ProxyClient) -> (bool, Option<u64>) {
+    let start = Instant::now();
+    let url = format!("{}/api/v2/app/version", proxy.config.qbittorrent_url);
+
+    let cookie = proxy.qbit_sid().await;
+    let mut req = proxy.http.get(&url);
+    if let Some(sid) = &cookie {
+        req = req.header("Cookie", sid);
+    }
+
+    match req.send().await {
+        Ok(resp) if resp.status().is_success() => {
+            (true, Some(start.elapsed().as_millis() as u64))
+        }
+        Ok(resp) if resp.status().as_u16() == 403 => {
+            (true, Some(start.elapsed().as_millis() as u64))
+        }
         Ok(_) => (false, Some(start.elapsed().as_millis() as u64)),
         Err(_) => (false, None),
     }
@@ -90,12 +121,11 @@ async fn handle_socket(mut socket: WebSocket, state: AppState) {
                     let plex_url = format!("{}/identity", config.plex_url);
                     let sonarr_url = format!("{}/api/v3/system/status", config.sonarr_url);
                     let radarr_url = format!("{}/api/v3/system/status", config.radarr_url);
-                    let qbit_url = format!("{}/api/v2/app/version", config.qbittorrent_url);
                     let (plex, sonarr, radarr, qbit) = tokio::join!(
                         check_health(http, &plex_url, vec![("X-Plex-Token", config.plex_token.as_str()), ("Accept", "application/json")]),
                         check_health(http, &sonarr_url, vec![("X-Api-Key", config.sonarr_api_key.as_str())]),
                         check_health(http, &radarr_url, vec![("X-Api-Key", config.radarr_api_key.as_str())]),
-                        check_health(http, &qbit_url, vec![]),
+                        check_qbit_health(proxy),
                     );
                     Some(json!({
                         "plex": { "online": plex.0, "latency_ms": plex.1 },

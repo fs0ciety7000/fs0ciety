@@ -18,10 +18,40 @@ async fn check_service(client: &reqwest::Client, url: &str, headers: Vec<(&str, 
             let latency = start.elapsed().as_millis() as u64;
             (true, Some(latency))
         }
-        Ok(_) => {
+        Ok(resp) => {
             let latency = start.elapsed().as_millis() as u64;
-            (false, Some(latency))
+            // 401/403 still means the service is reachable.
+            let code = resp.status().as_u16();
+            if code == 401 || code == 403 {
+                (true, Some(latency))
+            } else {
+                (false, Some(latency))
+            }
         }
+        Err(_) => (false, None),
+    }
+}
+
+/// Check qBittorrent health using session cookie.
+async fn check_qbit(proxy: &crate::proxy::ProxyClient) -> (bool, Option<u64>) {
+    let start = Instant::now();
+    let url = format!("{}/api/v2/app/version", proxy.config.qbittorrent_url);
+
+    let cookie = proxy.qbit_sid().await;
+    let mut req = proxy.http.get(&url);
+    if let Some(sid) = &cookie {
+        req = req.header("Cookie", sid);
+    }
+
+    match req.send().await {
+        Ok(resp) if resp.status().is_success() => {
+            (true, Some(start.elapsed().as_millis() as u64))
+        }
+        // 403 means service is up but needs auth - still "online"
+        Ok(resp) if resp.status().as_u16() == 403 => {
+            (true, Some(start.elapsed().as_millis() as u64))
+        }
+        Ok(_) => (false, Some(start.elapsed().as_millis() as u64)),
         Err(_) => (false, None),
     }
 }
@@ -76,8 +106,6 @@ pub async fn get_stats(State(state): State<AppState>) -> Json<Value> {
     let (disk_used, disk_total) = match &qbit_info {
         Ok(info) => {
             let free = info["free_space_on_disk"].as_u64().unwrap_or(0);
-            // qBittorrent doesn't directly give total disk, so we'll estimate from
-            // dl_info_data + free_space. For a real setup, use the system disk info.
             let alloc = info["dl_info_data"].as_u64().unwrap_or(0);
             if free > 0 {
                 (alloc, alloc + free)
@@ -92,12 +120,11 @@ pub async fn get_stats(State(state): State<AppState>) -> Json<Value> {
     let plex_url = format!("{}/identity", config.plex_url);
     let sonarr_url = format!("{}/api/v3/system/status", config.sonarr_url);
     let radarr_url = format!("{}/api/v3/system/status", config.radarr_url);
-    let qbit_url = format!("{}/api/v2/app/version", config.qbittorrent_url);
     let (plex_health, sonarr_health, radarr_health, qbit_health) = tokio::join!(
         check_service(http, &plex_url, vec![("X-Plex-Token", config.plex_token.as_str()), ("Accept", "application/json")]),
         check_service(http, &sonarr_url, vec![("X-Api-Key", config.sonarr_api_key.as_str())]),
         check_service(http, &radarr_url, vec![("X-Api-Key", config.radarr_api_key.as_str())]),
-        check_service(http, &qbit_url, vec![]),
+        check_qbit(proxy),
     );
 
     Json(json!({

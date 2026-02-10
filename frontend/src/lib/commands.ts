@@ -21,6 +21,11 @@ function ascii(content: string): TerminalLine {
   return { id: uid(), type: "ascii", content, timestamp: Date.now() };
 }
 
+/** Create an image output line. */
+function img(src: string): TerminalLine {
+  return { id: uid(), type: "image", content: src, timestamp: Date.now() };
+}
+
 export const COMMANDS: Record<string, TerminalCommand> = {
   help: {
     name: "help",
@@ -59,12 +64,14 @@ export const COMMANDS: Record<string, TerminalCommand> = {
     name: "cat",
     description: "Read a blog post",
     usage: "cat <slug>",
-    execute: (args) => {
+    execute: (args, ctx) => {
       if (!args[0]) {
         return [err("Usage: cat <slug>"), err("Try: cat hello-world")];
       }
+      const slug = args[0];
+      setTimeout(() => ctx.navigate(`/blog/${slug}`), 600);
       return [
-        sys(`Loading ${args[0]}...`),
+        sys(`Loading ${slug}...`),
         out("Redirecting to post view."),
       ];
     },
@@ -106,17 +113,17 @@ export const COMMANDS: Record<string, TerminalCommand> = {
     name: "neofetch",
     description: "Display system info",
     execute: () => [
-      ascii("        ▄▄▄▄▄▄▄▄▄▄▄        "),
-      ascii("      ▄█░░░░░░░░░░░█▄      "),
-      ascii("     █░░░░░░░░░░░░░░░█        OS: fs0ciety v0.1.0"),
-      ascii("    █░░░░░░░░░░░░░░░░░█       Host: ########"),
-      ascii("   █░░░░░░░▀▀░░░░░░░░░█      Kernel: Axum 0.8"),
-      ascii("   █░░░░░░░░░░░░░░░░░░█      Shell: React Terminal"),
-      ascii("   █░░░░░░░░░░░░░░░░░░█      DB: SurrealDB 2.x"),
-      ascii("    █░░░▄▄▄▄▄▄▄▄░░░░░█       Theme: CRT Green"),
-      ascii("     █░░░░░░░░░░░░░░█        Uptime: always"),
-      ascii("      ▀█░░░░░░░░░░█▀       "),
-      ascii("        ▀▀▀▀▀▀▀▀▀▀         "),
+      img("/logo.svg"),
+      ascii(""),
+      out("  OS:       fs0ciety v0.1.0"),
+      out("  Host:     ████████"),
+      out("  Kernel:   Axum 0.8 / Tokio"),
+      out("  Shell:    React Terminal"),
+      out("  DB:       SurrealDB 2.x"),
+      out("  Frontend: Next.js 15 / React 19"),
+      out("  Theme:    CRT Green"),
+      out("  Uptime:   always"),
+      ascii(""),
     ],
   },
 

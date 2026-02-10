@@ -48,6 +48,8 @@ services:
       - QBITTORRENT_URL=${QBITTORRENT_URL}
       - QBITTORRENT_USER=${QBITTORRENT_USER}
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - PUBLIC_URL=${PUBLIC_URL:-https://fs0ciety.org}
     expose:
       - "3001"
     depends_on:

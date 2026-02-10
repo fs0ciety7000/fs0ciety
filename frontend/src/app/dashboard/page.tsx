@@ -83,13 +83,27 @@ export default function DashboardPage() {
   const { connect, connected, stats } = useWebSocket();
   const speedHistory = useRef<number[]>([]);
   const [media, setMedia] = useState<MediaData | null>(null);
+  const [authorized, setAuthorized] = useState(false);
+
+  // Admin-only access check.
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem("fs0ciety_token");
+      const raw = localStorage.getItem("fs0ciety_user");
+      if (!token || !raw) { router.replace("/login"); return; }
+      const user = JSON.parse(raw);
+      if (user.role !== "admin") { router.replace("/"); return; }
+      setAuthorized(true);
+    } catch { router.replace("/login"); }
+  }, [router]);
 
   useEffect(() => {
-    connect();
-  }, [connect]);
+    if (authorized) connect();
+  }, [authorized, connect]);
 
   // Fetch media data on mount and every 30s.
   useEffect(() => {
+    if (!authorized) return;
     let active = true;
     async function fetchMedia() {
       try {
@@ -102,7 +116,7 @@ export default function DashboardPage() {
     fetchMedia();
     const interval = setInterval(fetchMedia, 30_000);
     return () => { active = false; clearInterval(interval); };
-  }, []);
+  }, [authorized]);
 
   // Build speed history from real data.
   if (stats) {
@@ -111,6 +125,14 @@ export default function DashboardPage() {
   }
 
   const svc = stats?.services;
+
+  if (!authorized) {
+    return (
+      <div className="min-h-screen bg-terminal-black flex items-center justify-center">
+        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">Authenticating...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-terminal-black p-4 md:p-8 font-mono">
@@ -283,7 +305,6 @@ export default function DashboardPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-terminal-green truncate">
-                    {s.grandparentTitle ? `${s.grandparentTitle} — ` : ""}
                     {s.title}
                   </div>
                   <div className="flex items-center gap-2 mt-1">

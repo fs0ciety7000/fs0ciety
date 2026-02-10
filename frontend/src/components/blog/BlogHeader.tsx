@@ -1,6 +1,21 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export function BlogHeader() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("fs0ciety_user");
+      if (raw) {
+        const user = JSON.parse(raw);
+        setIsAdmin(user.role === "admin");
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   return (
     <header className="border-b border-terminal-gray-light bg-terminal-black-light">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
@@ -40,6 +55,15 @@ export function BlogHeader() {
             <span className="text-terminal-green opacity-50">$</span>
             terminal
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-terminal-amber hover:text-terminal-green transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">@</span>
+              admin
+            </Link>
+          )}
         </nav>
       </div>
     </header>

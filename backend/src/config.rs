@@ -22,6 +22,7 @@ pub struct Config {
     pub qbittorrent_pass: String,
     pub resend_api_key: String,
     pub public_url: String,
+    pub admin_api_key: String,
 }
 
 impl Config {
@@ -58,6 +59,7 @@ impl Config {
             resend_api_key: env::var("RESEND_API_KEY").unwrap_or_default(),
             public_url: env::var("PUBLIC_URL")
                 .unwrap_or_else(|_| "https://fs0ciety.org".into()),
+            admin_api_key: env::var("ADMIN_API_KEY").unwrap_or_default(),
         }
     }
 

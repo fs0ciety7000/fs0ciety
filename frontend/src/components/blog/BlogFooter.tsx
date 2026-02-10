@@ -93,6 +93,13 @@ export function BlogFooter() {
               <span className="text-terminal-green opacity-50">@</span>
               mastodon
             </a>
+            <a
+              href="/blog/intruders"
+              className="hover:text-terminal-red transition-colors flex items-center gap-1"
+            >
+              <span className="text-terminal-red opacity-50">!</span>
+              intruders
+            </a>
           </div>
         </div>
 
@@ -101,6 +108,7 @@ export function BlogFooter() {
           <SecurityBadge label="SSL" ok={isHttps} />
           <SecurityBadge label="Headers" ok={true} />
           <SecurityBadge label="EXIF-Strip" ok={true} />
+          <SecurityBadge label="Tor" ok={true} />
         </div>
       </div>
     </footer>

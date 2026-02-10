@@ -172,6 +172,13 @@ async fn main() {
         // File upload
         .route("/api/upload", post(routes::upload::upload_file))
         .route("/api/uploads/{filename}", get(routes::upload::serve_upload))
+        // Honeypot traps
+        .route("/admin/config", get(routes::honeypot::honeypot_trap))
+        .route("/.env", get(routes::honeypot::honeypot_trap))
+        .route("/wp-admin", get(routes::honeypot::honeypot_trap))
+        .route("/wp-login.php", get(routes::honeypot::honeypot_trap))
+        .route("/.git/config", get(routes::honeypot::honeypot_trap))
+        .route("/api/honeypot/intruders", get(routes::honeypot::list_intruders))
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI

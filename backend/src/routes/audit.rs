@@ -42,6 +42,12 @@ pub async fn record_audit(
     success: bool,
     details: &str,
 ) {
+    let event_type = event_type.to_string();
+    let username = username.to_string();
+    let ip = ip.to_string();
+    let user_agent = user_agent.to_string();
+    let details = details.to_string();
+
     let _ = db
         .query(
             "CREATE audit_logs SET \

@@ -1,34 +1,41 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { GlitchText } from "@/components/effects/GlitchText";
 import type { UserPublic } from "@/types";
 
-export default function ProfilePage() {
+export default function UserProfilePage() {
+  const params = useParams();
   const router = useRouter();
+  const username = params.username as string;
   const [profile, setProfile] = useState<UserPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSelf, setIsSelf] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
+        const token = localStorage.getItem("fs0ciety_token") || undefined;
         const raw = localStorage.getItem("fs0ciety_user");
-        const token = localStorage.getItem("fs0ciety_token");
-        if (!raw || !token) { router.replace("/login"); return; }
-        const user = JSON.parse(raw);
-        const data = await api.profile(user.username, token);
+        if (raw) {
+          const user = JSON.parse(raw);
+          if (user.username === username) {
+            setIsSelf(true);
+          }
+        }
+        const data = await api.profile(username, token);
         setProfile(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Error");
+        setError(err instanceof Error ? err.message : "User not found");
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [router]);
+  }, [username]);
 
   if (loading) {
     return (
@@ -40,8 +47,45 @@ export default function ProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-terminal-black flex items-center justify-center">
-        <div className="font-mono text-terminal-red text-sm">{error || "Profile not found"}</div>
+      <div className="min-h-screen bg-terminal-black flex items-center justify-center font-mono">
+        <div className="text-center">
+          <div className="text-terminal-red text-sm mb-4">{error || "User not found"}</div>
+          <button
+            onClick={() => router.push("/blog")}
+            className="text-xs border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green transition-colors"
+          >
+            ← back to blog
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Private profile
+  if (profile.private) {
+    return (
+      <div className="min-h-screen bg-terminal-black p-4 md:p-8 font-mono">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-terminal-gray-light">
+            <GlitchText text={`@${profile.username}`} className="text-2xl" intensity={1} hoverOnly />
+            <button
+              onClick={() => router.back()}
+              className="text-xs border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green transition-colors"
+            >
+              ← back
+            </button>
+          </div>
+
+          <div className="border border-terminal-green/20 bg-terminal-black-light p-8 text-center">
+            <div className="text-4xl mb-4 opacity-20">🔒</div>
+            <div className="text-terminal-green-dim text-sm">This profile is private</div>
+            <div className="text-terminal-green/30 text-xs mt-2">
+              Member since {new Date(profile.created_at).toLocaleDateString("en-US", {
+                year: "numeric", month: "long",
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -58,19 +102,21 @@ export default function ProfilePage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-terminal-gray-light">
-          <GlitchText text="MY PROFILE" className="text-2xl" intensity={1} hoverOnly />
+          <GlitchText text={`@${profile.username}`} className="text-2xl" intensity={1} hoverOnly />
           <div className="flex gap-3">
+            {isSelf && (
+              <button
+                onClick={() => router.push("/profile/settings")}
+                className="text-xs border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
+              >
+                settings
+              </button>
+            )}
             <button
-              onClick={() => router.push("/profile/settings")}
-              className="text-xs font-mono border border-terminal-amber/30 text-terminal-amber px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
+              onClick={() => router.back()}
+              className="text-xs border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
             >
-              settings
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              className="text-xs font-mono border border-terminal-green/20 text-terminal-green-dim px-3 py-1 hover:text-terminal-green hover:border-terminal-green/40 transition-colors"
-            >
-              ← terminal
+              ← back
             </button>
           </div>
         </div>
@@ -106,11 +152,6 @@ export default function ProfilePage() {
               }`}>
                 {profile.role}
               </span>
-              {!profile.profile_public && (
-                <span className="text-xs px-2 py-0.5 border border-terminal-red/30 text-terminal-red-dim ml-2">
-                  private
-                </span>
-              )}
               {profile.bio && (
                 <p className="text-sm text-terminal-green-dim mt-3 leading-relaxed">
                   {profile.bio}
@@ -129,29 +170,6 @@ export default function ProfilePage() {
           <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
             <div className="text-xs text-terminal-green-dim uppercase tracking-wider mb-1">Last Seen</div>
             <div className="text-sm text-terminal-green">{lastSeen}</div>
-          </div>
-        </div>
-
-        {/* Quick links */}
-        <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-          <h3 className="text-xs text-terminal-amber uppercase tracking-wider mb-3">Quick Links</h3>
-          <div className="space-y-2">
-            <button onClick={() => router.push(`/profile/${profile.username}`)} className="block text-sm text-terminal-green-dim hover:text-terminal-green transition-colors">
-              → Public Profile
-            </button>
-            <button onClick={() => router.push("/blog")} className="block text-sm text-terminal-green-dim hover:text-terminal-green transition-colors">
-              → Blog
-            </button>
-            {profile.role === "admin" && (
-              <>
-                <button onClick={() => router.push("/admin")} className="block text-sm text-terminal-green-dim hover:text-terminal-green transition-colors">
-                  → Admin Panel
-                </button>
-                <button onClick={() => router.push("/dashboard")} className="block text-sm text-terminal-green-dim hover:text-terminal-green transition-colors">
-                  → Command Center
-                </button>
-              </>
-            )}
           </div>
         </div>
       </div>

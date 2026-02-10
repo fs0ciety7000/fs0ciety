@@ -34,6 +34,9 @@ pub async fn ensure_admin(db: &Surreal<Client>) -> Result<(), surrealdb::Error> 
                 password_hash = $hash, \
                 role = 'admin', \
                 email = 'admin@fs0ciety.local', \
+                bio = NONE, \
+                avatar_url = NONE, \
+                profile_public = true, \
                 created_at = time::now(), \
                 updated_at = time::now(), \
                 last_login = NONE"

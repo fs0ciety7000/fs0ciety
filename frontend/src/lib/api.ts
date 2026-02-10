@@ -129,8 +129,18 @@ export const api = {
   },
 
   // Public profiles
-  profile: (username: string) =>
-    request<UserPublic>(`/api/users/${username}`),
+  profile: (username: string, token?: string) =>
+    request<UserPublic>(`/api/users/${username}`, {
+      headers: token ? authHeaders(token) : {},
+    }),
+
+  // Self-profile update
+  updateProfile: (data: Record<string, unknown>, token: string) =>
+    request<{ message: string; user: UserPublic }>("/api/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+      headers: authHeaders(token),
+    }),
 
   // File upload
   upload: async (file: File, token: string): Promise<{ url: string; filename: string }> => {

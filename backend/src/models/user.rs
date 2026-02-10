@@ -26,10 +26,14 @@ pub struct User {
     pub bio: Option<String>,
     #[serde(default)]
     pub avatar_url: Option<String>,
+    #[serde(default = "default_true")]
+    pub profile_public: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
 }
+
+fn default_true() -> bool { true }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct LoginRequest {
@@ -67,6 +71,17 @@ pub struct UpdateUserRequest {
     pub password: Option<String>,
     pub bio: Option<String>,
     pub avatar_url: Option<String>,
+    pub profile_public: Option<bool>,
+}
+
+/// Self-profile update request (no role change allowed).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateProfileRequest {
+    pub username: Option<String>,
+    pub email: Option<String>,
+    pub bio: Option<String>,
+    pub avatar_url: Option<String>,
+    pub profile_public: Option<bool>,
 }
 
 /// Safe user representation for API responses (no password_hash).
@@ -77,6 +92,7 @@ pub struct UserPublic {
     pub email: Option<String>,
     pub bio: Option<String>,
     pub avatar_url: Option<String>,
+    pub profile_public: bool,
     pub created_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
 }

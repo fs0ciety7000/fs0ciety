@@ -7,6 +7,7 @@ use argon2::{
 use serde_json::{json, Value};
 use tracing::info;
 
+use axum::http::HeaderMap;
 use crate::error::AppError;
 use crate::middleware::AdminUser;
 use crate::models::{CreateUserRequest, UpdateUserRequest, User};
@@ -37,6 +38,7 @@ pub async fn list_users(
             "email": u.email,
             "bio": u.bio,
             "avatar_url": u.avatar_url,
+            "profile_public": u.profile_public,
             "created_at": u.created_at,
             "last_login": u.last_login,
         })
@@ -103,6 +105,7 @@ pub async fn create_user(
                 email = $email, \
                 bio = NONE, \
                 avatar_url = NONE, \
+                profile_public = true, \
                 created_at = time::now(), \
                 updated_at = time::now(), \
                 last_login = NONE"
@@ -207,6 +210,10 @@ pub async fn update_user(
         sets.push(format!("avatar_url = '{}'", avatar_url.replace('\'', "''")));
     }
 
+    if let Some(profile_public) = req.profile_public {
+        sets.push(format!("profile_public = {}", profile_public));
+    }
+
     let query = format!(
         "UPDATE users SET {} WHERE username = $target",
         sets.join(", ")
@@ -228,8 +235,10 @@ pub async fn update_user(
 }
 
 /// GET /api/users/:username — public profile.
+/// If the profile is private, only the user themselves (or admin) can see full details.
 pub async fn get_profile(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Path(username): Path<String>,
 ) -> Result<Json<Value>, AppError> {
     let users: Vec<User> = state.db
@@ -243,11 +252,65 @@ pub async fn get_profile(
     let user = users.into_iter().next()
         .ok_or_else(|| AppError::NotFound(format!("User '{}' not found", username)))?;
 
+    // Try to identify the caller from Bearer token (best-effort, no error if absent).
+    let caller_username = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+        .and_then(|token| {
+            // Check API key first.
+            if !state.config.admin_api_key.is_empty() && token == state.config.admin_api_key {
+                return Some("__admin__".to_string());
+            }
+            // Try JWT decode.
+            jsonwebtoken::decode::<crate::middleware::Claims>(
+                token,
+                &jsonwebtoken::DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
+                &jsonwebtoken::Validation::default(),
+            )
+            .ok()
+            .map(|td| td.claims.sub)
+        });
+
+    let is_self = caller_username.as_deref() == Some(&user.username);
+    let is_admin = caller_username.as_deref() == Some("__admin__")
+        || caller_username.as_ref().map_or(false, |_| {
+            // Check if caller is admin role (quick check via claims we already decoded above).
+            // For simplicity, re-check from headers.
+            headers
+                .get("authorization")
+                .and_then(|v| v.to_str().ok())
+                .and_then(|h| h.strip_prefix("Bearer "))
+                .and_then(|token| {
+                    jsonwebtoken::decode::<crate::middleware::Claims>(
+                        token,
+                        &jsonwebtoken::DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),
+                        &jsonwebtoken::Validation::default(),
+                    )
+                    .ok()
+                    .map(|td| td.claims.role == "admin")
+                })
+                .unwrap_or(false)
+        });
+
+    // If profile is private and caller is not the user or admin, return limited info.
+    if !user.profile_public && !is_self && !is_admin {
+        return Ok(Json(json!({
+            "username": user.username,
+            "role": user.role,
+            "profile_public": false,
+            "private": true,
+            "created_at": user.created_at,
+        })));
+    }
+
     Ok(Json(json!({
         "username": user.username,
         "role": user.role,
+        "email": if is_self || is_admin { user.email.clone() } else { None },
         "bio": user.bio,
         "avatar_url": user.avatar_url,
+        "profile_public": user.profile_public,
         "created_at": user.created_at,
         "last_login": user.last_login,
     })))

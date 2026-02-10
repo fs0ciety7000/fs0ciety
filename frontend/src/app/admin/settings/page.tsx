@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
+import Link from "next/link";
 
 export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -47,6 +48,19 @@ export default function SettingsPage() {
         <p className="text-sm font-mono text-terminal-green-dim opacity-60">
           Account settings &mdash; fs0ciety admin
         </p>
+      </div>
+
+      {/* Link to full profile settings */}
+      <div className="max-w-md border border-terminal-amber/20 bg-terminal-black-light p-4 mb-6">
+        <p className="text-sm font-mono text-terminal-green-dim mb-3">
+          Edit your profile (avatar, bio, username, privacy) in the profile settings page:
+        </p>
+        <Link
+          href="/profile/settings"
+          className="inline-block text-sm font-mono border border-terminal-amber/30 text-terminal-amber px-4 py-2 hover:bg-terminal-amber/10 transition-colors"
+        >
+          → Profile Settings
+        </Link>
       </div>
 
       {/* Change Password */}

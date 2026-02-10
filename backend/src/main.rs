@@ -142,6 +142,8 @@ async fn main() {
         .route("/api/sonarr/calendar", get(routes::sonarr::get_calendar))
         // Seedbox stats (real)
         .route("/api/seedbox/stats", get(routes::seedbox::get_stats))
+        // Dashboard media (Plex, Sonarr, Radarr aggregated)
+        .route("/api/dashboard/media", get(routes::media::get_media))
         // Blog posts (public)
         .route("/api/posts", get(routes::posts::list_posts))
         .route("/api/posts/{slug}", get(routes::posts::get_post))

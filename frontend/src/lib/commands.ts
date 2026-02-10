@@ -40,7 +40,7 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  help              Show this help message"),
       out("  ls                List blog posts"),
       out("  cat <slug>        Read a blog post"),
-      out("  whoami            Display current user"),
+      out("  whoami [-v]       Display current user / env"),
       out("  status            System health check"),
       out("  dashboard         Open command center"),
       out("  clear             Clear terminal"),
@@ -51,6 +51,12 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  fingerprint       Show key fingerprint"),
       out("  verify <slug>     Verify post integrity hash"),
       out("  canary            Show warrant canary status"),
+      sys("├──────────────────────── RECON ────────────────┤"),
+      out("  nmap              Scan site services"),
+      out("  hexdump <slug>    Hex dump of post content"),
+      out("  strings <slug>    Extract post metadata"),
+      out("  file <slug>       Show post file info"),
+      out("  tls               Connection security info"),
       sys("└─────────────────────────────────────────────┘"),
     ],
   },
@@ -139,7 +145,39 @@ export const COMMANDS: Record<string, TerminalCommand> = {
   whoami: {
     name: "whoami",
     description: "Display current user",
-    execute: () => [out("guest@fs0ciety")],
+    usage: "whoami [-v]",
+    execute: (args) => {
+      if (args.includes("-v") || args.includes("--verbose")) {
+        const nav = navigator as Navigator & {
+          deviceMemory?: number;
+          connection?: { effectiveType?: string };
+        };
+        return [
+          sys("╔══════════════════════════════════════════╗"),
+          sys("║         CLIENT ENVIRONMENT                ║"),
+          sys("╠══════════════════════════════════════════╣"),
+          out(`  user:       guest@fs0ciety`),
+          out(`  platform:   ${nav.platform || "unknown"}`),
+          out(`  language:   ${nav.language}`),
+          out(`  cores:      ${nav.hardwareConcurrency || "?"}`),
+          out(`  memory:     ${nav.deviceMemory ? nav.deviceMemory + " GB" : "hidden"}`),
+          out(`  screen:     ${screen.width}x${screen.height}`),
+          out(`  color:      ${screen.colorDepth}-bit`),
+          out(`  dpr:        ${window.devicePixelRatio}x`),
+          out(`  touch:      ${("ontouchstart" in window) ? "yes" : "no"}`),
+          out(`  timezone:   ${Intl.DateTimeFormat().resolvedOptions().timeZone}`),
+          out(`  dnt:        ${nav.doNotTrack || "unset"}`),
+          out(`  cookies:    ${nav.cookieEnabled ? "enabled" : "disabled"}`),
+          out(`  connection: ${nav.connection?.effectiveType || "unknown"}`),
+          out(`  protocol:   ${window.location.protocol}`),
+          sys("╚══════════════════════════════════════════╝"),
+          out(""),
+          out("  Run 'nmap' for service scan."),
+          out("  Visit /blog/fingerprint for full analysis."),
+        ];
+      }
+      return [out("guest@fs0ciety")];
+    },
   },
 
   status: {

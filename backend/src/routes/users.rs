@@ -324,6 +324,81 @@ pub async fn get_profile(
     })))
 }
 
+/// GET /api/users/:username/stats — public author stats (article count, words, views, posts list).
+pub async fn user_stats(
+    State(state): State<AppState>,
+    Path(username): Path<String>,
+) -> Result<Json<Value>, AppError> {
+    // Verify user exists.
+    let users: Vec<User> = state.db
+        .query("SELECT * FROM users WHERE username = $username LIMIT 1")
+        .bind(("username", username.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?
+        .take(0)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    if users.is_empty() {
+        return Err(AppError::NotFound(format!("User '{}' not found", username)));
+    }
+
+    // Fetch published posts by this author.
+    let posts: Vec<Value> = state.db
+        .query(
+            "SELECT slug, title, tags, published, author, created_at, views \
+             FROM posts WHERE author = $author AND published = true \
+             ORDER BY created_at DESC"
+        )
+        .bind(("author", username.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?
+        .take(0)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    // Aggregate word counts from full content.
+    let full_posts: Vec<Value> = state.db
+        .query(
+            "SELECT content FROM posts WHERE author = $author AND published = true"
+        )
+        .bind(("author", username.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?
+        .take(0)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let total_words: usize = full_posts.iter().map(|p| {
+        p["content"].as_str().unwrap_or("").split_whitespace().count()
+    }).sum();
+
+    let total_views: u64 = posts.iter().map(|p| {
+        p["views"].as_u64().unwrap_or(0)
+    }).sum();
+
+    let total_tags: Vec<String> = posts
+        .iter()
+        .flat_map(|p| {
+            p["tags"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(|t| t.as_str().map(String::from))
+        })
+        .collect::<std::collections::HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    Ok(Json(json!({
+        "username": username,
+        "total_posts": posts.len(),
+        "total_words": total_words,
+        "total_views": total_views,
+        "total_tags": total_tags.len(),
+        "tags": total_tags,
+        "posts": posts,
+    })))
+}
+
 /// DELETE /api/admin/users/:username — delete a user (admin only, cannot delete self).
 #[utoipa::path(
     delete,

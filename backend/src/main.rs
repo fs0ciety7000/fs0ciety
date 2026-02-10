@@ -169,6 +169,7 @@ async fn main() {
         .route("/api/admin/users/{username}", get(routes::users::get_profile).put(routes::users::update_user).delete(routes::users::delete_user))
         // Public profiles
         .route("/api/users/{username}", get(routes::users::get_profile))
+        .route("/api/users/{username}/stats", get(routes::users::user_stats))
         // File upload
         .route("/api/upload", post(routes::upload::upload_file))
         .route("/api/uploads/{filename}", get(routes::upload::serve_upload))

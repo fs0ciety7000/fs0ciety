@@ -17,12 +17,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      - NEXT_PUBLIC_API_URL=https://fs0ciety.org
-      - NEXT_PUBLIC_WS_URL=wss://fs0ciety.org/ws
-      - NEXT_PUBLIC_DOMAIN=fs0ciety.org
-      - INTERNAL_API_URL=http://backend:3001
-    expose:
-      - "3000"
+      - NEXT_PUBLIC_API_URL=https://${DOMAIN}
+      - NEXT_PUBLIC_WS_URL=wss://${DOMAIN}/ws
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`fs0ciety.org`) || Host(`blog.fs0ciety.org`) || Host(`dash.fs0ciety.org`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
     depends_on:
       - backend
     restart: unless-stopped

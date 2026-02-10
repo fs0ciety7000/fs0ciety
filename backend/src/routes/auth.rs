@@ -192,14 +192,14 @@ pub async fn forgot_password(
         state.db
             .query(
                 "CREATE password_resets SET \
-                    token = $token, \
+                    reset_token = $reset_token, \
                     username = $username, \
                     email = $email, \
                     expires_at = $expires_at, \
                     used = false, \
                     created_at = time::now()"
             )
-            .bind(("token", token.clone()))
+            .bind(("reset_token", token.clone()))
             .bind(("username", user.username.clone()))
             .bind(("email", email.clone()))
             .bind(("expires_at", expires_at.to_rfc3339()))
@@ -277,8 +277,8 @@ pub async fn reset_password(
 
     // Look up the reset token.
     let tokens: Vec<Value> = state.db
-        .query("SELECT token, username, expires_at, used FROM password_resets WHERE token = $token LIMIT 1")
-        .bind(("token", req.token.clone()))
+        .query("SELECT reset_token, username, expires_at, used FROM password_resets WHERE reset_token = $reset_token LIMIT 1")
+        .bind(("reset_token", req.token.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -322,8 +322,8 @@ pub async fn reset_password(
 
     // Mark token as used.
     state.db
-        .query("UPDATE password_resets SET used = true WHERE token = $token")
-        .bind(("token", req.token))
+        .query("UPDATE password_resets SET used = true WHERE reset_token = $reset_token")
+        .bind(("reset_token", req.token))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?;
 

@@ -226,3 +226,18 @@ body {
   border-top: 1px solid #2A2A2A;
   margin: 2em 0;
 }
+
+/* ── ToC anchor scroll offset ────────────────────────────── */
+/* Offset headings so they aren't hidden behind the fixed header */
+
+.prose-fs0ciety h1[id],
+.prose-fs0ciety h2[id],
+.prose-fs0ciety h3[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* ── Smooth scroll ───────────────────────────────────────── */
+
+html {
+  scroll-behavior: smooth;
+}

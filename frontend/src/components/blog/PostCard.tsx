@@ -18,7 +18,18 @@ export function PostCard({ post }: PostCardProps) {
         <div className="flex items-center gap-3 mb-2 text-xs font-mono text-terminal-green-dim opacity-50">
           {post.author && (
             <>
-              <span className="text-terminal-cyan">{post.author}</span>
+              <span
+                className="text-terminal-cyan hover:text-terminal-green transition-colors cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = `/profile/${post.author}`;
+                }}
+                role="link"
+                tabIndex={0}
+              >
+                @{post.author}
+              </span>
               <span>&middot;</span>
             </>
           )}

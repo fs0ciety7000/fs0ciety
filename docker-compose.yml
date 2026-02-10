@@ -62,6 +62,7 @@ services:
   # ── Database (SurrealDB) ──────────────────────────────────
   surrealdb:
     image: surrealdb/surrealdb:v2
+    user: root
     command: start --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:-changeme} rocksdb:/data/srdb.db
     volumes:
       - surrealdb_data:/data

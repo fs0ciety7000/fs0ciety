@@ -1,9 +1,15 @@
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  fs0ciety — Development Docker Compose                     ║
-# ║  Run: docker compose -f docker-compose.dev.yml up           ║
+# ║                                                            ║
+# ║  Full dev stack with hot-reload:                           ║
+# ║    docker compose -f docker-compose.dev.yml up             ║
+# ║                                                            ║
+# ║  Or just the database (for local backend/frontend):        ║
+# ║    docker compose -f docker-compose.dev.yml up surrealdb   ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 services:
+  # ── Database (SurrealDB — in-memory for fast dev) ───────────
   surrealdb:
     image: surrealdb/surrealdb:v2
     command: start --user root --pass changeme memory
@@ -14,3 +20,43 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # ── Backend (Rust/Axum — cargo-watch hot-reload) ────────────
+  # Requires Rust toolchain on host. Alternatively, run `just dev-backend` directly.
+  # Uncomment to run inside Docker:
+  #
+  # backend:
+  #   build:
+  #     context: .
+  #     dockerfile: backend/Dockerfile
+  #   environment:
+  #     - BACKEND_HOST=0.0.0.0
+  #     - BACKEND_PORT=3001
+  #     - RUST_LOG=info,fs0ciety_backend=debug
+  #     - SURREAL_URL=ws://surrealdb:8000
+  #     - SURREAL_NS=fs0ciety
+  #     - SURREAL_DB=main
+  #     - SURREAL_USER=root
+  #     - SURREAL_PASS=changeme
+  #     - JWT_SECRET=dev-jwt-secret-not-for-production
+  #   ports:
+  #     - "3001:3001"
+  #   depends_on:
+  #     surrealdb:
+  #       condition: service_healthy
+
+  # ── Frontend (Next.js — Turbopack hot-reload) ───────────────
+  # Requires Node.js on host. Alternatively, run `just dev-frontend` directly.
+  # Uncomment to run inside Docker:
+  #
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     - NEXT_PUBLIC_DOMAIN=localhost
+  #     - INTERNAL_API_URL=http://backend:3001
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend

@@ -44,12 +44,13 @@ export default function NotFound() {
     ];
     let i = 0;
     const timer = setInterval(() => {
-      if (i < lines.length) {
-        setLogLines((prev) => [...prev, lines[i]]);
-        i++;
-      } else {
+      if (i >= lines.length) {
         clearInterval(timer);
+        return;
       }
+      const line = lines[i];
+      i++;
+      setLogLines((prev) => [...prev, line]);
     }, 150);
     return () => clearInterval(timer);
   }, []);
@@ -83,24 +84,27 @@ export default function NotFound() {
 
         {/* Fake terminal log */}
         <div className="text-left border border-terminal-gray-light bg-terminal-black-light p-4 mb-8 font-mono text-xs max-h-64 overflow-y-auto">
-          {logLines.map((line, i) => (
-            <div
-              key={i}
-              className={
-                line.startsWith("[ERR]")
-                  ? "text-terminal-red"
-                  : line.startsWith("[WARN]")
-                  ? "text-terminal-amber"
-                  : line.startsWith("[INFO]")
-                  ? "text-terminal-cobalt"
-                  : line.startsWith("$")
-                  ? "text-terminal-green"
-                  : "text-terminal-green-dim/60"
-              }
-            >
-              {line || "\u00A0"}
-            </div>
-          ))}
+          {logLines.map((line, i) => {
+            const l = line ?? "";
+            return (
+              <div
+                key={i}
+                className={
+                  l.startsWith("[ERR]")
+                    ? "text-terminal-red"
+                    : l.startsWith("[WARN]")
+                    ? "text-terminal-amber"
+                    : l.startsWith("[INFO]")
+                    ? "text-terminal-cobalt"
+                    : l.startsWith("$")
+                    ? "text-terminal-green"
+                    : "text-terminal-green-dim/60"
+                }
+              >
+                {l || "\u00A0"}
+              </div>
+            );
+          })}
           <span className="text-terminal-green animate-blink">_</span>
         </div>
 

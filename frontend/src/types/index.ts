@@ -99,6 +99,25 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
+/** User profile stats from /api/users/:username/stats. */
+export interface UserStats {
+  username: string;
+  total_posts: number;
+  total_words: number;
+  total_views: number;
+  total_tags: number;
+  tags: string[];
+  posts: {
+    slug: string;
+    title: string;
+    tags: string[];
+    published: boolean;
+    author: string;
+    created_at: string;
+    views: number;
+  }[];
+}
+
 /** User info returned by admin API. */
 export interface UserPublic {
   username: string;

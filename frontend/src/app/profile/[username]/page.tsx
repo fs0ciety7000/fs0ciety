@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { GlitchText } from "@/components/effects/GlitchText";
-import type { UserPublic } from "@/types";
+import type { UserPublic, UserStats } from "@/types";
 
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
   const username = params.username as string;
   const [profile, setProfile] = useState<UserPublic | null>(null);
+  const [stats, setStats] = useState<UserStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSelf, setIsSelf] = useState(false);
@@ -26,8 +28,12 @@ export default function UserProfilePage() {
             setIsSelf(true);
           }
         }
-        const data = await api.profile(username, token);
+        const [data, userStats] = await Promise.all([
+          api.profile(username, token),
+          api.userStats(username).catch(() => null),
+        ]);
         setProfile(data);
+        setStats(userStats);
       } catch (err) {
         setError(err instanceof Error ? err.message : "User not found");
       } finally {
@@ -161,8 +167,8 @@ export default function UserProfilePage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
             <div className="text-xs text-terminal-green-dim uppercase tracking-wider mb-1">Member Since</div>
             <div className="text-sm text-terminal-green">{memberSince}</div>
@@ -171,7 +177,100 @@ export default function UserProfilePage() {
             <div className="text-xs text-terminal-green-dim uppercase tracking-wider mb-1">Last Seen</div>
             <div className="text-sm text-terminal-green">{lastSeen}</div>
           </div>
+          {stats && (
+            <>
+              <div className="border border-terminal-cyan/20 bg-terminal-black-light p-4">
+                <div className="text-xs text-terminal-cyan/60 uppercase tracking-wider mb-1">Articles</div>
+                <div className="text-2xl text-terminal-cyan font-bold">{stats.total_posts}</div>
+              </div>
+              <div className="border border-terminal-cyan/20 bg-terminal-black-light p-4">
+                <div className="text-xs text-terminal-cyan/60 uppercase tracking-wider mb-1">Total Words</div>
+                <div className="text-2xl text-terminal-cyan font-bold">{stats.total_words.toLocaleString()}</div>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Extended stats row */}
+        {stats && (
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
+              <div className="text-xs text-terminal-green-dim uppercase tracking-wider mb-1">Total Views</div>
+              <div className="text-lg text-terminal-green font-bold">{stats.total_views.toLocaleString()}</div>
+            </div>
+            <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
+              <div className="text-xs text-terminal-green-dim uppercase tracking-wider mb-1">Tags Used</div>
+              <div className="text-lg text-terminal-green font-bold">{stats.total_tags}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Tags cloud */}
+        {stats && stats.tags.length > 0 && (
+          <div className="border border-terminal-green/20 bg-terminal-black-light p-4 mb-6">
+            <h3 className="text-xs text-terminal-amber uppercase tracking-wider mb-3">Topics</h3>
+            <div className="flex flex-wrap gap-2">
+              {stats.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs px-2 py-0.5 border border-terminal-green/20 text-terminal-green-dim"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Articles list */}
+        {stats && stats.posts.length > 0 && (
+          <div className="border border-terminal-green/20 bg-terminal-black-light mb-6">
+            <div className="p-4 border-b border-terminal-green/10">
+              <h3 className="text-xs text-terminal-amber uppercase tracking-wider">
+                Published Articles ({stats.total_posts})
+              </h3>
+            </div>
+            <div className="divide-y divide-terminal-green/10">
+              {stats.posts.map((post) => (
+                <Link
+                  key={post.slug}
+                  href={`/blog/${post.slug}`}
+                  className="block p-4 hover:bg-terminal-green/5 transition-colors group"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-terminal-green group-hover:text-terminal-cyan transition-colors truncate">
+                        {post.title}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        <span className="text-[10px] text-terminal-green-dim">
+                          {new Date(post.created_at).toLocaleDateString("en-US", {
+                            year: "numeric", month: "short", day: "numeric",
+                          })}
+                        </span>
+                        {post.tags.length > 0 && (
+                          <span className="text-[10px] text-terminal-green/40">
+                            {post.tags.map((t) => `#${t}`).join(" ")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-terminal-green-dim shrink-0">
+                      {post.views} views
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {stats && stats.posts.length === 0 && (
+          <div className="border border-terminal-green/10 bg-terminal-black-light p-6 text-center mb-6">
+            <div className="text-sm text-terminal-green-dim">No published articles yet.</div>
+          </div>
+        )}
       </div>
     </div>
   );

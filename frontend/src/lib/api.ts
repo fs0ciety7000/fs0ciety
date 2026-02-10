@@ -1,4 +1,4 @@
-import type { Post, PostMeta, PostPayload, AdminStats, UserPublic, AuditLogEntry } from "@/types";
+import type { Post, PostMeta, PostPayload, AdminStats, UserPublic, UserStats, AuditLogEntry } from "@/types";
 
 // Same-origin: Traefik routes /api/* to the backend.
 // In local dev, Next.js rewrites (next.config.ts) proxy to localhost:3001.
@@ -147,6 +147,8 @@ export const api = {
     request<UserPublic>(`/api/users/${username}`, {
       headers: token ? authHeaders(token) : {},
     }),
+  userStats: (username: string) =>
+    request<UserStats>(`/api/users/${username}/stats`),
 
   // Self-profile update
   updateProfile: (data: Record<string, unknown>, token: string) =>

@@ -50,6 +50,7 @@ pub struct AppState {
         routes::posts::admin_stats,
         routes::users::list_users,
         routes::users::create_user,
+        routes::users::update_user,
         routes::users::delete_user,
     ),
     components(schemas(
@@ -68,6 +69,7 @@ pub struct AppState {
         models::ChangePasswordRequest,
         models::ForgotPasswordRequest,
         models::ResetPasswordRequest,
+        models::UpdateUserRequest,
     )),
     tags(
         (name = "system", description = "Health & status"),
@@ -160,7 +162,12 @@ async fn main() {
         .route("/api/admin/stats", get(routes::posts::admin_stats))
         // Admin — user management
         .route("/api/admin/users", get(routes::users::list_users).post(routes::users::create_user))
-        .route("/api/admin/users/{username}", delete(routes::users::delete_user))
+        .route("/api/admin/users/{username}", get(routes::users::get_profile).put(routes::users::update_user).delete(routes::users::delete_user))
+        // Public profiles
+        .route("/api/users/{username}", get(routes::users::get_profile))
+        // File upload
+        .route("/api/upload", post(routes::upload::upload_file))
+        .route("/api/uploads/{filename}", get(routes::upload::serve_upload))
         // WebSocket for real-time stats
         .route("/ws", get(ws::ws_handler))
         // Swagger UI

@@ -311,3 +311,132 @@ html {
 .tok-const { color: #AAFFAA; }
 .tok-attr { color: #FFB000; }
 .tok-dec { color: #FF0033; }
+
+/* ── Post Card Glitch Hover ─────────────────────────────── */
+
+.post-card-glitch {
+  position: relative;
+  overflow: hidden;
+}
+
+.post-card-glitch::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 65, 0.04) 45%,
+    rgba(0, 255, 65, 0.08) 50%,
+    rgba(0, 255, 65, 0.04) 55%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.post-card-glitch:hover::after {
+  animation: glitch-sweep 0.5s ease-out;
+}
+
+@keyframes glitch-sweep {
+  0% { top: -100%; }
+  100% { top: 100%; }
+}
+
+.post-card-glitch:hover {
+  animation: glitch-shake 0.15s ease-in-out;
+}
+
+@keyframes glitch-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* ── CRT Screen Flicker ─────────────────────────────────── */
+
+.crt-flicker {
+  animation: screen-flicker 0.15s ease-in-out !important;
+}
+
+@keyframes screen-flicker {
+  0% { opacity: 1; filter: brightness(1); }
+  20% { opacity: 0.82; filter: brightness(1.3); transform: translateX(3px); }
+  40% { opacity: 0.95; filter: brightness(0.9); transform: translateX(-1px); }
+  60% { opacity: 0.88; filter: brightness(1.1); }
+  80% { opacity: 1; filter: brightness(1); transform: translateX(0); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+/* ── Konami Code Overlay ────────────────────────────────── */
+
+.konami-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  animation: konami-fade-in 0.2s ease-out;
+}
+
+.konami-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1px,
+    rgba(0, 255, 65, 0.03) 1px,
+    rgba(0, 255, 65, 0.03) 2px
+  );
+  pointer-events: none;
+}
+
+.konami-content {
+  position: relative;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+.konami-glitch-text {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #FF0033;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  animation: konami-text-glitch 0.1s infinite;
+}
+
+@keyframes konami-text-glitch {
+  0% { text-shadow: 2px 0 #00FF41, -2px 0 #00D4FF; }
+  25% { text-shadow: -2px 0 #FF0033, 2px 0 #00D4FF; }
+  50% { text-shadow: 1px 0 #00FF41, -1px 0 #FF0033; }
+  75% { text-shadow: -1px 0 #00D4FF, 1px 0 #00FF41; }
+  100% { text-shadow: 2px 0 #FF0033, -2px 0 #00FF41; }
+}
+
+.konami-ascii {
+  color: #00FF41;
+  font-size: 0.55rem;
+  line-height: 1.2;
+  margin-top: 1.5rem;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+  animation: konami-fade-in 0.5s ease-out;
+}
+
+.konami-final {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  animation: konami-fade-in 0.5s ease-out;
+}
+
+@keyframes konami-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

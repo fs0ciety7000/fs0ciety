@@ -7,6 +7,7 @@ import { BootSequence } from "@/components/boot/BootSequence";
 import { MaskReveal } from "@/components/effects/MaskReveal";
 import { Terminal } from "@/components/terminal/Terminal";
 import { MatrixRain } from "@/components/effects/MatrixRain";
+import { KonamiCode } from "@/components/effects/KonamiCode";
 
 type Phase = "boot" | "reveal" | "terminal";
 
@@ -18,6 +19,7 @@ export default function Home() {
 
   return (
     <TerminalProvider>
+      <KonamiCode />
       <MatrixRain />
       <CRTScreen>
         {phase === "boot" && <BootSequence onComplete={handleBootComplete} />}

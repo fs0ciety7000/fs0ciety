@@ -12,7 +12,7 @@ export function PostCard({ post }: PostCardProps) {
     : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
   return (
-    <article className="group border border-terminal-gray-light hover:border-terminal-green/40 bg-terminal-black-light transition-colors">
+    <article className="group post-card-glitch border border-terminal-gray-light hover:border-terminal-green/40 bg-terminal-black-light transition-colors">
       <Link href={`/blog/${post.slug}`} className="block p-6">
         {/* Meta row */}
         <div className="flex items-center gap-3 mb-2 text-xs font-mono text-terminal-green-dim opacity-50">

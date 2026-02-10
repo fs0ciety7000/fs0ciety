@@ -51,12 +51,8 @@ export const COMMANDS: Record<string, TerminalCommand> = {
       out("  fingerprint       Show key fingerprint"),
       out("  verify <slug>     Verify post integrity hash"),
       out("  canary            Show warrant canary status"),
-      sys("├──────────────────────── RECON ────────────────┤"),
-      out("  nmap              Scan site services"),
-      out("  hexdump <slug>    Hex dump of post content"),
-      out("  strings <slug>    Extract post metadata"),
-      out("  file <slug>       Show post file info"),
-      out("  tls               Connection security info"),
+      sys("├──────────────────────── SEARCH ───────────────┤"),
+      out("  grep <query>      Search blog posts"),
       sys("└─────────────────────────────────────────────┘"),
     ],
   },
@@ -345,6 +341,70 @@ export const COMMANDS: Record<string, TerminalCommand> = {
         out(""),
         out("  Redirecting to full canary page..."),
       ];
+    },
+  },
+
+  // ── Recon commands ─────────────────────────────────────
+
+  grep: {
+    name: "grep",
+    description: "Search blog posts",
+    usage: "grep <query>",
+    execute: (args, ctx) => {
+      const query = args.join(" ");
+      if (!query) {
+        return [err("Usage: grep <query>"), err("Searches post titles, tags, and excerpts.")];
+      }
+
+      fetch("/api/posts")
+        .then((r) => {
+          if (!r.ok) throw new Error("failed");
+          return r.json();
+        })
+        .then(
+          (data: {
+            posts: {
+              slug: string;
+              title: string;
+              tags: string[];
+              excerpt: string;
+              readingTime: number;
+            }[];
+          }) => {
+            const q = query.toLowerCase();
+            const matches = (data.posts ?? []).filter(
+              (p) =>
+                p.title.toLowerCase().includes(q) ||
+                p.tags.some((t) => t.toLowerCase().includes(q)) ||
+                p.excerpt?.toLowerCase().includes(q) ||
+                p.slug.toLowerCase().includes(q)
+            );
+
+            if (!matches.length) {
+              ctx.addLines([out(`  No matches for '${query}'.`)]);
+              return;
+            }
+
+            const lines: TerminalLine[] = [
+              sys(`Found ${matches.length} match${matches.length !== 1 ? "es" : ""}:`),
+              out(""),
+            ];
+            for (const m of matches) {
+              lines.push(
+                out(`  \x1b[32m${m.slug}\x1b[0m  ${m.title}`),
+                out(`    ${m.tags.map((t) => `#${t}`).join(" ")} · ${m.readingTime} min read`)
+              );
+            }
+            lines.push(out(""));
+            lines.push(out("  Use 'cat <slug>' to read a post."));
+            ctx.addLines(lines);
+          }
+        )
+        .catch(() => {
+          ctx.addLines([err("Failed to search — API offline?")]);
+        });
+
+      return [sys(`grep: searching for '${query}'...`)];
     },
   },
 };

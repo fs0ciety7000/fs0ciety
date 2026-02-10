@@ -121,6 +121,12 @@ export default function BlogPostPage() {
           <span>{post.readingTime} min read</span>
           <span className="text-terminal-gray-light">|</span>
           <span>{post.wordCount} words</span>
+          {typeof post.views === "number" && (
+            <>
+              <span className="text-terminal-gray-light">|</span>
+              <span>0x{post.views.toString(16).toUpperCase().padStart(4, "0")} views</span>
+            </>
+          )}
         </div>
 
         {/* Integrity hash */}
@@ -134,12 +140,13 @@ export default function BlogPostPage() {
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-4">
           {post.tags.map((tag) => (
-            <span
+            <a
               key={tag}
-              className="text-xs font-mono px-2 py-0.5 border border-terminal-green/20 text-terminal-green-dim"
+              href={`/blog?tag=${encodeURIComponent(tag)}`}
+              className="text-xs font-mono px-2 py-0.5 border border-terminal-green/20 text-terminal-green-dim hover:border-terminal-green/50 hover:text-terminal-green transition-colors"
             >
               #{tag}
-            </span>
+            </a>
           ))}
         </div>
       </header>

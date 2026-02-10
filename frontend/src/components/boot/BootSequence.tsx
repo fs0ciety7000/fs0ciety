@@ -9,6 +9,21 @@ interface BootLine {
   delay: number;
 }
 
+const HACKER_QUOTES = [
+  "\"Control is an illusion.\" — Mr. Robot",
+  "\"Is any of it real? A world built on fantasy.\" — Elliot",
+  "\"People always make the best exploits.\" — Kevin Mitnick",
+  "\"The quieter you become, the more you can hear.\" — Kali Linux",
+  "\"There is no cloud, it's just someone else's computer.\"",
+  "\"We are fsociety. We are finally free.\"",
+  "\"chmod 777 your mind.\"",
+  "\"Privacy is not for sale.\"",
+  "\"rm -rf /society\"",
+  "\"In a world of locked rooms, the man with the key is king.\"",
+  "\"Hacking is not a crime, it's a survival skill.\"",
+  "\"The best way to predict the future is to create it.\"",
+];
+
 const BOOT_SEQUENCE: BootLine[] = [
   { text: "BIOS POST... Memory check: 32768 MB OK", status: "ok", delay: 200 },
   { text: "Loading kernel: fs0ciety v0.1.0-axum", status: "info", delay: 300 },
@@ -21,7 +36,8 @@ const BOOT_SEQUENCE: BootLine[] = [
   { text: "Checking Radarr...", status: "ok", delay: 200 },
   { text: "Checking qBittorrent daemon...", status: "ok", delay: 300 },
   { text: "Loading terminal interface...", status: "ok", delay: 200 },
-  { text: "All systems operational. Welcome back.", status: "info", delay: 500 },
+  { text: "All systems operational. Welcome back.", status: "info", delay: 400 },
+  { text: HACKER_QUOTES[Math.floor(Math.random() * HACKER_QUOTES.length)], status: "info", delay: 600 },
 ];
 
 const STATUS_COLORS = {

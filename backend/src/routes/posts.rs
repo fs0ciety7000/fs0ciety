@@ -10,7 +10,7 @@ use crate::AppState;
 
 /// Fields to select — excludes SurrealDB `id` (RecordId enum) which
 /// cannot be deserialized to serde_json::Value.
-const POST_FIELDS: &str = "slug, title, content, tags, published, author, created_at, updated_at";
+const POST_FIELDS: &str = "slug, title, content, tags, published, author, created_at, updated_at, views";
 
 /// Calculate reading time and word count from markdown content.
 fn content_stats(content: &str) -> (usize, usize) {
@@ -68,6 +68,7 @@ fn enrich(p: &Value) -> Value {
     enriched["wordCount"] = json!(wc);
     enriched["excerpt"] = json!(excerpt(content, 160));
     enriched["contentHash"] = json!(content_hash(content));
+    enriched["views"] = json!(p["views"].as_u64().unwrap_or(0));
     // Normalize SurrealDB datetimes to plain ISO strings (both snake_case and camelCase).
     let created = extract_datetime(&p["created_at"]);
     let updated = extract_datetime(&p["updated_at"]);
@@ -109,6 +110,7 @@ fn to_summary(p: &Value) -> Value {
         "wordCount": p["wordCount"],
         "excerpt": p["excerpt"],
         "contentHash": p["contentHash"],
+        "views": p["views"],
     })
 }
 
@@ -146,7 +148,18 @@ pub async fn get_post(
         .map_err(|e| AppError::Database(e.to_string()))?;
 
     match rows.into_iter().next() {
-        Some(p) => Ok(Json(enrich(&p))),
+        Some(p) => {
+            // Fire-and-forget view increment
+            let db = state.db.clone();
+            let s = slug.clone();
+            tokio::spawn(async move {
+                let _ = db
+                    .query("UPDATE posts SET views = (views ?? 0) + 1 WHERE slug = $slug")
+                    .bind(("slug", s))
+                    .await;
+            });
+            Ok(Json(enrich(&p)))
+        }
         None => Err(AppError::NotFound(format!("Post '{}' not found", slug))),
     }
 }
@@ -261,6 +274,7 @@ pub async fn create_post(
                 tags = $tags, \
                 published = $published, \
                 author = $author, \
+                views = 0, \
                 created_at = time::now(), \
                 updated_at = time::now()"
         )

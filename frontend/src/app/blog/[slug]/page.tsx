@@ -239,6 +239,30 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
     '<div class="border border-terminal-purple/30 bg-terminal-purple/5 p-4 my-4 font-mono text-xs"><span class="text-terminal-purple font-bold">PGP ENCRYPTED BLOCK</span><pre class="mt-2 text-terminal-purple-dim/60 break-all whitespace-pre-wrap select-all">$1</pre></div>'
   );
 
+  // [terminal]...[/terminal] — styled like real terminal output
+  processed = processed.replace(
+    /\[terminal\]\n?([\s\S]*?)\n?\[\/terminal\]/g,
+    (_match, content: string) => {
+      const lines = content.split("\n").map((line: string) => {
+        const escaped = escapeHtml(line);
+        if (line.startsWith("$ ") || line.startsWith("# ")) {
+          return `<div class="terminal-log-cmd"><span class="text-terminal-green">${escaped.charAt(0)}</span><span class="text-terminal-green-dim">${escaped.slice(1)}</span></div>`;
+        }
+        if (line.match(/^\[ERR\]|^error|^Error|^FATAL/i)) {
+          return `<div class="text-terminal-red">${escaped}</div>`;
+        }
+        if (line.match(/^\[WARN\]|^warning|^Warning/i)) {
+          return `<div class="text-terminal-amber">${escaped}</div>`;
+        }
+        if (line.match(/^\[OK\]|^success|^Success|^\[INFO\]/i)) {
+          return `<div class="text-terminal-green">${escaped}</div>`;
+        }
+        return `<div class="text-terminal-green-dim/70">${escaped}</div>`;
+      }).join("");
+      return `<div class="terminal-block my-4 border border-terminal-green/20 bg-terminal-black p-4 font-mono text-xs overflow-x-auto"><div class="flex items-center gap-2 mb-3 text-[10px] text-terminal-green-dim/40 uppercase tracking-wider border-b border-terminal-gray-light pb-2"><span class="text-terminal-green">></span> terminal output</div>${lines}</div>`;
+    }
+  );
+
   // Inline code
   processed = processed.replace(/`([^`]+)`/g, "<code>$1</code>");
 

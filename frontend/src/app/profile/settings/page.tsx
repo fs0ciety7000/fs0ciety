@@ -30,6 +30,7 @@ export default function ProfileSettingsPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [pwMessage, setPwMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [avatarDrag, setAvatarDrag] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -179,7 +180,18 @@ export default function ProfileSettingsPage() {
         <div className={sectionClass}>
           <h2 className="text-sm font-bold text-terminal-amber uppercase tracking-wider mb-4">Avatar</h2>
           <div className="flex items-center gap-6">
-            <div className="shrink-0 relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+            <div
+              className={`shrink-0 relative group cursor-pointer transition-colors ${avatarDrag ? "ring-2 ring-terminal-green" : ""}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setAvatarDrag(true); }}
+              onDragLeave={() => setAvatarDrag(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setAvatarDrag(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file && file.type.startsWith("image/")) handleAvatarUpload(file);
+              }}
+            >
               {avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -194,12 +206,12 @@ export default function ProfileSettingsPage() {
               )}
               <div className="absolute inset-0 bg-terminal-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <span className="text-xs text-terminal-green">
-                  {uploading ? "uploading..." : "change"}
+                  {uploading ? "uploading..." : avatarDrag ? "drop here" : "change"}
                 </span>
               </div>
             </div>
             <div className="text-xs text-terminal-green-dim space-y-1">
-              <p>Click avatar to upload a new image.</p>
+              <p>Click or drop an image to upload.</p>
               <p>Supported: PNG, JPG, GIF, WebP, SVG (max 10MB)</p>
               {avatarUrl && (
                 <button
@@ -222,6 +234,7 @@ export default function ProfileSettingsPage() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleAvatarUpload(file);
+                e.target.value = "";
               }}
             />
           </div>

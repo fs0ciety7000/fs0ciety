@@ -35,11 +35,13 @@ export function middleware(request: NextRequest) {
     if (prefix) {
       const { pathname } = request.nextUrl;
 
-      // Don't rewrite if already prefixed, or if it's an internal path (_next, api)
+      // Don't rewrite if already prefixed, internal path, or a static file
+      const isStaticFile = /\.\w{2,5}$/.test(pathname);
       if (
         !pathname.startsWith(prefix) &&
         !pathname.startsWith("/_next") &&
-        !pathname.startsWith("/api")
+        !pathname.startsWith("/api") &&
+        !isStaticFile
       ) {
         const url = request.nextUrl.clone();
         url.pathname = `${prefix}${pathname === "/" ? "" : pathname}`;

@@ -98,6 +98,12 @@ async fn main() {
     // Seed admin user if no users exist.
     db::seed::ensure_admin(&database).await.expect("Failed to seed admin user");
 
+    info!("Service URLs configured:");
+    info!("  Plex:         {}", config.plex_url);
+    info!("  Sonarr:       {}", config.sonarr_url);
+    info!("  Radarr:       {}", config.radarr_url);
+    info!("  qBittorrent:  {}", config.qbittorrent_url);
+
     let proxy = proxy::ProxyClient::new(config.clone());
 
     let state = AppState {

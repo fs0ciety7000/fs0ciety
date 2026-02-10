@@ -2,7 +2,7 @@ use axum::extract::State;
 use axum::Json;
 use serde_json::{json, Value};
 use std::time::Instant;
-use tracing::warn;
+use tracing::{warn, debug};
 
 use crate::AppState;
 
@@ -16,19 +16,25 @@ async fn check_service(client: &reqwest::Client, url: &str, headers: Vec<(&str, 
     match req.send().await {
         Ok(resp) if resp.status().is_success() || resp.status().is_redirection() => {
             let latency = start.elapsed().as_millis() as u64;
+            debug!("Health check OK: {} ({}ms)", url, latency);
             (true, Some(latency))
         }
         Ok(resp) => {
             let latency = start.elapsed().as_millis() as u64;
-            // 401/403 still means the service is reachable.
             let code = resp.status().as_u16();
+            // 401/403 still means the service is reachable.
             if code == 401 || code == 403 {
+                debug!("Health check OK (auth needed): {} → {} ({}ms)", url, code, latency);
                 (true, Some(latency))
             } else {
+                warn!("Health check FAILED: {} → HTTP {} ({}ms)", url, code, latency);
                 (false, Some(latency))
             }
         }
-        Err(_) => (false, None),
+        Err(e) => {
+            warn!("Health check ERROR: {} → {}", url, e);
+            (false, None)
+        }
     }
 }
 

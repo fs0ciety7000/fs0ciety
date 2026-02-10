@@ -6,12 +6,13 @@ const API_BASE = "";
 
 /** Typed fetch wrapper for the Axum backend. */
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const { headers: initHeaders, ...rest } = init ?? {};
   const res = await fetch(`${API_BASE}${path}`, {
+    ...rest,
     headers: {
       "Content-Type": "application/json",
-      ...init?.headers,
+      ...(initHeaders as Record<string, string>),
     },
-    ...init,
   });
 
   if (!res.ok) {

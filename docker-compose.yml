@@ -32,8 +32,8 @@ services:
   # ── Backend (Rust/Axum) ───────────────────────────────────
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     environment:
       - BACKEND_HOST=0.0.0.0
       - BACKEND_PORT=3001

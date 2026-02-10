@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SeedboxStats } from "@/types";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001/ws";
+// Derive WebSocket URL from current page origin (same-origin via Traefik).
+function getWsUrl(): string {
+  if (typeof window === "undefined") return "ws://localhost:3001/ws";
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/ws`;
+}
 
 /** Hook for real-time seedbox stats via WebSocket. */
 export function useWebSocket() {
@@ -14,7 +19,7 @@ export function useWebSocket() {
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const ws = new WebSocket(WS_URL);
+    const ws = new WebSocket(getWsUrl());
     wsRef.current = ws;
 
     ws.onopen = () => setConnected(true);

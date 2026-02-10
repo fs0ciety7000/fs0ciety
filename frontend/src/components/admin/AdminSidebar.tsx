@@ -19,12 +19,22 @@ export function AdminSidebar() {
     <aside className="w-64 min-h-screen border-r border-terminal-gray-light bg-terminal-black-light flex flex-col">
       {/* Brand */}
       <div className="p-6 border-b border-terminal-gray-light">
-        <Link href="/admin" className="group">
-          <div className="text-terminal-green font-mono font-bold text-lg tracking-tight group-hover:text-terminal-green-dim transition-colors">
-            fs0ciety
-          </div>
-          <div className="text-xs font-mono text-terminal-green-dim opacity-50">
-            //admin panel
+        <Link href="/admin" className="flex items-center gap-3 group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.svg"
+            alt=""
+            width={32}
+            height={32}
+            className="opacity-80 group-hover:opacity-100 transition-opacity"
+          />
+          <div>
+            <div className="text-terminal-green font-mono font-bold text-lg tracking-tight group-hover:text-terminal-green-dim transition-colors">
+              fs0ciety
+            </div>
+            <div className="text-xs font-mono text-terminal-green-dim opacity-50">
+              //admin panel
+            </div>
           </div>
         </Link>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { GlitchText } from "@/components/effects/GlitchText";
@@ -9,19 +9,22 @@ import { ASCIIChart } from "@/components/dashboard/ASCIIChart";
 import { ServiceStatus } from "@/components/dashboard/ServiceStatus";
 import { formatBytes, formatSpeed } from "@/lib/utils";
 
-// Mock historical data for the ASCII chart.
-const MOCK_SPEED_HISTORY = [
-  45, 52, 48, 73, 65, 80, 72, 88, 95, 85, 78, 90, 82, 76, 68, 72, 85, 91,
-  88, 79, 83, 77, 92, 86,
-];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { connect, connected, stats } = useWebSocket();
+  const speedHistory = useRef<number[]>([]);
 
   useEffect(() => {
     connect();
   }, [connect]);
+
+  // Build speed history from real data.
+  if (stats) {
+    const mbps = Math.round(stats.downloadSpeed / 1_000_000);
+    speedHistory.current = [...speedHistory.current.slice(-23), mbps];
+  }
+
+  const svc = stats?.services;
 
   return (
     <div className="min-h-screen bg-terminal-black p-4 md:p-8 font-mono">
@@ -69,12 +72,12 @@ export default function DashboardPage() {
         <StatsCard
           label="Disk Usage"
           value={
-            stats
+            stats && stats.diskTotal > 0
               ? `${formatBytes(stats.diskUsed)} / ${formatBytes(stats.diskTotal)}`
               : "—"
           }
           subtext={
-            stats
+            stats && stats.diskTotal > 0
               ? `${((stats.diskUsed / stats.diskTotal) * 100).toFixed(1)}% used`
               : undefined
           }
@@ -96,9 +99,13 @@ export default function DashboardPage() {
         {/* Speed Chart */}
         <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
           <h3 className="text-terminal-amber text-xs uppercase tracking-wider mb-3">
-            Download Speed — Last 24h
+            Download Speed — Live
           </h3>
-          <ASCIIChart data={MOCK_SPEED_HISTORY} height={8} label="" />
+          <ASCIIChart
+            data={speedHistory.current.length > 1 ? speedHistory.current : [0]}
+            height={8}
+            label=""
+          />
         </div>
 
         {/* Service Status */}
@@ -107,12 +114,31 @@ export default function DashboardPage() {
             Service Health
           </h3>
           <div className="space-y-1">
-            <ServiceStatus name="Backend API" online latencyMs={12} />
-            <ServiceStatus name="SurrealDB" online latencyMs={3} />
-            <ServiceStatus name="Plex" online latencyMs={45} />
-            <ServiceStatus name="Sonarr" online latencyMs={38} />
-            <ServiceStatus name="Radarr" online latencyMs={41} />
-            <ServiceStatus name="qBittorrent" online latencyMs={8} />
+            <ServiceStatus
+              name="Backend API"
+              online={connected}
+              latencyMs={connected ? 1 : null}
+            />
+            <ServiceStatus
+              name="Plex"
+              online={svc?.plex?.online ?? false}
+              latencyMs={svc?.plex?.latency_ms}
+            />
+            <ServiceStatus
+              name="Sonarr"
+              online={svc?.sonarr?.online ?? false}
+              latencyMs={svc?.sonarr?.latency_ms}
+            />
+            <ServiceStatus
+              name="Radarr"
+              online={svc?.radarr?.online ?? false}
+              latencyMs={svc?.radarr?.latency_ms}
+            />
+            <ServiceStatus
+              name="qBittorrent"
+              online={svc?.qbittorrent?.online ?? false}
+              latencyMs={svc?.qbittorrent?.latency_ms}
+            />
           </div>
         </div>
       </div>

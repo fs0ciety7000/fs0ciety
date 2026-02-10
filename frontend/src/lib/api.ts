@@ -1,4 +1,4 @@
-import type { Post, PostMeta, PostPayload, AdminStats } from "@/types";
+import type { Post, PostMeta, PostPayload, AdminStats, UserPublic } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -30,13 +30,23 @@ export const api = {
 
   // Auth
   login: (username: string, password: string) =>
-    request<{ token: string; user: { username: string; role: string } }>(
+    request<{ token: string; user: { username: string; role: string }; message: string }>(
       "/api/auth/login",
       {
         method: "POST",
         body: JSON.stringify({ username, password }),
       }
     ),
+  me: (token: string) =>
+    request<{ username: string; role: string }>("/api/auth/me", {
+      headers: authHeaders(token),
+    }),
+  changePassword: (currentPassword: string, newPassword: string, token: string) =>
+    request<{ message: string }>("/api/auth/change-password", {
+      method: "PUT",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+      headers: authHeaders(token),
+    }),
 
   // Blog (public)
   posts: () =>
@@ -80,6 +90,22 @@ export const api = {
       request<{ deleted: boolean; slug: string }>(`/api/admin/posts/${slug}`, {
         method: "DELETE",
         headers: token ? authHeaders(token) : {},
+      }),
+    // User management
+    listUsers: (token: string) =>
+      request<{ users: UserPublic[]; total: number }>("/api/admin/users", {
+        headers: authHeaders(token),
+      }),
+    createUser: (data: { username: string; password: string; role: string; email?: string }, token: string) =>
+      request<{ message: string; username: string }>("/api/admin/users", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: authHeaders(token),
+      }),
+    deleteUser: (username: string, token: string) =>
+      request<{ deleted: boolean; username: string }>(`/api/admin/users/${username}`, {
+        method: "DELETE",
+        headers: authHeaders(token),
       }),
   },
 };

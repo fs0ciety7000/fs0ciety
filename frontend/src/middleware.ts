@@ -16,23 +16,35 @@ export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const domain = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
 
+  // Strip port if present (e.g. "blog.fs0ciety.org:3000" → "blog.fs0ciety.org")
+  const hostWithoutPort = host.split(":")[0];
+  const domainWithoutPort = domain.split(":")[0];
+
   // Extract subdomain: "blog.fs0ciety.org" → "blog"
-  const subdomain = host.replace(`.${domain}`, "").replace(`:${new URL(request.url).port}`, "");
+  // Only match if host ends with the domain and has a prefix
+  if (
+    hostWithoutPort !== domainWithoutPort &&
+    hostWithoutPort.endsWith(`.${domainWithoutPort}`)
+  ) {
+    const subdomain = hostWithoutPort.slice(
+      0,
+      hostWithoutPort.length - domainWithoutPort.length - 1
+    );
 
-  // Only rewrite if we have a known subdomain and host isn't the bare domain
-  if (subdomain !== host && subdomain !== domain && SUBDOMAIN_MAP[subdomain]) {
     const prefix = SUBDOMAIN_MAP[subdomain];
-    const { pathname } = request.nextUrl;
+    if (prefix) {
+      const { pathname } = request.nextUrl;
 
-    // Don't rewrite if already prefixed, or if it's an internal path (_next, api)
-    if (
-      !pathname.startsWith(prefix) &&
-      !pathname.startsWith("/_next") &&
-      !pathname.startsWith("/api")
-    ) {
-      const url = request.nextUrl.clone();
-      url.pathname = `${prefix}${pathname === "/" ? "" : pathname}`;
-      return NextResponse.rewrite(url);
+      // Don't rewrite if already prefixed, or if it's an internal path (_next, api)
+      if (
+        !pathname.startsWith(prefix) &&
+        !pathname.startsWith("/_next") &&
+        !pathname.startsWith("/api")
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = `${prefix}${pathname === "/" ? "" : pathname}`;
+        return NextResponse.rewrite(url);
+      }
     }
   }
 

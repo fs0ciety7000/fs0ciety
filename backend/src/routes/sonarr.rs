@@ -1,7 +1,11 @@
+use axum::extract::State;
 use axum::Json;
 use serde_json::{json, Value};
+use tracing::warn;
 
-/// Mock Sonarr series data — replaced by real proxy calls once Sonarr is live.
+use crate::AppState;
+
+/// GET /api/sonarr/series — proxy to real Sonarr API.
 #[utoipa::path(
     get,
     path = "/api/sonarr/series",
@@ -10,55 +14,17 @@ use serde_json::{json, Value};
     ),
     tag = "seedbox"
 )]
-pub async fn get_series() -> Json<Value> {
-    Json(json!({
-        "series": [
-            {
-                "id": 1,
-                "title": "Mr. Robot",
-                "year": 2015,
-                "status": "ended",
-                "seasons": 4,
-                "episodes_on_disk": 45,
-                "episodes_total": 45,
-                "size_on_disk_gb": 89.2,
-                "quality": "Bluray-1080p",
-                "monitored": true,
-                "path": "/media/tv/Mr. Robot"
-            },
-            {
-                "id": 2,
-                "title": "Black Mirror",
-                "year": 2011,
-                "status": "continuing",
-                "seasons": 7,
-                "episodes_on_disk": 29,
-                "episodes_total": 32,
-                "size_on_disk_gb": 62.4,
-                "quality": "WEBDL-1080p",
-                "monitored": true,
-                "path": "/media/tv/Black Mirror"
-            },
-            {
-                "id": 3,
-                "title": "Silicon Valley",
-                "year": 2014,
-                "status": "ended",
-                "seasons": 6,
-                "episodes_on_disk": 53,
-                "episodes_total": 53,
-                "size_on_disk_gb": 44.1,
-                "quality": "Bluray-1080p",
-                "monitored": false,
-                "path": "/media/tv/Silicon Valley"
-            }
-        ],
-        "total": 3,
-        "disk_usage_gb": 195.7
-    }))
+pub async fn get_series(State(state): State<AppState>) -> Json<Value> {
+    match state.proxy.sonarr_series().await {
+        Ok(data) => Json(json!({ "series": data })),
+        Err(e) => {
+            warn!("Sonarr series fetch failed: {}", e);
+            Json(json!({ "series": [], "error": "Sonarr unavailable" }))
+        }
+    }
 }
 
-/// Mock Sonarr calendar — upcoming episodes.
+/// GET /api/sonarr/calendar — proxy to real Sonarr calendar.
 #[utoipa::path(
     get,
     path = "/api/sonarr/calendar",
@@ -67,17 +33,12 @@ pub async fn get_series() -> Json<Value> {
     ),
     tag = "seedbox"
 )]
-pub async fn get_calendar() -> Json<Value> {
-    Json(json!({
-        "upcoming": [
-            {
-                "series": "Black Mirror",
-                "episode": "S07E04",
-                "title": "Eulogy",
-                "air_date": "2025-06-19",
-                "quality": "WEBDL-1080p",
-                "monitored": true
-            }
-        ]
-    }))
+pub async fn get_calendar(State(state): State<AppState>) -> Json<Value> {
+    match state.proxy.sonarr_calendar().await {
+        Ok(data) => Json(json!({ "upcoming": data })),
+        Err(e) => {
+            warn!("Sonarr calendar fetch failed: {}", e);
+            Json(json!({ "upcoming": [], "error": "Sonarr unavailable" }))
+        }
+    }
 }

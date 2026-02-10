@@ -31,6 +31,7 @@ export interface SeedboxStats {
   diskTotal: number;
   activeTorrents: number;
   seedingTorrents: number;
+  services?: Record<string, { online: boolean; latency_ms: number | null }>;
 }
 
 /** Service health status. */
@@ -46,6 +47,7 @@ export interface PostMeta {
   title: string;
   tags: string[];
   published: boolean;
+  author: string;
   createdAt: string;
   readingTime: number;
   wordCount: number;
@@ -55,7 +57,6 @@ export interface PostMeta {
 /** Full blog post. */
 export interface Post extends PostMeta {
   content: string;
-  author: string;
   updatedAt: string;
 }
 
@@ -83,4 +84,13 @@ export interface AuthState {
   username: string | null;
   role: "admin" | "guest" | null;
   token: string | null;
+}
+
+/** User info returned by admin API. */
+export interface UserPublic {
+  username: string;
+  role: string;
+  email: string | null;
+  created_at: string;
+  last_login: string | null;
 }

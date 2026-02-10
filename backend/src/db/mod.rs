@@ -1,4 +1,5 @@
 pub mod migrations;
+pub mod seed;
 
 use crate::config::Config;
 use surrealdb::engine::remote::ws::{Client, Ws};

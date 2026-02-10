@@ -2,6 +2,7 @@ use axum::extract::{Path, State};
 use axum::Json;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use sha2::{Sha256, Digest};
 
 use crate::error::AppError;
 use crate::middleware::AdminUser;
@@ -51,7 +52,14 @@ fn excerpt(content: &str, max_len: usize) -> String {
     }
 }
 
-/// Enrich a post with reading_time, word_count, excerpt, and normalize datetimes.
+/// Compute SHA-256 hash of content for integrity verification.
+fn content_hash(content: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(content.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+/// Enrich a post with reading_time, word_count, excerpt, hash, and normalize datetimes.
 fn enrich(p: &Value) -> Value {
     let content = p["content"].as_str().unwrap_or("");
     let (wc, rt) = content_stats(content);
@@ -59,6 +67,7 @@ fn enrich(p: &Value) -> Value {
     enriched["readingTime"] = json!(rt);
     enriched["wordCount"] = json!(wc);
     enriched["excerpt"] = json!(excerpt(content, 160));
+    enriched["contentHash"] = json!(content_hash(content));
     // Normalize SurrealDB datetimes to plain ISO strings (both snake_case and camelCase).
     let created = extract_datetime(&p["created_at"]);
     let updated = extract_datetime(&p["updated_at"]);
@@ -99,6 +108,7 @@ fn to_summary(p: &Value) -> Value {
         "readingTime": p["readingTime"],
         "wordCount": p["wordCount"],
         "excerpt": p["excerpt"],
+        "contentHash": p["contentHash"],
     })
 }
 

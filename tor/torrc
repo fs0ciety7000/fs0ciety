@@ -1,0 +1,12 @@
+# fs0ciety Tor Hidden Service Configuration
+# The .onion address is auto-generated and stored in /var/lib/tor/hidden_service/hostname
+
+# Hidden service mapping: onion port 80 → frontend container port 3000
+HiddenServiceDir /var/lib/tor/hidden_service/
+HiddenServicePort 80 frontend:3000
+
+# Logging
+Log notice stdout
+
+# SOCKSPort disabled — we are only running a hidden service, not a relay
+SocksPort 0

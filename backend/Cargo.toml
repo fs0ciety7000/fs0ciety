@@ -41,6 +41,9 @@ chrono = { version = "0.4", features = ["serde"] }
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }
 utoipa-swagger-ui = { version = "9", features = ["axum"] }
 
+# Crypto
+sha2 = "0.10"
+
 # Misc
 uuid = { version = "1", features = ["v4", "serde"] }
 thiserror = "2"

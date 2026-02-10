@@ -52,6 +52,7 @@ export interface PostMeta {
   readingTime: number;
   wordCount: number;
   excerpt: string;
+  contentHash: string;
 }
 
 /** Full blog post. */

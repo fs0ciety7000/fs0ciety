@@ -7,6 +7,8 @@
  * links always land on the correct host.
  */
 
+import { useState, useEffect } from "react";
+
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
 
 /** Map of internal path prefixes → subdomain labels. */
@@ -23,16 +25,9 @@ const SUBDOMAIN_TO_PATH: Record<string, string> = {
 
 /**
  * Build the correct href for a given internal path.
- *
- * - If the target is on a different subdomain than the current page,
- *   return an absolute URL (https://sub.fs0ciety.org/...).
- * - If same subdomain or root, return the path as-is (Next.js Link handles it).
- *
- * Call from a client component — reads `window.location` to know where we are.
+ * Must only be called client-side (after mount).
  */
-export function subdomainHref(path: string): string {
-  if (typeof window === "undefined") return path;
-
+function computeSubdomainHref(path: string): string {
   const proto = window.location.protocol;
   const currentHost = window.location.hostname;
   const domainBase = DOMAIN.split(":")[0];
@@ -68,4 +63,23 @@ export function subdomainHref(path: string): string {
   const prefix = SUBDOMAIN_TO_PATH[targetSub] || "";
   const stripped = path.startsWith(prefix) ? path.slice(prefix.length) || "/" : path;
   return `${proto}//${targetSub}.${domainBase}${stripped}`;
+}
+
+/**
+ * React hook that returns subdomain-aware URLs.
+ * On SSR it returns the raw paths; after hydration it computes full URLs.
+ */
+export function useSubdomainHrefs<T extends Record<string, string>>(paths: T): T {
+  const [hrefs, setHrefs] = useState<T>(paths);
+
+  useEffect(() => {
+    const resolved = {} as Record<string, string>;
+    for (const [key, path] of Object.entries(paths)) {
+      resolved[key] = computeSubdomainHref(path);
+    }
+    setHrefs(resolved as T);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return hrefs;
 }

@@ -2,21 +2,25 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { subdomainHref } from "@/lib/urls";
+import { useSubdomainHrefs } from "@/lib/urls";
+import { getAuthUser } from "@/lib/auth-cookie";
 
 export function BlogHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  const hrefs = useSubdomainHrefs({
+    terminal: "/",
+    profile: "/profile",
+    admin: "/admin",
+  });
+
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("fs0ciety_user");
-      if (raw) {
-        const user = JSON.parse(raw);
-        setIsLoggedIn(true);
-        setIsAdmin(user.role === "admin");
-      }
-    } catch { /* ignore */ }
+    const user = getAuthUser();
+    if (user) {
+      setIsLoggedIn(true);
+      setIsAdmin(user.role === "admin");
+    }
   }, []);
 
   return (
@@ -52,7 +56,7 @@ export function BlogHeader() {
             posts
           </Link>
           <a
-            href={subdomainHref("/")}
+            href={hrefs.terminal}
             className="text-terminal-green-dim hover:text-terminal-green transition-colors flex items-center gap-1"
           >
             <span className="text-terminal-green opacity-50">$</span>
@@ -60,7 +64,7 @@ export function BlogHeader() {
           </a>
           {isLoggedIn && (
             <a
-              href={subdomainHref("/profile")}
+              href={hrefs.profile}
               className="text-terminal-cyan hover:text-terminal-green transition-colors flex items-center gap-1"
             >
               <span className="opacity-50">~</span>
@@ -69,7 +73,7 @@ export function BlogHeader() {
           )}
           {isAdmin && (
             <a
-              href={subdomainHref("/admin")}
+              href={hrefs.admin}
               className="text-terminal-amber hover:text-terminal-green transition-colors flex items-center gap-1"
             >
               <span className="opacity-50">@</span>

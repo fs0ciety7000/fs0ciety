@@ -1,6 +1,6 @@
 # ╔══════════════════════════════════════════════════════════════╗
 # ║  fs0ciety — Docker Compose for Coolify                     ║
-# ║  Services: Frontend, Backend, SurrealDB                    ║
+# ║  Services: Frontend, Backend, SurrealDB, Tor               ║
 # ║  ALL Traefik routing is managed by Coolify — NO labels.    ║
 # ║                                                            ║
 # ║  Subdomain setup (Coolify UI → per service):               ║
@@ -8,6 +8,9 @@
 # ║              dash.fs0ciety.org                              ║
 # ║    surrealdb: db.fs0ciety.org                              ║
 # ║  Next.js middleware rewrites blog./dash. to /blog /dash.   ║
+# ║                                                            ║
+# ║  Tor hidden service:                                       ║
+# ║    .onion address in tor_data/hidden_service/hostname       ║
 # ╚══════════════════════════════════════════════════════════════╝
 
 services:
@@ -77,6 +80,25 @@ services:
       - surrealdb_data:/data
     restart: unless-stopped
 
+  # ── Tor Hidden Service ────────────────────────────────────
+  # Runs a Tor daemon that exposes the frontend as a .onion site.
+  # After first boot, find the address at:
+  #   docker compose exec tor cat /var/lib/tor/hidden_service/hostname
+  # The key is persisted in the tor_data volume — do NOT delete it
+  # or you will lose your .onion address.
+  tor:
+    image: goldy/tor-hidden-service:latest
+    environment:
+      # service_name=container:port
+      FRONTEND_TOR_SERVICE_HOSTS: "80:frontend:3000"
+      FRONTEND_TOR_SERVICE_VERSION: "3"
+    volumes:
+      - tor_data:/var/lib/tor/hidden_service/
+    depends_on:
+      - frontend
+    restart: unless-stopped
+
 volumes:
   surrealdb_data:
   uploads_data:
+  tor_data:

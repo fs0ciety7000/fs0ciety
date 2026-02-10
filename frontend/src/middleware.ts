@@ -5,12 +5,42 @@ import { NextRequest, NextResponse } from "next/server";
  *   blog.fs0ciety.org  → /blog
  *   dash.fs0ciety.org  → /dashboard
  *   fs0ciety.org       → / (no rewrite)
+ *
+ * Also injects security headers on every response.
  */
 
 const SUBDOMAIN_MAP: Record<string, string> = {
   blog: "/blog",
   dash: "/dashboard",
 };
+
+/** Security headers applied to every response. */
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Frame-Options": "DENY",
+  "X-Content-Type-Options": "nosniff",
+  "X-DNS-Prefetch-Control": "off",
+  "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+  "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+  "X-XSS-Protection": "0",
+  "Content-Security-Policy":
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: blob: https:; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self' ws: wss:; " +
+    "frame-ancestors 'none'; " +
+    "base-uri 'self'; " +
+    "form-action 'self'",
+};
+
+function applySecurityHeaders(response: NextResponse): NextResponse {
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
@@ -45,12 +75,12 @@ export function middleware(request: NextRequest) {
       ) {
         const url = request.nextUrl.clone();
         url.pathname = `${prefix}${pathname === "/" ? "" : pathname}`;
-        return NextResponse.rewrite(url);
+        return applySecurityHeaders(NextResponse.rewrite(url));
       }
     }
   }
 
-  return NextResponse.next();
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {

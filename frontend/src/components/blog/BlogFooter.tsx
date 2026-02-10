@@ -1,9 +1,14 @@
 "use client";
 
-import { subdomainHref } from "@/lib/urls";
+import { useSubdomainHrefs } from "@/lib/urls";
 
 export function BlogFooter() {
   const year = new Date().getFullYear();
+
+  const hrefs = useSubdomainHrefs({
+    terminal: "/",
+    dashboard: "/dashboard",
+  });
 
   return (
     <footer className="border-t border-terminal-gray-light mt-16">
@@ -17,13 +22,13 @@ export function BlogFooter() {
           </div>
           <div className="flex items-center gap-4">
             <a
-              href={subdomainHref("/")}
+              href={hrefs.terminal}
               className="hover:text-terminal-green transition-colors"
             >
               terminal
             </a>
             <a
-              href={subdomainHref("/dashboard")}
+              href={hrefs.dashboard}
               className="hover:text-terminal-green transition-colors"
             >
               dashboard

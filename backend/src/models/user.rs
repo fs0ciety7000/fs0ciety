@@ -63,3 +63,14 @@ pub struct UserPublic {
     pub created_at: DateTime<Utc>,
     pub last_login: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ForgotPasswordRequest {
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ResetPasswordRequest {
+    pub token: String,
+    pub new_password: String,
+}

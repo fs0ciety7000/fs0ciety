@@ -30,8 +30,9 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
             if let Some(arr) = sessions.as_array() {
                 arr.iter().map(|s| {
                     let thumb = plex_thumb_url(plex_base, plex_token, s);
+                    let display_title = plex_display_title(s);
                     json!({
-                        "title": s["title"],
+                        "title": display_title,
                         "parentTitle": s["parentTitle"],
                         "grandparentTitle": s["grandparentTitle"],
                         "type": s["type"],

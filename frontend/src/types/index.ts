@@ -1,7 +1,7 @@
 /** Terminal command line entry. */
 export interface TerminalLine {
   id: string;
-  type: "input" | "output" | "error" | "system" | "ascii";
+  type: "input" | "output" | "error" | "system" | "ascii" | "image";
   content: string;
   timestamp: number;
 }

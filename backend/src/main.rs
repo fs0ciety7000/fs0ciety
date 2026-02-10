@@ -37,6 +37,8 @@ pub struct AppState {
         routes::seedbox::get_stats,
         routes::auth::login,
         routes::auth::change_password,
+        routes::auth::forgot_password,
+        routes::auth::reset_password,
         routes::posts::list_posts,
         routes::posts::get_post,
         routes::posts::list_tags,
@@ -64,6 +66,8 @@ pub struct AppState {
         models::ServiceStatus,
         models::CreateUserRequest,
         models::ChangePasswordRequest,
+        models::ForgotPasswordRequest,
+        models::ResetPasswordRequest,
     )),
     tags(
         (name = "system", description = "Health & status"),
@@ -137,6 +141,8 @@ async fn main() {
         .route("/api/auth/login", post(routes::auth::login))
         .route("/api/auth/me", get(routes::auth::me))
         .route("/api/auth/change-password", put(routes::auth::change_password))
+        .route("/api/auth/forgot-password", post(routes::auth::forgot_password))
+        .route("/api/auth/reset-password", post(routes::auth::reset_password))
         // Sonarr proxy
         .route("/api/sonarr/series", get(routes::sonarr::get_series))
         .route("/api/sonarr/calendar", get(routes::sonarr::get_calendar))

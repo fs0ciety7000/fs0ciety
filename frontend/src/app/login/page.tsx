@@ -130,6 +130,17 @@ export default function LoginPage() {
           )}
         </div>
 
+        {/* Forgot password */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => router.push("/forgot-password")}
+            className="text-xs font-mono text-terminal-green-dim opacity-50 hover:text-terminal-cyan hover:opacity-100 transition-all"
+          >
+            forgot password?
+          </button>
+        </div>
+
         {/* Footer */}
         <div className="mt-8 text-center text-xs text-terminal-green-dim opacity-30">
           <button

@@ -50,6 +50,7 @@ services:
       - QBITTORRENT_PASS=${QBITTORRENT_PASS}
       - RESEND_API_KEY=${RESEND_API_KEY}
       - PUBLIC_URL=${PUBLIC_URL:-https://fs0ciety.org}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
     volumes:
       - uploads_data:/data/uploads
     expose:

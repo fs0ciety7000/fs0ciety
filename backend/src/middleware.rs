@@ -16,8 +16,33 @@ pub struct Claims {
     pub iat: usize,       // issued at
 }
 
+/// Try to extract a Bearer token from the Authorization header.
+fn extract_bearer(parts: &Parts) -> Option<&str> {
+    parts
+        .headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+}
+
+/// Check if the provided token matches the static ADMIN_API_KEY.
+/// Returns synthetic admin Claims if it does.
+fn check_api_key(token: &str, state: &AppState) -> Option<Claims> {
+    let key = &state.config.admin_api_key;
+    if !key.is_empty() && token == key {
+        Some(Claims {
+            sub: "api".into(),
+            role: "admin".into(),
+            exp: usize::MAX,
+            iat: 0,
+        })
+    } else {
+        None
+    }
+}
+
 /// Extractor that validates a JWT Bearer token and returns the Claims.
-/// Use this in handler signatures: `claims: AuthUser`
+/// Also accepts a static ADMIN_API_KEY as an alternative.
 pub struct AuthUser(pub Claims);
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -27,16 +52,14 @@ impl FromRequestParts<AppState> for AuthUser {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let auth_header = parts
-            .headers
-            .get("authorization")
-            .and_then(|v| v.to_str().ok())
-            .ok_or(AppError::Unauthorized)?;
+        let token = extract_bearer(parts).ok_or(AppError::Unauthorized)?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or(AppError::Unauthorized)?;
+        // Try static API key first.
+        if let Some(claims) = check_api_key(token, state) {
+            return Ok(AuthUser(claims));
+        }
 
+        // Fall back to JWT.
         let token_data = decode::<Claims>(
             token,
             &DecodingKey::from_secret(state.config.jwt_secret.as_bytes()),

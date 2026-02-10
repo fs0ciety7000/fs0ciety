@@ -1,0 +1,30 @@
+name: Publish Blog Posts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'content/posts/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish changed MDX files
+        env:
+          FS0CIETY_API_KEY: ${{ secrets.FS0CIETY_API_KEY }}
+          FS0CIETY_URL: https://fs0ciety.org
+        run: |
+          # Find MDX files changed in this push.
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'content/posts/*.mdx' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No MDX files changed."
+            exit 0
+          fi
+          for file in $CHANGED; do
+            if [ -f "$file" ]; then
+              ./scripts/publish.sh "$file"
+            fi
+          done

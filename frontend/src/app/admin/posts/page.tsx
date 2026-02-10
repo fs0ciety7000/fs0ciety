@@ -117,6 +117,9 @@ export default function AdminPostsPage() {
                   Title
                 </th>
                 <th className="px-4 py-3 text-xs font-mono text-terminal-green-dim font-normal uppercase tracking-wider hidden md:table-cell">
+                  Author
+                </th>
+                <th className="px-4 py-3 text-xs font-mono text-terminal-green-dim font-normal uppercase tracking-wider hidden md:table-cell">
                   Status
                 </th>
                 <th className="px-4 py-3 text-xs font-mono text-terminal-green-dim font-normal uppercase tracking-wider hidden sm:table-cell">
@@ -154,6 +157,9 @@ export default function AdminPostsPage() {
                         {post.excerpt}
                       </div>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-xs font-mono text-terminal-green-dim hidden md:table-cell">
+                    {post.author || "—"}
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <span

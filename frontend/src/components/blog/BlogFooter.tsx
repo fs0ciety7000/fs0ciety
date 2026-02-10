@@ -31,9 +31,18 @@ export function BlogFooter() {
     <footer className="border-t border-terminal-gray-light mt-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-terminal-green-dim opacity-60">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-terminal-green">$</span>
             <span>fs0ciety &copy; {year}</span>
+            <span className="text-terminal-gray-light">|</span>
+            <a
+              href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-terminal-green transition-colors"
+            >
+              CC BY-NC-SA 4.0
+            </a>
             <span className="text-terminal-gray-light">|</span>
             <span>&quot;{quote}&quot;</span>
           </div>
@@ -63,6 +72,15 @@ export function BlogFooter() {
             >
               <span className="text-terminal-green opacity-50">#</span>
               rss
+            </a>
+            <a
+              href="https://defcon.social/@phant0mhex"
+              target="_blank"
+              rel="me noopener noreferrer"
+              className="hover:text-terminal-green transition-colors flex items-center gap-1"
+            >
+              <span className="text-terminal-green opacity-50">@</span>
+              mastodon
             </a>
           </div>
         </div>

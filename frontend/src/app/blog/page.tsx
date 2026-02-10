@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
@@ -8,7 +8,7 @@ import type { PostMeta } from "@/types";
 
 const API_BASE = "";
 
-export default function BlogPage() {
+function BlogPageContent() {
   const searchParams = useSearchParams();
   const [posts, setPosts] = useState<PostMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,5 +88,19 @@ export default function BlogPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BlogPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
+          Loading...
+        </div>
+      }
+    >
+      <BlogPageContent />
+    </Suspense>
   );
 }

@@ -1,39 +1,41 @@
 # Stage 1: Build
 FROM rust:1.84-bookworm AS builder
+WORKDIR /app
 
-# Replicate repo layout so include_str! paths resolve identically:
-#   /build/backend/src/db/migrations.rs  →  ../../../database/  →  /build/database/
-WORKDIR /build/backend
+# 1. Création explicite de la structure de dossiers
+# On le fait à la racine /app pour être sûr que les chemins existent
+RUN mkdir -p backend/src database/src
 
-# 1. On copie la structure nécessaire
-# On crée les dossiers AVANT de copier pour éviter les erreurs de contexte
-RUN mkdir -p backend/src database
-
-# 2. On copie les manifests
+# 2. Copie des fichiers de configuration (Manifests)
 COPY backend/Cargo.toml backend/Cargo.lock* ./backend/
-COPY database/ ./database/
+COPY database/Cargo.toml ./database/
 
-# 3. ÉTAPE CRUCIALE : On crée un squelette COMPLET
-# Si ton Cargo.toml contient [lib] ou d'autres [[bin]], il faut les simuler
+# 3. Création des fichiers "Dummy" (Fantômes) pour le cache
+# On remplit les fichiers main.rs et lib.rs pour que Cargo croie que le projet est complet
+RUN echo "fn main() {}" > backend/src/main.rs && \
+    touch backend/src/lib.rs && \
+    touch database/src/lib.rs
+
+# 4. Build des dépendances (Mise en cache)
 WORKDIR /app/backend
-RUN touch src/lib.rs && \
-    echo "fn main() {}" > src/main.rs
+# Cargo va compiler toutes les bibliothèques (y compris database) sans ton code source final
+RUN cargo build --release && rm -rf src
 
-# 4. Build des dépendances uniquement
-# On utilise --locked pour garantir la cohérence avec Cargo.lock
-RUN cargo build --release --locked && \
-    rm -rf src
+# 5. Copie du VRAI code source
+WORKDIR /app
+COPY database/src ./database/src
+COPY backend/src ./backend/src
 
-# 5. On copie le vrai code source
-COPY backend/src ./src
+# 6. Build final du binaire
+WORKDIR /app/backend
+# On "touch" le main.rs pour forcer Cargo à recompiler le binaire final
+RUN touch src/main.rs && cargo build --release
 
-# 6. Build final
-RUN touch src/main.rs && cargo build --release --locked
-
-# Stage 2: Runtime
+# Stage 2: Runtime (Image finale légère)
 FROM gcr.io/distroless/cc-debian12 AS runner
 WORKDIR /app
-# Vérifie bien que le nom du binaire 'fs0ciety-backend' correspond au 'name' dans Cargo.toml
+
+# On récupère le binaire compilé depuis l'étape précédente
 COPY --from=builder /app/backend/target/release/fs0ciety-backend /usr/local/bin/fs0ciety-backend
 
 EXPOSE 3001

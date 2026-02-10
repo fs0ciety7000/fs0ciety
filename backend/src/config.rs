@@ -23,6 +23,11 @@ pub struct Config {
     pub resend_api_key: String,
     pub public_url: String,
     pub admin_api_key: String,
+    // External (browser-accessible) URLs for dashboard quick links.
+    pub plex_external_url: String,
+    pub sonarr_external_url: String,
+    pub radarr_external_url: String,
+    pub qbittorrent_external_url: String,
 }
 
 impl Config {
@@ -60,6 +65,10 @@ impl Config {
             public_url: env::var("PUBLIC_URL")
                 .unwrap_or_else(|_| "https://fs0ciety.org".into()),
             admin_api_key: env::var("ADMIN_API_KEY").unwrap_or_default(),
+            plex_external_url: env::var("PLEX_EXTERNAL_URL").unwrap_or_default(),
+            sonarr_external_url: env::var("SONARR_EXTERNAL_URL").unwrap_or_default(),
+            radarr_external_url: env::var("RADARR_EXTERNAL_URL").unwrap_or_default(),
+            qbittorrent_external_url: env::var("QBITTORRENT_EXTERNAL_URL").unwrap_or_default(),
         }
     }
 

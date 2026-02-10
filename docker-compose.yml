@@ -51,6 +51,10 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - PUBLIC_URL=${PUBLIC_URL:-https://fs0ciety.org}
       - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - PLEX_EXTERNAL_URL=${PLEX_EXTERNAL_URL}
+      - SONARR_EXTERNAL_URL=${SONARR_EXTERNAL_URL}
+      - RADARR_EXTERNAL_URL=${RADARR_EXTERNAL_URL}
+      - QBITTORRENT_EXTERNAL_URL=${QBITTORRENT_EXTERNAL_URL}
     volumes:
       - uploads_data:/data/uploads
     expose:

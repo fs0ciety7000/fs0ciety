@@ -137,6 +137,22 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
         }
     };
 
+    // Build service links map (only include non-empty URLs).
+    let config = &state.config;
+    let mut links = serde_json::Map::new();
+    if !config.plex_external_url.is_empty() {
+        links.insert("plex".into(), json!(config.plex_external_url));
+    }
+    if !config.sonarr_external_url.is_empty() {
+        links.insert("sonarr".into(), json!(config.sonarr_external_url));
+    }
+    if !config.radarr_external_url.is_empty() {
+        links.insert("radarr".into(), json!(config.radarr_external_url));
+    }
+    if !config.qbittorrent_external_url.is_empty() {
+        links.insert("qbittorrent".into(), json!(config.qbittorrent_external_url));
+    }
+
     Json(json!({
         "plex": {
             "now_playing": now_playing,
@@ -150,6 +166,7 @@ pub async fn get_media(State(state): State<AppState>) -> Json<Value> {
             "movie_count": radarr_count,
             "recent": radarr_recent,
         },
+        "service_links": links,
     }))
 }
 

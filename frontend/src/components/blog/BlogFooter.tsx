@@ -31,11 +31,23 @@ export function BlogFooter() {
     <footer className="border-t border-terminal-gray-light mt-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-terminal-green-dim opacity-60">
-          <div className="flex items-center gap-2">
-            <span className="text-terminal-green">$</span>
-            <span>fs0ciety &copy; {year}</span>
-            <span className="text-terminal-gray-light">|</span>
-            <span>&quot;{quote}&quot;</span>
+          <div className="flex flex-col items-center sm:items-start gap-1">
+            <div className="flex items-center gap-2">
+              <span className="text-terminal-green">$</span>
+              <span>fs0ciety &copy; {year}</span>
+              <span className="text-terminal-gray-light">|</span>
+              <span>&quot;{quote}&quot;</span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] opacity-70">
+              <a
+                href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-terminal-green transition-colors"
+              >
+                CC BY-NC-SA 4.0
+              </a>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <a
@@ -49,6 +61,14 @@ export function BlogFooter() {
               className="hover:text-terminal-green transition-colors"
             >
               dashboard
+            </a>
+            <a
+              href="https://defcon.social/@phant0mhex"
+              target="_blank"
+              rel="me noopener noreferrer"
+              className="hover:text-terminal-green transition-colors"
+            >
+              mastodon
             </a>
             <a
               href="/blog/pgp"

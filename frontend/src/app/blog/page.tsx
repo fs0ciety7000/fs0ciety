@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
@@ -8,7 +8,7 @@ import type { PostMeta } from "@/types";
 
 const API_BASE = "";
 
-export default function BlogPage() {
+function BlogContent() {
   const searchParams = useSearchParams();
   const [posts, setPosts] = useState<PostMeta[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +39,36 @@ export default function BlogPage() {
   }, [posts, activeTag]);
 
   return (
+    <>
+      {/* Tag filter */}
+      {allTags.length > 0 && (
+        <div className="mb-8">
+          <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
+        </div>
+      )}
+
+      {/* Posts */}
+      {loading ? (
+        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
+          Loading posts...
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="font-mono text-terminal-green-dim text-sm">
+          No posts found. {activeTag && "Try clearing the filter."}
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {filtered.map((post) => (
+            <PostCard key={post.slug} post={post} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default function BlogPage() {
+  return (
     <div>
       {/* Header */}
       <div className="mb-10">
@@ -64,29 +94,15 @@ export default function BlogPage() {
         </div>
       </div>
 
-      {/* Tag filter */}
-      {allTags.length > 0 && (
-        <div className="mb-8">
-          <TagFilter tags={allTags} active={activeTag} onChange={setActiveTag} />
-        </div>
-      )}
-
-      {/* Posts */}
-      {loading ? (
-        <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
-          Loading posts...
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="font-mono text-terminal-green-dim text-sm">
-          No posts found. {activeTag && "Try clearing the filter."}
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {filtered.map((post) => (
-            <PostCard key={post.slug} post={post} />
-          ))}
-        </div>
-      )}
+      <Suspense
+        fallback={
+          <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
+            Loading posts...
+          </div>
+        }
+      >
+        <BlogContent />
+      </Suspense>
     </div>
   );
 }

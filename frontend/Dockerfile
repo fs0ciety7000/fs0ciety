@@ -12,6 +12,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Backend URL for Next.js rewrites (baked at build time).
+# In Docker Compose, the backend service is reachable at http://backend:3001.
+ENV INTERNAL_API_URL=http://backend:3001
 RUN mkdir -p public && npm run build
 
 # Stage 3: Production

@@ -8,6 +8,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { ASCIIChart } from "@/components/dashboard/ASCIIChart";
 import { ServiceStatus } from "@/components/dashboard/ServiceStatus";
 import { formatBytes, formatSpeed } from "@/lib/utils";
+import { getAuthToken, getAuthUser } from "@/lib/auth-cookie";
 
 interface MediaData {
   plex: {
@@ -87,15 +88,18 @@ export default function DashboardPage() {
   const [authorized, setAuthorized] = useState(false);
 
   // Admin-only access check.
+  // Uses cross-subdomain cookie helpers so dash.fs0ciety.org can read
+  // auth set on fs0ciety.org.
   useEffect(() => {
+    const domain = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
+    const loginUrl = `${window.location.protocol}//${domain}/login`;
     try {
-      const token = localStorage.getItem("fs0ciety_token");
-      const raw = localStorage.getItem("fs0ciety_user");
-      if (!token || !raw) { router.replace("/login"); return; }
-      const user = JSON.parse(raw);
-      if (user.role !== "admin") { router.replace("/"); return; }
+      const token = getAuthToken();
+      const user = getAuthUser();
+      if (!token || !user) { window.location.replace(loginUrl); return; }
+      if (user.role !== "admin") { window.location.replace(`${window.location.protocol}//${domain}/`); return; }
       setAuthorized(true);
-    } catch { router.replace("/login"); }
+    } catch { window.location.replace(loginUrl); }
   }, [router]);
 
   useEffect(() => {

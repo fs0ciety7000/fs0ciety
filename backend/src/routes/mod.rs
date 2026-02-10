@@ -8,3 +8,4 @@ pub mod users;
 pub mod upload;
 pub mod audit;
 pub mod honeypot;
+pub mod maintenance;

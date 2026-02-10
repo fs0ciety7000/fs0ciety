@@ -7,6 +7,10 @@ use crate::error::AppError;
 use crate::middleware::AdminUser;
 use crate::AppState;
 
+/// Fields to select — excludes SurrealDB `id` (RecordId enum) which
+/// cannot be deserialized to serde_json::Value.
+const POST_FIELDS: &str = "slug, title, content, tags, published, author, created_at, updated_at";
+
 /// Calculate reading time and word count from markdown content.
 fn content_stats(content: &str) -> (usize, usize) {
     let stripped = content
@@ -79,8 +83,9 @@ fn to_summary(p: &Value) -> Value {
 /// GET /api/posts — list published posts with reading time.
 #[utoipa::path(get, path = "/api/posts", responses((status = 200, body = Value)), tag = "blog")]
 pub async fn list_posts(State(state): State<AppState>) -> Result<Json<Value>, AppError> {
+    let q = format!("SELECT {POST_FIELDS} FROM posts WHERE published = true ORDER BY created_at DESC");
     let rows: Vec<Value> = state.db
-        .query("SELECT * FROM posts WHERE published = true ORDER BY created_at DESC")
+        .query(q)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -97,8 +102,9 @@ pub async fn get_post(
     State(state): State<AppState>,
     Path(slug): Path<String>,
 ) -> Result<Json<Value>, AppError> {
+    let q = format!("SELECT {POST_FIELDS} FROM posts WHERE slug = $slug AND published = true LIMIT 1");
     let rows: Vec<Value> = state.db
-        .query("SELECT * FROM posts WHERE slug = $slug AND published = true LIMIT 1")
+        .query(q)
         .bind(("slug", slug.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
@@ -144,8 +150,9 @@ pub async fn admin_list_posts(
     State(state): State<AppState>,
     _admin: AdminUser,
 ) -> Result<Json<Value>, AppError> {
+    let q = format!("SELECT {POST_FIELDS} FROM posts ORDER BY created_at DESC");
     let rows: Vec<Value> = state.db
-        .query("SELECT * FROM posts ORDER BY created_at DESC")
+        .query(q)
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -163,8 +170,9 @@ pub async fn admin_get_post(
     _admin: AdminUser,
     Path(slug): Path<String>,
 ) -> Result<Json<Value>, AppError> {
+    let q = format!("SELECT {POST_FIELDS} FROM posts WHERE slug = $slug LIMIT 1");
     let rows: Vec<Value> = state.db
-        .query("SELECT * FROM posts WHERE slug = $slug LIMIT 1")
+        .query(q)
         .bind(("slug", slug.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
@@ -209,7 +217,8 @@ pub async fn create_post(
     let tags_val = json!(body.tags);
     let published_val = json!(body.published);
 
-    let rows: Vec<Value> = state.db
+    // CREATE then SELECT to avoid RecordId serialization issue.
+    state.db
         .query(
             "CREATE posts SET \
                 title = $title, \
@@ -227,6 +236,13 @@ pub async fn create_post(
         .bind(("tags", tags_val))
         .bind(("published", published_val))
         .bind(("author", admin.0.sub.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let q = format!("SELECT {POST_FIELDS} FROM posts WHERE slug = $slug LIMIT 1");
+    let rows: Vec<Value> = state.db
+        .query(q)
+        .bind(("slug", body.slug.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -249,7 +265,8 @@ pub async fn update_post(
     let tags_val = json!(body.tags);
     let published_val = json!(body.published);
 
-    let rows: Vec<Value> = state.db
+    // UPDATE then SELECT to avoid RecordId serialization issue.
+    state.db
         .query(
             "UPDATE posts SET \
                 title = $title, \
@@ -266,6 +283,13 @@ pub async fn update_post(
         .bind(("tags", tags_val))
         .bind(("published", published_val))
         .bind(("slug", slug.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let q = format!("SELECT {POST_FIELDS} FROM posts WHERE slug = $slug LIMIT 1");
+    let rows: Vec<Value> = state.db
+        .query(q)
+        .bind(("slug", body.slug.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -312,7 +336,7 @@ pub async fn admin_stats(
     _admin: AdminUser,
 ) -> Result<Json<Value>, AppError> {
     let all_posts: Vec<Value> = state.db
-        .query("SELECT * FROM posts")
+        .query("SELECT content, published, tags FROM posts")
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)

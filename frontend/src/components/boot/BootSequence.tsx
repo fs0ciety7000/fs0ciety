@@ -74,7 +74,7 @@ export function BootSequence({ onComplete }: BootSequenceProps) {
   return (
     <div className="min-h-screen bg-terminal-black p-6 font-mono text-sm">
       <div className="mb-4 text-terminal-green-dim opacity-50">
-        fs0ciety BIOS v2.049 — Hetzner VPS
+        fs0ciety BIOS v2.049 — Backd00r
       </div>
 
       {BOOT_SEQUENCE.slice(0, visibleLines).map((line, i) => (

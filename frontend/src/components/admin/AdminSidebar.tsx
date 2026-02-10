@@ -8,6 +8,8 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "~" },
   { href: "/admin/posts", label: "Posts", icon: ">" },
   { href: "/admin/posts/new", label: "New Post", icon: "+" },
+  { href: "/admin/users", label: "Users", icon: "@" },
+  { href: "/admin/settings", label: "Settings", icon: "*" },
 ];
 
 export function AdminSidebar() {

@@ -17,6 +17,12 @@ export function PostCard({ post }: PostCardProps) {
       <Link href={`/blog/${post.slug}`} className="block p-6">
         {/* Meta row */}
         <div className="flex items-center gap-3 mb-2 text-xs font-mono text-terminal-green-dim opacity-50">
+          {post.author && (
+            <>
+              <span className="text-terminal-cyan">{post.author}</span>
+              <span>&middot;</span>
+            </>
+          )}
           <time>{date}</time>
           <span>&middot;</span>
           <span>{post.readingTime} min read</span>

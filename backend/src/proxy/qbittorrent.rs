@@ -16,10 +16,10 @@ impl ProxyClient {
         Ok(resp)
     }
 
-    /// Fetch active torrents.
+    /// Fetch all torrents.
     pub async fn qbit_torrents(&self) -> Result<Value, AppError> {
         let url = format!(
-            "{}/api/v2/torrents/info?filter=active",
+            "{}/api/v2/torrents/info",
             self.config.qbittorrent_url
         );
         let resp = self

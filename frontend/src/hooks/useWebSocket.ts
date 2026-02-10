@@ -23,14 +23,15 @@ export function useWebSocket() {
       try {
         const msg = JSON.parse(event.data);
         if (msg.type === "stats_update" && msg.data) {
-          setStats({
+          setStats((prev) => ({
             downloadSpeed: msg.data.download_speed,
             uploadSpeed: msg.data.upload_speed,
             diskUsed: msg.data.disk_used,
             diskTotal: msg.data.disk_total,
             activeTorrents: msg.data.active_torrents,
             seedingTorrents: msg.data.seeding_torrents,
-          });
+            services: msg.data.services ?? prev?.services,
+          }));
         }
       } catch {
         // Ignore malformed messages.

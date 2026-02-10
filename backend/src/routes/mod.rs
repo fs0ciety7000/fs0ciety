@@ -3,3 +3,4 @@ pub mod sonarr;
 pub mod seedbox;
 pub mod auth;
 pub mod posts;
+pub mod users;

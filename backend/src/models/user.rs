@@ -47,3 +47,19 @@ pub struct CreateUserRequest {
     pub role: UserRole,
     pub email: Option<String>,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+/// Safe user representation for API responses (no password_hash).
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UserPublic {
+    pub username: String,
+    pub role: UserRole,
+    pub email: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub last_login: Option<DateTime<Utc>>,
+}

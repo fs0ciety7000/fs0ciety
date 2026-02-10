@@ -13,19 +13,21 @@ interface MediaData {
   plex: {
     now_playing: Array<{
       title: string;
+      parentTitle?: string;
       grandparentTitle?: string;
       type: string;
       user: string;
       player: string;
       state: string;
       progress: number;
+      thumb?: string;
     }>;
     recently_added: Array<{
       title: string;
-      grandparentTitle?: string;
       type: string;
       year?: number;
       addedAt?: number;
+      thumb?: string;
     }>;
   };
   sonarr: {
@@ -259,21 +261,35 @@ export default function DashboardPage() {
           <h3 className="text-terminal-amber text-xs uppercase tracking-wider mb-3">
             Plex — Now Playing
           </h3>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {media.plex.now_playing.map((s, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+              <div key={i} className="flex items-center gap-3 text-sm">
+                {s.thumb && (
+                  <img
+                    src={s.thumb}
+                    alt=""
+                    className="w-10 h-14 object-cover shrink-0 border border-terminal-green/20"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
-                  <span className="text-terminal-green truncate">
+                  <div className="text-terminal-green truncate">
                     {s.grandparentTitle ? `${s.grandparentTitle} — ` : ""}
                     {s.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 ml-4 shrink-0">
-                  <span className="text-terminal-green-dim text-xs">{s.user}</span>
-                  <span className="text-terminal-cyan text-xs">{s.progress}%</span>
-                  <span className={`text-xs ${s.state === "playing" ? "text-terminal-green" : "text-terminal-amber"}`}>
-                    {s.state === "playing" ? "▶" : "⏸"}
-                  </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-terminal-green-dim text-xs">{s.user}</span>
+                    <span className="text-terminal-cyan text-xs">{s.progress}%</span>
+                    <span className={`text-xs ${s.state === "playing" ? "text-terminal-green" : "text-terminal-amber"}`}>
+                      {s.state === "playing" ? "▶" : "⏸"}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full h-0.5 bg-terminal-green/10 mt-1">
+                    <div
+                      className="h-full bg-terminal-green/60"
+                      style={{ width: `${s.progress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             ))}
@@ -287,19 +303,20 @@ export default function DashboardPage() {
           <h3 className="text-terminal-amber text-xs uppercase tracking-wider mb-3">
             Plex — Recently Added
           </h3>
-          <div className="space-y-1">
+          <div className="space-y-2">
             {media.plex.recently_added.map((m, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
+              <div key={i} className="flex items-center gap-3 text-sm">
+                {m.thumb && (
+                  <img
+                    src={m.thumb}
+                    alt=""
+                    className="w-8 h-12 object-cover shrink-0 border border-terminal-green/20"
+                  />
+                )}
                 <div className="flex-1 min-w-0">
-                  <span className="text-terminal-green truncate">
-                    {m.grandparentTitle ? `${m.grandparentTitle} — ` : ""}
-                    {m.title}
-                  </span>
-                  {m.year && (
-                    <span className="text-terminal-green-dim text-xs ml-2">({m.year})</span>
-                  )}
+                  <span className="text-terminal-green truncate block">{m.title}</span>
                 </div>
-                <div className="flex items-center gap-3 ml-4 shrink-0">
+                <div className="flex items-center gap-3 ml-2 shrink-0">
                   <span className="text-terminal-green-dim text-xs capitalize">{m.type}</span>
                   {m.addedAt && (
                     <span className="text-terminal-green-dim text-xs opacity-50">

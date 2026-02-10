@@ -206,6 +206,9 @@ pub async fn create_post(
         return Err(AppError::BadRequest(format!("Slug '{}' already exists", body.slug)));
     }
 
+    let tags_val = json!(body.tags);
+    let published_val = json!(body.published);
+
     let rows: Vec<Value> = state.db
         .query(
             "CREATE posts SET \
@@ -221,8 +224,8 @@ pub async fn create_post(
         .bind(("title", body.title.clone()))
         .bind(("slug", body.slug.clone()))
         .bind(("content", body.content.clone()))
-        .bind(("tags", body.tags.clone()))
-        .bind(("published", body.published))
+        .bind(("tags", tags_val))
+        .bind(("published", published_val))
         .bind(("author", admin.0.sub.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
@@ -243,6 +246,9 @@ pub async fn update_post(
     Path(slug): Path<String>,
     Json(body): Json<PostBody>,
 ) -> Result<Json<Value>, AppError> {
+    let tags_val = json!(body.tags);
+    let published_val = json!(body.published);
+
     let rows: Vec<Value> = state.db
         .query(
             "UPDATE posts SET \
@@ -257,8 +263,8 @@ pub async fn update_post(
         .bind(("title", body.title.clone()))
         .bind(("new_slug", body.slug.clone()))
         .bind(("content", body.content.clone()))
-        .bind(("tags", body.tags.clone()))
-        .bind(("published", body.published))
+        .bind(("tags", tags_val))
+        .bind(("published", published_val))
         .bind(("slug", slug.clone()))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?

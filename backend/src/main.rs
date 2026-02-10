@@ -70,6 +70,7 @@ pub struct AppState {
         models::ForgotPasswordRequest,
         models::ResetPasswordRequest,
         models::UpdateUserRequest,
+        models::UpdateProfileRequest,
     )),
     tags(
         (name = "system", description = "Health & status"),
@@ -143,6 +144,7 @@ async fn main() {
         .route("/api/auth/login", post(routes::auth::login))
         .route("/api/auth/me", get(routes::auth::me))
         .route("/api/auth/change-password", put(routes::auth::change_password))
+        .route("/api/auth/profile", put(routes::auth::update_profile))
         .route("/api/auth/forgot-password", post(routes::auth::forgot_password))
         .route("/api/auth/reset-password", post(routes::auth::reset_password))
         // Sonarr proxy

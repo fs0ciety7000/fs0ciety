@@ -5,12 +5,14 @@ import Link from "next/link";
 
 export function BlogHeader() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem("fs0ciety_user");
       if (raw) {
         const user = JSON.parse(raw);
+        setIsLoggedIn(true);
         setIsAdmin(user.role === "admin");
       }
     } catch { /* ignore */ }
@@ -55,6 +57,15 @@ export function BlogHeader() {
             <span className="text-terminal-green opacity-50">$</span>
             terminal
           </Link>
+          {isLoggedIn && (
+            <Link
+              href="/profile"
+              className="text-terminal-cyan hover:text-terminal-green transition-colors flex items-center gap-1"
+            >
+              <span className="opacity-50">~</span>
+              profile
+            </Link>
+          )}
           {isAdmin && (
             <Link
               href="/admin"

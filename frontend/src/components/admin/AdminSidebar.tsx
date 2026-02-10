@@ -81,6 +81,12 @@ export function AdminSidebar() {
         >
           $ Terminal
         </Link>
+        <Link
+          href="/profile"
+          className="block text-xs font-mono text-terminal-green-dim hover:text-terminal-cyan transition-colors"
+        >
+          ~ Profile
+        </Link>
         <button
           onClick={() => {
             localStorage.removeItem("fs0ciety_token");

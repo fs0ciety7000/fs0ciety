@@ -93,6 +93,9 @@ export interface UserPublic {
   email: string | null;
   bio: string | null;
   avatar_url: string | null;
+  profile_public: boolean;
   created_at: string;
   last_login: string | null;
+  /** Present when profile is private and viewer is not the owner. */
+  private?: boolean;
 }

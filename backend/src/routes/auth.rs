@@ -10,7 +10,7 @@ use tracing::{info, warn};
 
 use crate::error::AppError;
 use crate::middleware::{AuthUser, Claims};
-use crate::models::{ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, User};
+use crate::models::{ChangePasswordRequest, ForgotPasswordRequest, LoginRequest, ResetPasswordRequest, UpdateProfileRequest, User};
 use crate::AppState;
 
 /// POST /api/auth/login — authenticate against SurrealDB + argon2.
@@ -331,5 +331,93 @@ pub async fn reset_password(
 
     Ok(Json(json!({
         "message": "Password has been reset successfully"
+    })))
+}
+
+/// PUT /api/auth/profile — update own profile (authenticated user).
+pub async fn update_profile(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Json(req): Json<UpdateProfileRequest>,
+) -> Result<Json<Value>, AppError> {
+    let current_username = auth.0.sub.clone();
+
+    // Build dynamic SET clauses.
+    let mut sets = vec!["updated_at = time::now()".to_string()];
+
+    if let Some(ref new_username) = req.username {
+        if new_username.len() < 3 {
+            return Err(AppError::BadRequest("Username must be at least 3 characters".into()));
+        }
+        if *new_username != current_username {
+            let conflict: Vec<User> = state.db
+                .query("SELECT * FROM users WHERE username = $check_name LIMIT 1")
+                .bind(("check_name", new_username.clone()))
+                .await
+                .map_err(|e| AppError::Database(e.to_string()))?
+                .take(0)
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            if !conflict.is_empty() {
+                return Err(AppError::BadRequest(format!("Username '{}' already taken", new_username)));
+            }
+        }
+        sets.push(format!("username = '{}'", new_username.replace('\'', "''")));
+    }
+
+    if let Some(ref email) = req.email {
+        sets.push(format!("email = '{}'", email.replace('\'', "''")));
+    }
+
+    if let Some(ref bio) = req.bio {
+        sets.push(format!("bio = '{}'", bio.replace('\'', "''")));
+    }
+
+    if let Some(ref avatar_url) = req.avatar_url {
+        sets.push(format!("avatar_url = '{}'", avatar_url.replace('\'', "''")));
+    }
+
+    if let Some(profile_public) = req.profile_public {
+        sets.push(format!("profile_public = {}", profile_public));
+    }
+
+    let query = format!(
+        "UPDATE users SET {} WHERE username = $target",
+        sets.join(", ")
+    );
+
+    state.db
+        .query(&query)
+        .bind(("target", current_username.clone()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let final_username = req.username.as_deref().unwrap_or(&current_username);
+
+    // Return updated profile data.
+    let users: Vec<User> = state.db
+        .query("SELECT * FROM users WHERE username = $username LIMIT 1")
+        .bind(("username", final_username.to_string()))
+        .await
+        .map_err(|e| AppError::Database(e.to_string()))?
+        .take(0)
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+    let user = users.into_iter().next()
+        .ok_or_else(|| AppError::Internal("Failed to fetch updated profile".into()))?;
+
+    info!("Profile updated for user '{}'", final_username);
+
+    Ok(Json(json!({
+        "message": "Profile updated",
+        "user": {
+            "username": user.username,
+            "role": user.role,
+            "email": user.email,
+            "bio": user.bio,
+            "avatar_url": user.avatar_url,
+            "profile_public": user.profile_public,
+            "created_at": user.created_at,
+            "last_login": user.last_login,
+        }
     })))
 }

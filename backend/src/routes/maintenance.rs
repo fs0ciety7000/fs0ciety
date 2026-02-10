@@ -5,6 +5,7 @@ use axum::Json;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use tracing::info;
+use utoipa::ToSchema;
 
 use crate::error::AppError;
 use crate::middleware::AdminUser;
@@ -13,7 +14,7 @@ use crate::AppState;
 /// Global maintenance flag — lives in AppState, fast atomic read on every request.
 pub static MAINTENANCE_MODE: AtomicBool = AtomicBool::new(false);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MaintenanceStatus {
     pub enabled: bool,
 }

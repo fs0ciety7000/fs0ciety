@@ -59,13 +59,64 @@ export const COMMANDS: Record<string, TerminalCommand> = {
     name: "ls",
     description: "List blog posts",
     usage: "ls [--all]",
-    execute: () => [
-      sys("drwxr-xr-x  posts/"),
-      out("  -rw-r--r--  hello-world.mdx          2.4K"),
-      out("  -rw-r--r--  building-fs0ciety.mdx     4.1K"),
-      out("  -rw-r--r--  rust-axum-guide.mdx       3.8K"),
-      sys("3 files, 10.3K total"),
-    ],
+    execute: (_args, ctx) => {
+      fetch("/api/posts")
+        .then((r) => {
+          if (!r.ok) throw new Error("failed");
+          return r.json();
+        })
+        .then(
+          (
+            posts: {
+              slug: string;
+              title: string;
+              wordCount: number;
+              createdAt: string;
+            }[]
+          ) => {
+            if (!posts.length) {
+              ctx.addLines([sys("drwxr-xr-x  posts/"), out("  (empty)")]);
+              return;
+            }
+            const lines: TerminalLine[] = [sys("drwxr-xr-x  posts/"), out("")];
+            let totalWords = 0;
+            for (const p of posts) {
+              totalWords += p.wordCount;
+              const size =
+                p.wordCount > 1000
+                  ? `${(p.wordCount / 1000).toFixed(1)}K`
+                  : `${p.wordCount}`;
+              const d = new Date(p.createdAt);
+              const dateStr = isNaN(d.getTime())
+                ? "---"
+                : d.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                  });
+              lines.push(
+                out(
+                  `  -rw-r--r--  ${p.slug.padEnd(32)} ${size.padStart(6)}  ${dateStr}`
+                )
+              );
+            }
+            const totalSize =
+              totalWords > 1000
+                ? `${(totalWords / 1000).toFixed(1)}K`
+                : `${totalWords}`;
+            lines.push(out(""));
+            lines.push(
+              sys(
+                `${posts.length} file${posts.length !== 1 ? "s" : ""}, ${totalSize} words total`
+              )
+            );
+            ctx.addLines(lines);
+          }
+        )
+        .catch(() => {
+          ctx.addLines([err("Failed to read /posts — API offline?")]);
+        });
+      return [sys("Reading directory /posts ...")];
+    },
   },
 
   cat: {

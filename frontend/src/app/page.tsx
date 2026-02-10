@@ -6,6 +6,7 @@ import { CRTScreen } from "@/components/effects/CRTScreen";
 import { BootSequence } from "@/components/boot/BootSequence";
 import { MaskReveal } from "@/components/effects/MaskReveal";
 import { Terminal } from "@/components/terminal/Terminal";
+import { MatrixRain } from "@/components/effects/MatrixRain";
 
 type Phase = "boot" | "reveal" | "terminal";
 
@@ -17,6 +18,7 @@ export default function Home() {
 
   return (
     <TerminalProvider>
+      <MatrixRain />
       <CRTScreen>
         {phase === "boot" && <BootSequence onComplete={handleBootComplete} />}
         {phase === "reveal" && <MaskReveal onComplete={handleRevealComplete} />}

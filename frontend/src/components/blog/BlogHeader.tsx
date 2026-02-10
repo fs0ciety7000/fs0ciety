@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export function BlogHeader() {
@@ -9,6 +10,16 @@ export function BlogHeader() {
           href="/blog"
           className="flex items-center gap-3 group"
         >
+          <Image
+            src="/mask.png"
+            alt="fs0ciety"
+            width={28}
+            height={28}
+            className="opacity-80 group-hover:opacity-100 transition-opacity"
+            style={{
+              filter: "brightness(0) saturate(100%) invert(72%) sepia(98%) saturate(1200%) hue-rotate(85deg) brightness(104%) contrast(106%)",
+            }}
+          />
           <span className="text-terminal-green font-mono font-bold text-xl tracking-tight group-hover:text-terminal-green-dim transition-colors">
             fs0ciety
           </span>

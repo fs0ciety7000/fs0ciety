@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "fs0ciety",
   description: "Terminal blog & seedbox command center",
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({

@@ -119,6 +119,10 @@ function renderBasicMarkdown(md: string): string {
     .replace(/^## (.+)$/gm, "<h2>$1</h2>")
     // H1
     .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    // Images
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />')
+    // Links
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
     // Bold
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     // Italic

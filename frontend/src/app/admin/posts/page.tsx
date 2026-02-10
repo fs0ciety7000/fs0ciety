@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import type { PostMeta } from "@/types";
 
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+}
+
 export default function AdminPostsPage() {
   const router = useRouter();
   const [posts, setPosts] = useState<PostMeta[]>([]);
@@ -21,7 +27,7 @@ export default function AdminPostsPage() {
       .then((data) => {
         const sorted = [...data.posts].sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            (new Date(b.createdAt).getTime() || 0) - (new Date(a.createdAt).getTime() || 0)
         );
         setPosts(sorted);
       })
@@ -196,7 +202,7 @@ export default function AdminPostsPage() {
                     {post.readingTime} min
                   </td>
                   <td className="px-4 py-3 text-xs font-mono text-terminal-green-dim hidden sm:table-cell">
-                    {new Date(post.createdAt).toLocaleDateString()}
+                    {formatDate(post.createdAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">

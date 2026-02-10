@@ -369,11 +369,19 @@ pub async fn update_profile(
     }
 
     if let Some(ref bio) = req.bio {
-        sets.push(format!("bio = '{}'", bio.replace('\'', "''")));
+        if bio.is_empty() {
+            sets.push("bio = NONE".to_string());
+        } else {
+            sets.push(format!("bio = '{}'", bio.replace('\'', "''")));
+        }
     }
 
     if let Some(ref avatar_url) = req.avatar_url {
-        sets.push(format!("avatar_url = '{}'", avatar_url.replace('\'', "''")));
+        if avatar_url.is_empty() {
+            sets.push("avatar_url = NONE".to_string());
+        } else {
+            sets.push(format!("avatar_url = '{}'", avatar_url.replace('\'', "''")));
+        }
     }
 
     if let Some(profile_public) = req.profile_public {

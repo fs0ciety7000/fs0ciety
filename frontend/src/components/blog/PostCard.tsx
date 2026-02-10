@@ -6,11 +6,10 @@ interface PostCardProps {
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const date = new Date(post.createdAt).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const d = new Date(post.createdAt);
+  const date = isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
   return (
     <article className="group border border-terminal-gray-light hover:border-terminal-green/40 bg-terminal-black-light transition-colors">

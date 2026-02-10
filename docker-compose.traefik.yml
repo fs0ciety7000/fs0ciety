@@ -1,0 +1,58 @@
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  fs0ciety — Traefik Overlay (automated TLS)               ║
+# ║                                                            ║
+# ║  Use with the base compose file:                           ║
+# ║    docker compose -f docker-compose.yml \                  ║
+# ║                   -f docker-compose.traefik.yml \          ║
+# ║                   up -d --build                            ║
+# ║                                                            ║
+# ║  Prerequisites:                                            ║
+# ║    - DNS A records for DOMAIN, blog.DOMAIN, dash.DOMAIN    ║
+# ║    - Port 80 and 443 open on your server                   ║
+# ║    - DOMAIN and ACME_EMAIL set in .env                     ║
+# ╚══════════════════════════════════════════════════════════════╝
+
+services:
+  # ── Traefik Reverse Proxy ───────────────────────────────────
+  traefik:
+    image: traefik:v3.2
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt_data:/letsencrypt
+    restart: unless-stopped
+
+  # ── Frontend — Traefik labels ───────────────────────────────
+  frontend:
+    labels:
+      - "traefik.enable=true"
+      # Main domain + blog + dash subdomains all route to frontend
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN}`) || Host(`blog.${DOMAIN}`) || Host(`dash.${DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+  # ── SurrealDB — Traefik labels (optional, for db.domain) ───
+  surrealdb:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.surrealdb.rule=Host(`db.${DOMAIN}`)"
+      - "traefik.http.routers.surrealdb.entrypoints=websecure"
+      - "traefik.http.routers.surrealdb.tls.certresolver=letsencrypt"
+      - "traefik.http.services.surrealdb.loadbalancer.server.port=8000"
+
+volumes:
+  letsencrypt_data:

@@ -13,25 +13,30 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Wait for deployment
         run: |
           # Give Coolify time to redeploy containers so the API is up.
-          echo "Waiting 90s for Coolify deployment to finish..."
-          sleep 90
+          echo "Waiting 120s for Coolify deployment to finish..."
+          sleep 120
 
       - name: Publish changed MDX files
         env:
           FS0CIETY_API_KEY: ${{ secrets.FS0CIETY_API_KEY }}
           FS0CIETY_URL: https://fs0ciety.org
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          # Find MDX files changed in this push.
-          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'content/posts/*.mdx' 2>/dev/null || true)
+          CHANGED=""
 
-          # Fallback: if diff fails (force-push, first commit, etc.), publish all posts.
+          # For push events, diff against the previous commit SHA provided by GitHub.
+          if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            CHANGED=$(git diff --name-only "$BEFORE_SHA" HEAD -- 'content/posts/*.mdx' 2>/dev/null || true)
+          fi
+
+          # For workflow_dispatch or if diff failed, publish all MDX files.
           if [ -z "$CHANGED" ]; then
-            echo "No diff-based changes found, publishing all MDX files..."
+            echo "No diff available — publishing all MDX files..."
             CHANGED=$(find content/posts -name '*.mdx' ! -name '_template.mdx' 2>/dev/null || true)
           fi
 

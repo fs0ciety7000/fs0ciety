@@ -3,12 +3,30 @@ import { BlogHeader } from "@/components/blog/BlogHeader";
 import { BlogFooter } from "@/components/blog/BlogFooter";
 import { SearchDialog } from "@/components/blog/SearchDialog";
 
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
+
 export const metadata: Metadata = {
   title: {
-    template: "%s — fs0ciety",
-    default: "Blog — fs0ciety",
+    template: "%s — fs0ciety blog",
+    default: "/var/log/thoughts — fs0ciety blog",
   },
-  description: "Writings on security, systems, and the digital underground.",
+  description:
+    "Writings on security, systems, infrastructure, and the digital underground.",
+  alternates: {
+    canonical: `https://blog.${DOMAIN}`,
+    types: {
+      "application/rss+xml": `https://blog.${DOMAIN}/rss`,
+    },
+  },
+  openGraph: {
+    type: "website",
+    siteName: "fs0ciety",
+    title: "/var/log/thoughts — fs0ciety blog",
+    description:
+      "Writings on security, systems, infrastructure, and the digital underground.",
+    url: `https://blog.${DOMAIN}`,
+    locale: "en_US",
+  },
 };
 
 export default function BlogLayout({

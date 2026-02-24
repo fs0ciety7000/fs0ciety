@@ -219,6 +219,7 @@ interface PlexData {
     id: string;
     name: string;
     seriesName?: string;
+    seasonLabel?: string;
     imageUrl: string | null;
     href: string;
   }>;
@@ -252,6 +253,22 @@ interface SABData {
     monthDownloaded: string;
     totalDownloaded: string;
   };
+}
+
+interface SpotifyData {
+  playing: boolean;
+  track?: {
+    name: string;
+    artists: string;
+    album: string;
+    albumArt: string | null;
+    progress: number;
+    progressMs: number;
+    durationMs: number;
+    url: string;
+  };
+  error?: string;
+  authUrl?: string;
 }
 
 // ── Theme ───────────────────────────────────────────────────
@@ -762,14 +779,16 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
   const posterCard = (id: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
     <a key={id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${id}`} target="_blank" rel="noopener noreferrer"
       className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt="" className="w-full h-36 object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
-      ) : (
-        <div className={`w-full h-36 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
-      )}
+      <div className="w-full aspect-[2/3] overflow-hidden">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+        ) : (
+          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+        )}
+      </div>
       <div className="p-1.5">
-        <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors leading-tight`}>{title}</div>
+        <div className={`text-[10px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
         {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
       </div>
     </a>
@@ -886,14 +905,16 @@ function PlexSection({ theme }: { theme: DashTheme }) {
   const posterCard = (id: string, href: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
     <a key={id} href={href} target="_blank" rel="noopener noreferrer"
       className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={imageUrl} alt="" className="w-full h-36 object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
-      ) : (
-        <div className={`w-full h-36 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
-      )}
+      <div className="w-full aspect-[2/3] overflow-hidden">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+        ) : (
+          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+        )}
+      </div>
       <div className="p-1.5">
-        <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors leading-tight`}>{title}</div>
+        <div className={`text-[10px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
         {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
       </div>
     </a>
@@ -962,7 +983,7 @@ function PlexSection({ theme }: { theme: DashTheme }) {
           <SectionHeader title="Recent Shows" icon="▶" theme={theme} />
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
             {data.recentEpisodes.map((item) =>
-              posterCard(item.id, item.href, item.imageUrl, item.name, undefined, "TV")
+              posterCard(item.id, item.href, item.imageUrl, item.name, item.seasonLabel, "TV")
             )}
           </div>
         </div>
@@ -1060,7 +1081,12 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
   };
 
   if (loading) return <div className={c.card}><SectionHeader title="Seerr" icon="?" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data) return null;
+  if (!data) return (
+    <div className={c.card}>
+      <SectionHeader title="Seerr Requests" icon="?" theme={theme} />
+      <div className={`text-xs font-mono ${c.textMuted} py-2`}>Unable to connect to Seerr — check SEERR_API_KEY.</div>
+    </div>
+  );
 
   return (
     <div className={c.card}>
@@ -1323,35 +1349,12 @@ function RadarrSection({ theme }: { theme: DashTheme }) {
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Radarr" icon="▶" theme={theme}
         extra={<a href="https://radarr.cinenode.org" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-2 gap-2">
         <HudStat label="Total Films" value={data.stats.total.toString()} color={c.amber} theme={theme} />
         <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.cyan} theme={theme} />
         <HudStat label="Downloaded" value={data.stats.withFile.toString()} color={c.green} theme={theme} />
         <HudStat label="Missing" value={data.stats.missing.toString()} color={data.stats.missing > 0 ? c.red : c.textMuted} theme={theme} />
       </div>
-      {(() => {
-        const disk = data.diskspace.find(d => d.path === "/mnt/mpathae");
-        if (!disk) return null;
-        const warn = disk.usedPercent > 85;
-        return (
-          <div>
-            <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Disk — cinenode.org</div>
-            <div className="flex items-center justify-between mb-1">
-              <span className={`text-[10px] font-mono ${c.textDim}`}>/storage</span>
-              <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{disk.freeSpace} free</span>
-            </div>
-            <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
-              <div
-                className={`h-full rounded-full transition-all ${warn ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
-                style={{ width: `${disk.usedPercent}%` }}
-              />
-            </div>
-            <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-0.5 text-right`}>
-              {disk.usedPercent}% of {disk.totalSpace}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
@@ -1384,6 +1387,150 @@ function SonarrSection({ theme }: { theme: DashTheme }) {
         <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.amber} theme={theme} />
         <HudStat label="Episodes" value={formatNumber(data.stats.downloaded)} color={c.green} theme={theme} />
         <HudStat label="Missing" value={data.stats.missing.toString()} color={data.stats.missing > 0 ? c.red : c.textMuted} theme={theme} />
+      </div>
+    </div>
+  );
+}
+
+// ── Storage Section ──────────────────────────────────────────
+
+function StorageSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<RadarrData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/radarr")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="Storage" icon="▣" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data || !data.diskspace.length) return null;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Storage" icon="▣" theme={theme}
+        extra={<span className={`text-[10px] font-mono ${c.textMuted}`}>cinenode.org</span>} />
+      <div className="space-y-3">
+        {data.diskspace.map((disk, i) => {
+          const warn = disk.usedPercent > 85;
+          const label = disk.path === "/mnt/mpathae" ? "/storage" : (disk.label || disk.path);
+          return (
+            <div key={i}>
+              <div className="flex items-center justify-between mb-1">
+                <span className={`text-[10px] font-mono ${c.textDim}`}>{label}</span>
+                <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{disk.freeSpace} free</span>
+              </div>
+              <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
+                <div
+                  className={`h-full rounded-full transition-all ${warn ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+                  style={{ width: `${disk.usedPercent}%` }}
+                />
+              </div>
+              <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-0.5 text-right tabular-nums`}>
+                {disk.usedPercent}% of {disk.totalSpace}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Spotify Section ──────────────────────────────────────────
+
+function msToTime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
+function SpotifySection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<SpotifyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/spotify")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {});
+    load().finally(() => setLoading(false));
+    const interval = setInterval(load, 15_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return null;
+
+  if (!data || data.error) {
+    if (data?.authUrl) {
+      return (
+        <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#1DB954" size={10} />}
+          <SectionHeader title="Spotify" icon="♫" theme={theme} />
+          <div className={`text-xs font-mono ${c.textMuted} mb-2`}>Not connected.</div>
+          <a href={data.authUrl} className={`inline-block text-[10px] font-mono px-3 py-1.5 border ${theme === "industrial" ? "border-[#1DB954] text-[#1DB954] hover:bg-[#1DB954]/10" : "border-terminal-green text-terminal-green hover:bg-terminal-green/10"} transition-all`}>
+            Connect Spotify →
+          </a>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  if (!data.playing || !data.track) {
+    return (
+      <div className={c.card}>
+        {theme === "industrial" && <CornerBrackets color="#1DB954" size={10} />}
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>Spotify</span>
+          <span className={`text-[10px] font-mono ${c.textMuted2}`}>— Nothing playing</span>
+        </div>
+      </div>
+    );
+  }
+
+  const { track } = data;
+  const spotifyGreen = theme === "industrial" ? "#1DB954" : "text-terminal-green";
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#1DB954" size={10} />}
+      <div className="flex items-center gap-3">
+        {track.albumArt && (
+          <a href={track.url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={track.albumArt} alt="" className="w-12 h-12 object-cover" />
+          </a>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span style={{ color: spotifyGreen }} className="text-[9px] font-mono uppercase tracking-widest font-bold">♫ NOW PLAYING</span>
+          </div>
+          <a href={track.url} target="_blank" rel="noopener noreferrer"
+            className={`text-sm font-mono font-bold ${c.textMain} hover:underline truncate block leading-tight`}>
+            {track.name}
+          </a>
+          <div className={`text-[10px] font-mono ${c.textDim} truncate`}>{track.artists}</div>
+          <div className={`text-[9px] font-mono ${c.textMuted} truncate`}>{track.album}</div>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className={`text-[10px] font-mono tabular-nums ${c.textMuted}`}>
+            {msToTime(track.progressMs)} / {msToTime(track.durationMs)}
+          </div>
+        </div>
+      </div>
+      <div className={`w-full h-0.5 ${c.progressBg} mt-2 rounded-full`}>
+        <div
+          className="h-full rounded-full transition-all"
+          style={{ width: `${track.progress}%`, backgroundColor: spotifyGreen }}
+        />
       </div>
     </div>
   );
@@ -1584,10 +1731,11 @@ export default function StartPage() {
                 <RSSFeed theme={theme} />
               </motion.div>
 
-              {/* Right: Calendar + AdGuard compact */}
+              {/* Right: Spotify + Calendar + AdGuard compact */}
               <motion.div className="lg:col-span-3 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.10 }}>
+                <SpotifySection theme={theme} />
                 <Calendar theme={theme} />
                 <AdGuardSection theme={theme} compact />
               </motion.div>
@@ -1628,11 +1776,12 @@ export default function StartPage() {
                 <SeerrSection theme={theme} />
               </motion.div>
 
-              <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-3"
+              <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.14 }}>
                 <RadarrSection theme={theme} />
                 <SonarrSection theme={theme} />
+                <StorageSection theme={theme} />
               </motion.div>
 
               <motion.div className="flex items-center justify-between"

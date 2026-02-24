@@ -28,6 +28,29 @@ async function plexFetch(path: string): Promise<unknown | null> {
   }
 }
 
+// Separate fetch for counting — sends container size as both header and query param
+async function plexFetchCount(sectionPath: string): Promise<unknown | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const url = `${PLEX_URL}${sectionPath}?X-Plex-Container-Start=0&X-Plex-Container-Size=0`;
+    const res = await fetch(url, {
+      headers: {
+        ...plexHeaders(),
+        "X-Plex-Container-Start": "0",
+        "X-Plex-Container-Size": "0",
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
 interface PlexMetadata {
   ratingKey: string;
   title: string;
@@ -37,6 +60,7 @@ interface PlexMetadata {
   grandparentKey?: string;
   grandparentTitle?: string;
   grandparentThumb?: string;
+  parentTitle?: string; // e.g. "Season 3"
   viewOffset?: number;
   duration?: number;
   User?: { title: string };
@@ -80,12 +104,12 @@ export async function GET() {
     const movieSections = sections.filter((s) => s.type === "movie");
     const showSections = sections.filter((s) => s.type === "show");
 
-    // Count fetches (one per section for movies/shows, one per show section for episodes)
+    // Count fetches (one per section) — using HTTP headers for compatibility
     const countRaw = await Promise.allSettled([
-      ...movieSections.map((s) => plexFetch(`/library/sections/${s.key}/all?X-Plex-Container-Size=0`)),
-      ...showSections.map((s) => plexFetch(`/library/sections/${s.key}/all?X-Plex-Container-Size=0`)),
+      ...movieSections.map((s) => plexFetchCount(`/library/sections/${s.key}/all`)),
+      ...showSections.map((s) => plexFetchCount(`/library/sections/${s.key}/all`)),
       ...showSections.map((s) =>
-        plexFetch(`/library/sections/${s.key}/all?type=4&X-Plex-Container-Size=0`)
+        plexFetchCount(`/library/sections/${s.key}/all?type=4`)
       ),
     ]);
 
@@ -143,6 +167,7 @@ export async function GET() {
       id: string;
       name: string;
       seriesName?: string;
+      seasonLabel?: string;
       imageUrl: string | null;
       href: string;
     }> = [];
@@ -156,6 +181,7 @@ export async function GET() {
         id: item.ratingKey,
         name: item.grandparentTitle || item.title,
         seriesName: item.grandparentTitle,
+        seasonLabel: item.parentTitle || undefined,
         imageUrl: item.grandparentThumb
           ? `${PLEX_URL}${item.grandparentThumb}?X-Plex-Token=${PLEX_TOKEN}`
           : item.thumb
@@ -173,8 +199,10 @@ export async function GET() {
     return NextResponse.json({
       connected,
       libraries:
-        totalMovies > 0 || totalShows > 0 || totalEpisodes > 0
+        connected && (totalMovies > 0 || totalShows > 0 || totalEpisodes > 0)
           ? { movies: totalMovies, shows: totalShows, episodes: totalEpisodes }
+          : connected
+          ? { movies: 0, shows: 0, episodes: 0 }
           : null,
       nowPlaying,
       recentMovies,

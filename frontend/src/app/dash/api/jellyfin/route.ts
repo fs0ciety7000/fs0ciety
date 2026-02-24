@@ -10,6 +10,11 @@ const headers = () => ({
   Accept: "application/json",
 });
 
+interface JellyfinUser {
+  Id: string;
+  Policy?: { IsAdministrator?: boolean };
+}
+
 interface JellyfinCounts {
   MovieCount: number;
   SeriesCount: number;
@@ -31,12 +36,10 @@ interface JellyfinSession {
     Type: string;
     RunTimeTicks?: number;
     ImageTags?: { Primary?: string };
-    ParentBackdropItemId?: string;
   };
   PlayState?: {
     PositionTicks?: number;
     IsPaused: boolean;
-    IsMuted: boolean;
   };
 }
 
@@ -60,16 +63,33 @@ export async function GET() {
   }
 
   try {
+    // Fetch admin user ID for user-scoped endpoints (/Items/Latest requires UserId)
+    let userId = "";
+    try {
+      const usersRes = await fetch(`${JELLYFIN_URL}/Users`, { headers: headers() });
+      if (usersRes.ok) {
+        const users: JellyfinUser[] = await usersRes.json();
+        userId =
+          users.find((u) => u.Policy?.IsAdministrator)?.Id ||
+          users[0]?.Id ||
+          "";
+      }
+    } catch { /* ignore */ }
+
+    const latestBase = userId
+      ? `${JELLYFIN_URL}/Users/${userId}/Items/Latest`
+      : `${JELLYFIN_URL}/Items/Latest`;
+
     const [countsRes, sessionsRes, recentMoviesRes, recentEpisodesRes] =
       await Promise.allSettled([
         fetch(`${JELLYFIN_URL}/Items/Counts`, { headers: headers() }),
         fetch(`${JELLYFIN_URL}/Sessions`, { headers: headers() }),
         fetch(
-          `${JELLYFIN_URL}/Items/Latest?IncludeItemTypes=Movie&Limit=12&EnableImages=true&ImageTypeLimit=1`,
+          `${latestBase}?IncludeItemTypes=Movie&Limit=12&EnableImages=true&ImageTypeLimit=1`,
           { headers: headers() }
         ),
         fetch(
-          `${JELLYFIN_URL}/Items/Latest?IncludeItemTypes=Episode&Limit=24&EnableImages=true&ImageTypeLimit=1&Fields=SeriesName,SeriesId`,
+          `${latestBase}?IncludeItemTypes=Episode&Limit=24&EnableImages=true&ImageTypeLimit=1&Fields=SeriesName,SeriesId`,
           { headers: headers() }
         ),
       ]);
@@ -123,7 +143,6 @@ export async function GET() {
       id: string;
       name: string;
       year?: number;
-      dateCreated?: string;
       imageUrl: string | null;
     }> = [];
     if (recentMoviesRes.status === "fulfilled" && recentMoviesRes.value.ok) {
@@ -132,7 +151,6 @@ export async function GET() {
         id: item.Id,
         name: item.Name,
         year: item.ProductionYear,
-        dateCreated: item.DateCreated,
         imageUrl: item.ImageTags?.Primary
           ? `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?maxHeight=300&api_key=${JELLYFIN_API_KEY}`
           : null,
@@ -145,7 +163,6 @@ export async function GET() {
       name: string;
       seriesName?: string;
       seriesId?: string;
-      dateCreated?: string;
       imageUrl: string | null;
     }> = [];
     if (
@@ -164,8 +181,6 @@ export async function GET() {
           name: ep.Name,
           seriesName: ep.SeriesName,
           seriesId: ep.SeriesId,
-          dateCreated: ep.DateCreated,
-          // Use series poster for series items
           imageUrl: ep.SeriesId
             ? `${JELLYFIN_URL}/Items/${ep.SeriesId}/Images/Primary?maxHeight=300&api_key=${JELLYFIN_API_KEY}`
             : ep.ImageTags?.Primary

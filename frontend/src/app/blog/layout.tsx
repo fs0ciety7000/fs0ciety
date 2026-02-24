@@ -37,8 +37,8 @@ export default function BlogLayout({
 }) {
   return (
     <BlogShell>
-      <div className="blog-bg min-h-screen flex flex-col">
-        <div className="noise-overlay blog-noise" aria-hidden="true" />
+      <div className="blog-bg min-h-screen flex flex-col" style={{ background: "var(--spectr-bg-primary)", color: "var(--spectr-text-primary)", transition: "background 0.4s, color 0.4s" }}>
+        <div className="noise-overlay blog-noise" aria-hidden="true" style={{ opacity: "var(--spectr-noise-opacity)" }} />
         <BlogHeader />
         <SearchDialog />
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-10">

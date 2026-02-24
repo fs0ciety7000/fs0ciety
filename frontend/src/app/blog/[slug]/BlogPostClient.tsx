@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import type { Post, PostMeta } from "@/types";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { CipherLoading } from "@/components/blog/CipherText";
@@ -111,12 +112,12 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
   if (error || !post) {
     return (
       <div>
-        <div className="font-mono text-terminal-red text-sm mb-4">
+        <div className="font-mono text-sm mb-4" style={{ color: "var(--spectr-accent-danger)" }}>
           Error: {error || "Post not found"}
         </div>
         <Link
           href="/blog"
-          className="text-xs font-mono text-terminal-cyan hover:text-terminal-green transition-colors"
+          className="spectr-nav-link text-xs"
         >
           &larr; back to posts
         </Link>
@@ -126,43 +127,62 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
 
   const d = new Date(post.createdAt);
   const date = isNaN(d.getTime())
-    ? "—"
+    ? "\u2014"
     : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
   return (
-    <article>
+    <motion.article
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
       <ReadingProgress />
 
       {/* Back link */}
       <Link
         href="/blog"
-        className="text-xs font-mono text-terminal-green-dim hover:text-terminal-green transition-colors inline-block mb-8"
+        className="spectr-nav-link text-xs inline-block mb-8"
       >
         &larr; cd /blog
       </Link>
 
       {/* Post header */}
-      <header className="mb-10 pb-6 border-b border-terminal-gray-light">
-        <h1 className="text-2xl sm:text-3xl font-mono font-bold text-terminal-green mb-3">
+      <motion.header
+        className="spectr-article-header"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
+        {/* Classification bar */}
+        <div className="spectr-label mb-4 flex items-center gap-3" style={{ opacity: 0.4 }}>
+          <span style={{ color: "var(--spectr-accent-tertiary)" }}>DOC</span>
+          <span>/</span>
+          <span>{post.slug}</span>
+          <span>/</span>
+          <span>REV.{post.contentHash?.slice(0, 6)}</span>
+        </div>
+
+        <h1 className="spectr-article-title">
           {post.title}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#a3a3a3]">
+        <div className="spectr-article-meta flex flex-wrap items-center gap-3 mt-3">
           <time>{date}</time>
-          <span className="text-terminal-gray-light">|</span>
+          <span style={{ opacity: 0.2 }}>/</span>
           <a
             href={`/profile/${post.author}`}
-            className="text-terminal-cyan hover:text-terminal-green transition-colors"
+            className="spectr-nav-link"
+            style={{ padding: 0, fontSize: "0.75rem" }}
           >
             @{post.author}
           </a>
-          <span className="text-terminal-gray-light">|</span>
+          <span style={{ opacity: 0.2 }}>/</span>
           <span>{post.readingTime} min read</span>
-          <span className="text-terminal-gray-light">|</span>
-          <span>{post.wordCount} words</span>
+          <span style={{ opacity: 0.2 }}>/</span>
+          <span>{post.wordCount.toLocaleString()} words</span>
           {typeof post.views === "number" && (
             <>
-              <span className="text-terminal-gray-light">|</span>
+              <span style={{ opacity: 0.2 }}>/</span>
               <span>0x{post.views.toString(16).toUpperCase().padStart(4, "0")} views</span>
             </>
           )}
@@ -170,41 +190,46 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
 
         {/* Integrity hash */}
         {post.contentHash && (
-          <div className="flex items-center gap-2 mt-3 text-[10px] font-mono text-terminal-green-dim opacity-40">
-            <span className="text-terminal-amber">sha256</span>
+          <div className="spectr-caption flex items-center gap-2 mt-3" style={{ opacity: 0.3 }}>
+            <span style={{ color: "var(--spectr-accent-tertiary)" }}>sha256</span>
             <span className="select-all">{post.contentHash}</span>
           </div>
         )}
 
         {/* Tags */}
-        <div className="flex flex-wrap gap-2 mt-4">
+        <div className="flex flex-wrap gap-1.5 mt-4">
           {post.tags.map((tag) => (
             <a
               key={tag}
               href={`/blog?tag=${encodeURIComponent(tag)}`}
-              className="text-xs font-mono px-2 py-0.5 border border-terminal-green/20 text-terminal-green-dim hover:border-terminal-green/50 hover:text-terminal-green transition-colors"
+              className="spectr-tag"
             >
               #{tag}
             </a>
           ))}
         </div>
-      </header>
+      </motion.header>
 
       {/* Series Navigation */}
       {seriesInfo && seriesPosts.length > 1 && (
-        <nav className="mb-10 border border-terminal-amber/20 bg-terminal-amber/5 font-mono">
-          <div className="px-4 py-3 border-b border-terminal-amber/10">
-            <span className="text-xs text-terminal-amber uppercase tracking-wider font-bold">
+        <motion.nav
+          className="mb-10 spectr-card"
+          style={{ borderColor: "var(--spectr-accent-tertiary)", borderLeftWidth: 3 }}
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <div className="px-4 py-3 border-b" style={{ borderColor: "var(--spectr-border-primary)" }}>
+            <span className="spectr-label" style={{ color: "var(--spectr-accent-tertiary)" }}>
               Series: {seriesInfo.name}
             </span>
-            <span className="text-xs text-terminal-green-dim ml-2">
+            <span className="spectr-caption ml-2">
               Part {seriesInfo.order}
             </span>
           </div>
-          <div className="px-4 py-2 flex flex-wrap gap-2">
+          <div className="px-4 py-2 flex flex-wrap gap-3">
             {seriesPosts
               .filter((p) => {
-                // Match posts that have similar tags or are part of the same series
                 return post?.tags.some((t) => p.tags.includes(t)) && p.slug !== slug;
               })
               .slice(0, 10)
@@ -212,54 +237,63 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
                 <a
                   key={p.slug}
                   href={`/blog/${p.slug}`}
-                  className="text-xs text-terminal-cyan hover:text-terminal-green transition-colors py-0.5"
+                  className="spectr-nav-link text-xs"
+                  style={{ padding: 0 }}
                 >
                   {p.title}
                 </a>
               ))}
           </div>
-        </nav>
+        </motion.nav>
       )}
 
       {/* Table of Contents */}
       {toc.length > 1 && (
-        <nav className="toc-container mb-10 border border-terminal-green/20 bg-terminal-black-light font-mono">
+        <motion.nav
+          className="spectr-toc mb-10"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
           <button
             onClick={() => setTocOpen(!tocOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-xs text-terminal-green hover:text-terminal-green-dim transition-colors"
+            className="spectr-toc-header w-full"
           >
-            <span className="uppercase tracking-wider font-bold">
-              <span className="text-terminal-amber mr-2">#</span>
+            <span className="flex items-center gap-2">
+              <span style={{ color: "var(--spectr-accent-tertiary)" }}>#</span>
               Table of Contents
             </span>
-            <span className="text-terminal-green-dim">{tocOpen ? "[-]" : "[+]"}</span>
+            <span style={{ opacity: 0.5 }}>{tocOpen ? "[-]" : "[+]"}</span>
           </button>
           {tocOpen && (
-            <ul className="px-4 pb-4 space-y-1">
+            <ul className="py-2">
               {toc.map((entry) => (
-                <li
-                  key={entry.id}
-                  style={{ paddingLeft: `${(entry.level - 1) * 1}rem` }}
-                >
+                <li key={entry.id}>
                   <a
                     href={`#${entry.id}`}
-                    className="text-xs text-terminal-cyan hover:text-terminal-green transition-colors block py-0.5"
+                    className="spectr-toc-link"
+                    style={{ paddingLeft: `${0.75 + (entry.level - 1) * 1}rem` }}
                   >
-                    {entry.level === 1 ? "$ " : entry.level === 2 ? "|- " : "   |- "}
+                    {entry.level === 1 ? "$ " : entry.level === 2 ? "\u251C " : "  \u2514 "}
                     {entry.text}
                   </a>
                 </li>
               ))}
             </ul>
           )}
-        </nav>
+        </motion.nav>
       )}
 
       {/* Post body */}
-      <div className="prose-fs0ciety max-w-none">
+      <motion.div
+        className="prose-fs0ciety max-w-none"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
         <div dangerouslySetInnerHTML={{ __html: html }} />
-      </div>
-    </article>
+      </motion.div>
+    </motion.article>
   );
 }
 

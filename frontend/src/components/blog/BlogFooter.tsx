@@ -14,10 +14,22 @@ const FOOTER_QUOTES = [
   "In a world of locked rooms, the man with the key is king.",
 ];
 
+function StatusDot({ ok }: { ok: boolean }) {
+  return (
+    <span
+      className="spectr-status-dot"
+      style={{
+        background: ok ? "var(--spectr-accent-primary)" : "var(--spectr-accent-danger)",
+        boxShadow: ok ? `0 0 6px var(--spectr-glow-primary)` : "none",
+      }}
+    />
+  );
+}
+
 function SecurityBadge({ label, ok }: { label: string; ok: boolean }) {
   return (
-    <span className="security-badge">
-      <span className={`dot ${ok ? "dot-ok" : "dot-err"}`} />
+    <span className="spectr-status" style={{ color: "var(--spectr-text-muted)" }}>
+      <StatusDot ok={ok} />
       <span>{label}: {ok ? "OK" : "ERR"}</span>
     </span>
   );
@@ -39,76 +51,61 @@ export function BlogFooter() {
   });
 
   return (
-    <footer className="border-t border-terminal-gray-light mt-16">
+    <footer className="spectr-footer mt-16">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-terminal-green-dim opacity-60">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-terminal-green">$</span>
+        {/* Main row */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-wrap spectr-caption" style={{ color: "var(--spectr-text-muted)" }}>
+            <span style={{ color: "var(--spectr-accent-primary)" }}>$</span>
             <span>fs0ciety &copy; {year}</span>
-            <span className="text-terminal-gray-light">|</span>
+            <span style={{ opacity: 0.3 }}>|</span>
             <a
               href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-terminal-green transition-colors"
+              className="spectr-footer-link"
             >
               CC BY-NC-SA 4.0
             </a>
-            <span className="text-terminal-gray-light">|</span>
-            <span>&quot;{quote}&quot;</span>
+            <span style={{ opacity: 0.3 }}>|</span>
+            <span style={{ opacity: 0.5, fontStyle: "italic" }}>&ldquo;{quote}&rdquo;</span>
           </div>
+
           <div className="flex items-center gap-4">
-            <a
-              href={hrefs.terminal}
-              className="hover:text-terminal-green transition-colors"
-            >
-              terminal
-            </a>
-            <a
-              href={hrefs.dashboard}
-              className="hover:text-terminal-green transition-colors"
-            >
-              dashboard
-            </a>
-            <a
-              href="/blog/pgp"
-              className="hover:text-terminal-green transition-colors flex items-center gap-1"
-            >
-              <span className="text-terminal-green opacity-50">#</span>
+            <a href={hrefs.terminal} className="spectr-footer-link">terminal</a>
+            <a href={hrefs.dashboard} className="spectr-footer-link">dashboard</a>
+            <a href="/blog/pgp" className="spectr-footer-link">
+              <span style={{ color: "var(--spectr-accent-primary)", opacity: 0.5 }}>#</span>
               pgp
             </a>
-            <a
-              href="/blog/rss"
-              className="hover:text-terminal-green transition-colors flex items-center gap-1"
-            >
-              <span className="text-terminal-green opacity-50">#</span>
+            <a href="/blog/rss" className="spectr-footer-link">
+              <span style={{ color: "var(--spectr-accent-primary)", opacity: 0.5 }}>#</span>
               rss
             </a>
             <a
               href="https://defcon.social/@phant0mhex"
               target="_blank"
               rel="me noopener noreferrer"
-              className="hover:text-terminal-green transition-colors flex items-center gap-1"
+              className="spectr-footer-link"
             >
-              <span className="text-terminal-green opacity-50">@</span>
+              <span style={{ color: "var(--spectr-accent-primary)", opacity: 0.5 }}>@</span>
               mastodon
             </a>
-            <a
-              href="/blog/intruders"
-              className="hover:text-terminal-red transition-colors flex items-center gap-1"
-            >
-              <span className="text-terminal-red opacity-50">!</span>
+            <a href="/blog/intruders" className="spectr-footer-link" style={{ color: "var(--spectr-accent-danger)" }}>
+              <span style={{ opacity: 0.5 }}>!</span>
               intruders
             </a>
           </div>
         </div>
 
         {/* Security status bar */}
-        <div className="flex items-center justify-center gap-4 mt-4 opacity-30 hover:opacity-60 transition-opacity">
+        <div className="spectr-divider mt-6 mb-4" />
+        <div className="flex items-center justify-center gap-6 opacity-40 hover:opacity-70 transition-opacity">
           <SecurityBadge label="SSL" ok={isHttps} />
           <SecurityBadge label="Headers" ok={true} />
           <SecurityBadge label="EXIF-Strip" ok={true} />
           <SecurityBadge label="Tor" ok={true} />
+          <SecurityBadge label="HSTS" ok={true} />
         </div>
       </div>
     </footer>

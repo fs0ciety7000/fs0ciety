@@ -18,9 +18,7 @@ export function BlogShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="blog-shell min-h-screen flex flex-col">
-      <div className="theme-toggle-container">
-        <ThemeToggle />
-      </div>
+      <ThemeToggle />
       {children}
     </div>
   );

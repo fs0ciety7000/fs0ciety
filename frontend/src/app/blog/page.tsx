@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { PostCard } from "@/components/blog/PostCard";
 import { TagFilter } from "@/components/blog/TagFilter";
 import { CipherLoading } from "@/components/blog/CipherText";
@@ -42,11 +43,16 @@ function BlogPageContent() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-3xl font-mono font-bold text-terminal-green mb-2">
+      <motion.div
+        className="mb-10"
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <h1 className="spectr-display text-3xl mb-2" style={{ color: "var(--spectr-accent-primary)" }}>
           /var/log/thoughts
         </h1>
-        <p className="text-sm text-[#a3a3a3] font-sans">
+        <p className="spectr-body text-sm" style={{ color: "var(--spectr-text-secondary)" }}>
           Writings on security, systems, infrastructure, and the spaces in between.
         </p>
         <div className="mt-3">
@@ -55,15 +61,20 @@ function BlogPageContent() {
               const event = new KeyboardEvent("keydown", { key: "k", ctrlKey: true });
               window.dispatchEvent(event);
             }}
-            className="text-xs font-mono text-terminal-green-dim/50 hover:text-terminal-green-dim transition-colors flex items-center gap-2"
+            className="spectr-label flex items-center gap-2 hover:opacity-80 transition-opacity"
+            style={{ color: "var(--spectr-text-muted)" }}
           >
-            <span>$ grep</span>
-            <kbd className="border border-terminal-gray-light px-1.5 py-0.5 text-[10px]">
+            <span style={{ color: "var(--spectr-accent-primary)" }}>$</span>
+            <span>grep</span>
+            <kbd
+              className="border px-1.5 py-0.5"
+              style={{ borderColor: "var(--spectr-border-primary)", fontSize: "0.6rem" }}
+            >
               Ctrl+K
             </kbd>
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Tag filter */}
       {allTags.length > 0 && (
@@ -76,13 +87,18 @@ function BlogPageContent() {
       {loading ? (
         <CipherLoading text="$ cat /var/log/thoughts/*" />
       ) : filtered.length === 0 ? (
-        <div className="font-mono text-terminal-green-dim text-sm">
+        <motion.div
+          className="spectr-caption"
+          style={{ color: "var(--spectr-text-muted)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
           No posts found. {activeTag && "Try clearing the filter."}
-        </div>
+        </motion.div>
       ) : (
         <div className="grid gap-4">
-          {filtered.map((post) => (
-            <PostCard key={post.slug} post={post} />
+          {filtered.map((post, i) => (
+            <PostCard key={post.slug} post={post} index={i} />
           ))}
         </div>
       )}

@@ -15,13 +15,8 @@ interface JellyfinUser {
   Policy?: { IsAdministrator?: boolean };
 }
 
-interface JellyfinCounts {
-  MovieCount: number;
-  SeriesCount: number;
-  EpisodeCount: number;
-  ArtistCount: number;
-  AlbumCount: number;
-  SongCount: number;
+interface JellyfinCountsResponse {
+  TotalRecordCount: number;
 }
 
 interface JellyfinSession {
@@ -80,25 +75,52 @@ export async function GET() {
       ? `${JELLYFIN_URL}/Users/${userId}/Items/Latest`
       : `${JELLYFIN_URL}/Items/Latest`;
 
-    const [countsRes, sessionsRes, recentMoviesRes, recentEpisodesRes] =
-      await Promise.allSettled([
-        fetch(`${JELLYFIN_URL}/Items/Counts`, { headers: headers() }),
-        fetch(`${JELLYFIN_URL}/Sessions`, { headers: headers() }),
-        fetch(
-          `${latestBase}?IncludeItemTypes=Movie&Limit=12&EnableImages=true&ImageTypeLimit=1`,
-          { headers: headers() }
-        ),
-        fetch(
-          `${latestBase}?IncludeItemTypes=Episode&Limit=24&EnableImages=true&ImageTypeLimit=1&Fields=SeriesName,SeriesId`,
-          { headers: headers() }
-        ),
-      ]);
+    // Use user-scoped count queries so we only count what the user actually sees
+    // (avoids double-counting when multiple libraries contain the same type)
+    const countBase = userId
+      ? `${JELLYFIN_URL}/Users/${userId}/Items`
+      : `${JELLYFIN_URL}/Items`;
 
-    // Counts
-    let counts: JellyfinCounts | null = null;
-    if (countsRes.status === "fulfilled" && countsRes.value.ok) {
-      counts = await countsRes.value.json();
-    }
+    const [
+      movieCountRes, seriesCountRes, episodeCountRes,
+      artistCountRes, albumCountRes, songCountRes,
+      sessionsRes, recentMoviesRes, recentEpisodesRes,
+    ] = await Promise.allSettled([
+      fetch(`${countBase}?IncludeItemTypes=Movie&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${countBase}?IncludeItemTypes=Series&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${countBase}?IncludeItemTypes=Episode&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${countBase}?IncludeItemTypes=MusicArtist&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${countBase}?IncludeItemTypes=MusicAlbum&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${countBase}?IncludeItemTypes=Audio&Recursive=true&Limit=0`, { headers: headers() }),
+      fetch(`${JELLYFIN_URL}/Sessions`, { headers: headers() }),
+      fetch(
+        `${latestBase}?IncludeItemTypes=Movie&Limit=12&EnableImages=true&ImageTypeLimit=1`,
+        { headers: headers() }
+      ),
+      fetch(
+        `${latestBase}?IncludeItemTypes=Episode&Limit=24&EnableImages=true&ImageTypeLimit=1&Fields=SeriesName,SeriesId`,
+        { headers: headers() }
+      ),
+    ]);
+
+    const getCount = (res: PromiseSettledResult<Response>) => {
+      if (res.status !== "fulfilled" || !res.value.ok) return null;
+      return res.value.json().then((d: JellyfinCountsResponse) => d.TotalRecordCount ?? 0);
+    };
+
+    const [movies, series, episodes, artists, albums, songs] = await Promise.all([
+      getCount(movieCountRes),
+      getCount(seriesCountRes),
+      getCount(episodeCountRes),
+      getCount(artistCountRes),
+      getCount(albumCountRes),
+      getCount(songCountRes),
+    ]);
+
+    const counts =
+      movies !== null
+        ? { movies, series: series ?? 0, episodes: episodes ?? 0, artists: artists ?? 0, albums: albums ?? 0, songs: songs ?? 0 }
+        : null;
 
     // Sessions (only those with NowPlayingItem)
     let nowPlaying: Array<{
@@ -193,16 +215,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      counts: counts
-        ? {
-            movies: counts.MovieCount,
-            series: counts.SeriesCount,
-            episodes: counts.EpisodeCount,
-            artists: counts.ArtistCount,
-            albums: counts.AlbumCount,
-            songs: counts.SongCount,
-          }
-        : null,
+      counts,
       nowPlaying,
       recentMovies,
       recentEpisodes,

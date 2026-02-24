@@ -14,13 +14,13 @@ const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
 /** Map of internal path prefixes → subdomain labels. */
 const PATH_TO_SUBDOMAIN: Record<string, string> = {
   "/blog": "blog",
-  "/dashboard": "dash",
+  "/dash": "dash",
 };
 
 /** Inverse: subdomain → path prefix (used for "same-subdomain" detection). */
 const SUBDOMAIN_TO_PATH: Record<string, string> = {
   blog: "/blog",
-  dash: "/dashboard",
+  dash: "/dash",
 };
 
 /**

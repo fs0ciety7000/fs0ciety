@@ -10,9 +10,62 @@ interface MarkdownEditorProps {
   placeholder?: string;
 }
 
+/** Parse a markdown table block into an HTML table. */
+function renderTable(block: string): string {
+  const lines = block.trim().split("\n");
+  if (lines.length < 2) return block;
+
+  const parseRow = (line: string) =>
+    line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+
+  const headers = parseRow(lines[0]);
+
+  // Parse alignment from separator row
+  const sepCells = parseRow(lines[1]);
+  const aligns = sepCells.map((c) => {
+    if (c.startsWith(":") && c.endsWith(":")) return "center";
+    if (c.endsWith(":")) return "right";
+    return "left";
+  });
+
+  const rows = lines.slice(2).map(parseRow);
+
+  const thCells = headers
+    .map((h, i) => `<th style="text-align:${aligns[i] || "left"};padding:6px 12px;border:1px solid #2A2A2A;color:#00FF41;font-size:12px">${h}</th>`)
+    .join("");
+  const thead = `<thead><tr style="border-bottom:2px solid #00FF41">${thCells}</tr></thead>`;
+
+  const tbody = rows
+    .map(
+      (row) =>
+        `<tr>${row
+          .map(
+            (cell, i) =>
+              `<td style="text-align:${aligns[i] || "left"};padding:6px 12px;border:1px solid #2A2A2A;color:#d4d4d4;font-size:12px">${cell}</td>`
+          )
+          .join("")}</tr>`
+    )
+    .join("");
+
+  return `<table style="border-collapse:collapse;width:100%;font-family:monospace;margin:1em 0">${thead}<tbody>${tbody}</tbody></table>`;
+}
+
 /** Minimal markdown-to-HTML for preview. */
 function renderPreview(md: string): string {
-  return md
+  // Extract tables before other processing
+  let result = md.replace(
+    /(?:^|\n)((?:\|.+\|\n)+)/g,
+    (_match, tableBlock: string) => {
+      const lines = tableBlock.trim().split("\n");
+      // Verify it has a separator row (second line with dashes)
+      if (lines.length >= 2 && /^\|[\s:]*-+/.test(lines[1])) {
+        return "\n" + renderTable(tableBlock) + "\n";
+      }
+      return _match;
+    }
+  );
+
+  result = result
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/^### (.+)$/gm, "<h3>$1</h3>")
@@ -30,6 +83,8 @@ function renderPreview(md: string): string {
     .replace(/\n/g, "<br>")
     .replace(/^/, "<p>")
     .replace(/$/, "</p>");
+
+  return result;
 }
 
 interface ToolbarAction {
@@ -55,6 +110,7 @@ const TOOLBAR: ToolbarAction[] = [
   { label: "List", icon: "•", action: "prefix", before: "- ", title: "Bullet list" },
   { label: "Link", icon: "🔗", action: "insert", insert: "[text](url)", title: "Link" },
   { label: "Image", icon: "📷", action: "upload", title: "Upload image" },
+  { label: "Table", icon: "⊞", action: "insert", insert: "\n| Header | Header | Header |\n| :--- | :--- | :--- |\n| Cell | Cell | Cell |\n| Cell | Cell | Cell |\n", title: "Insert table" },
   { label: "HR", icon: "—", action: "insert", insert: "\n---\n", title: "Horizontal rule" },
   { label: "PGP", icon: "PGP", action: "pgp", title: "Encrypt selection with PGP" },
   { label: "Redact", icon: "█", action: "redact", title: "Redact selected text" },

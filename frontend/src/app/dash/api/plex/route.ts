@@ -33,7 +33,9 @@ async function plexFetchCount(sectionPath: string): Promise<unknown | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
-    const url = `${PLEX_URL}${sectionPath}?X-Plex-Container-Start=0&X-Plex-Container-Size=0`;
+    // Use & if path already contains ?, otherwise ?
+    const sep = sectionPath.includes("?") ? "&" : "?";
+    const url = `${PLEX_URL}${sectionPath}${sep}X-Plex-Container-Start=0&X-Plex-Container-Size=0`;
     const res = await fetch(url, {
       headers: {
         ...plexHeaders(),
@@ -147,7 +149,7 @@ export async function GET() {
         ? mc(recentMoviesRaw.value)?.Metadata || []
         : [];
 
-    const recentMovies = movieItems.slice(0, 12).map((item) => ({
+    const recentMovies = movieItems.filter((item) => item.type === "movie").slice(0, 12).map((item) => ({
       id: item.ratingKey,
       name: item.title,
       year: item.year,
@@ -172,7 +174,7 @@ export async function GET() {
       href: string;
     }> = [];
     const seenSeries = new Set<string>();
-    for (const item of episodeItems) {
+    for (const item of episodeItems.filter((i) => i.type === "episode")) {
       const seriesKey = item.grandparentKey || "";
       if (seriesKey && seenSeries.has(seriesKey)) continue;
       if (seriesKey) seenSeries.add(seriesKey);

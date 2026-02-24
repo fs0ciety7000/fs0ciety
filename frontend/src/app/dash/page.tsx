@@ -1127,10 +1127,11 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
             <div key={req.id} className="flex items-center gap-3 py-1.5">
               {req.posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={req.posterUrl} alt="" className={`w-8 h-12 object-cover shrink-0 ${theme === "industrial" ? "border border-[#252830]" : "border border-terminal-gray-light"}`} />
+                <img src={req.posterUrl} alt="" className={`w-10 h-14 object-cover shrink-0 ${theme === "industrial" ? "border border-[#252830]" : "border border-terminal-gray-light"}`}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
               ) : (
-                <div className={`w-8 h-12 shrink-0 flex items-center justify-center ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-gray border border-terminal-gray-light"}`}>
-                  <span className={`text-[8px] font-mono ${c.textMuted2}`}>{req.type === "movie" ? "F" : "TV"}</span>
+                <div className={`w-10 h-14 shrink-0 flex items-center justify-center ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+                  <span className={`text-[9px] font-mono ${c.textMuted}`}>{req.type === "movie" ? "🎬" : "📺"}</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -1429,36 +1430,29 @@ function StorageSection({ theme }: { theme: DashTheme }) {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className={c.card}><SectionHeader title="Storage" icon="▣" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data || !data.diskspace.length) return null;
+  const storageDisk = data?.diskspace.find((d) => d.path === "/mnt/mpathae");
 
+  if (loading) return <div className={c.card}><SectionHeader title="Storage" icon="▣" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!storageDisk) return null;
+
+  const warn = storageDisk.usedPercent > 85;
   return (
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Storage" icon="▣" theme={theme}
         extra={<span className={`text-[10px] font-mono ${c.textMuted}`}>cinenode.org</span>} />
-      <div className="space-y-3">
-        {data.diskspace.map((disk, i) => {
-          const warn = disk.usedPercent > 85;
-          const label = disk.path === "/mnt/mpathae" ? "/storage" : (disk.label || disk.path);
-          return (
-            <div key={i}>
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-[10px] font-mono ${c.textDim}`}>{label}</span>
-                <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{disk.freeSpace} free</span>
-              </div>
-              <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
-                <div
-                  className={`h-full rounded-full transition-all ${warn ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
-                  style={{ width: `${disk.usedPercent}%` }}
-                />
-              </div>
-              <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-0.5 text-right tabular-nums`}>
-                {disk.usedPercent}% of {disk.totalSpace}
-              </div>
-            </div>
-          );
-        })}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textDim}`}>/storage</span>
+        <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{storageDisk.freeSpace} free</span>
+      </div>
+      <div className={`w-full h-2 ${c.progressBg} rounded-full`}>
+        <div
+          className={`h-full rounded-full transition-all ${warn ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+          style={{ width: `${storageDisk.usedPercent}%` }}
+        />
+      </div>
+      <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
+        {storageDisk.usedPercent}% used — {storageDisk.totalSpace} total
       </div>
     </div>
   );

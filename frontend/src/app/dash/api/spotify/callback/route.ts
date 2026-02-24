@@ -16,9 +16,11 @@ export async function GET(request: NextRequest) {
   const error = request.nextUrl.searchParams.get("error");
 
   if (error || !code) {
-    return NextResponse.json(
-      { error: error || "No authorization code received" },
-      { status: 400 }
+    return new NextResponse(
+      `<html><body style="font-family:monospace;background:#0D0E11;color:#F87171;padding:2rem">
+        <h2>Spotify OAuth Error</h2><p>${error || "No authorization code"}</p>
+      </body></html>`,
+      { status: 400, headers: { "Content-Type": "text/html" } }
     );
   }
 
@@ -37,24 +39,53 @@ export async function GET(request: NextRequest) {
 
   if (!res.ok) {
     const body = await res.text();
-    return NextResponse.json(
-      { error: "Token exchange failed", detail: body },
-      { status: 500 }
+    return new NextResponse(
+      `<html><body style="font-family:monospace;background:#0D0E11;color:#F87171;padding:2rem">
+        <h2>Token Exchange Failed</h2><pre>${body}</pre>
+      </body></html>`,
+      { status: 500, headers: { "Content-Type": "text/html" } }
     );
   }
 
   const data = await res.json();
   const refreshToken: string = data.refresh_token;
 
-  if (refreshToken) {
-    try {
-      await writeFile(TOKEN_FILE, refreshToken, "utf-8");
-    } catch {
-      // File write failed — user should set SPOTIFY_REFRESH_TOKEN env var instead
-    }
+  if (!refreshToken) {
+    return new NextResponse(
+      `<html><body style="font-family:monospace;background:#0D0E11;color:#F87171;padding:2rem">
+        <h2>No refresh token returned</h2>
+      </body></html>`,
+      { status: 500, headers: { "Content-Type": "text/html" } }
+    );
   }
 
-  // Redirect back to the dash — derive origin from REDIRECT_URI (avoids 0.0.0.0:3000 in dev)
-  const appOrigin = new URL(REDIRECT_URI).origin;
-  return NextResponse.redirect(`${appOrigin}/dash?spotify=connected`);
+  // Try to save to file (works in dev / writable containers)
+  let savedToFile = false;
+  try {
+    await writeFile(TOKEN_FILE, refreshToken, "utf-8");
+    savedToFile = true;
+  } catch { /* read-only filesystem */ }
+
+  if (savedToFile) {
+    // Redirect back to dash
+    const appOrigin = new URL(REDIRECT_URI).origin;
+    return NextResponse.redirect(`${appOrigin}/dash?spotify=connected`);
+  }
+
+  // Can't write to file — show token so user can set env var
+  return new NextResponse(
+    `<!DOCTYPE html>
+<html>
+<head><title>Spotify Connected</title></head>
+<body style="font-family:monospace;background:#0D0E11;color:#E8E4DC;padding:2rem;max-width:700px;margin:0 auto">
+  <h2 style="color:#1DB954">✓ Spotify authorized!</h2>
+  <p style="color:#9A948C">The token could not be saved to disk (read-only container).<br>
+  Add this environment variable to your deployment:</p>
+  <pre style="background:#141619;border:1px solid #252830;padding:1rem;word-break:break-all;color:#F5A623">SPOTIFY_REFRESH_TOKEN=${refreshToken}</pre>
+  <p style="color:#9A948C;font-size:0.85em">Then redeploy and Spotify will work automatically.</p>
+  <a href="/dash" style="color:#1DB954">← Back to dashboard</a>
+</body>
+</html>`,
+    { status: 200, headers: { "Content-Type": "text/html" } }
+  );
 }

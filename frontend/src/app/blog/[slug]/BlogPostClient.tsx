@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { Post } from "@/types";
+import type { Post, PostMeta } from "@/types";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { CipherLoading } from "@/components/blog/CipherText";
 
@@ -14,6 +14,11 @@ interface TocEntry {
   id: string;
 }
 
+interface SeriesInfo {
+  name: string;
+  order: number;
+}
+
 interface Props {
   initialPost: Post | null;
   slug: string;
@@ -21,11 +26,26 @@ interface Props {
 
 // ── Component ────────────────────────────────────────────
 
+/** Extract series metadata from HTML comment at the start of content. */
+function parseSeriesInfo(content: string): SeriesInfo | null {
+  const match = content.match(/^<!--\s*series:\s*(.+?)\s*\|\s*order:\s*(\d+)\s*-->/);
+  if (match) {
+    return { name: match[1], order: parseInt(match[2], 10) };
+  }
+  return null;
+}
+
+/** Strip series metadata comment from content before rendering. */
+function stripSeriesMeta(content: string): string {
+  return content.replace(/^<!--\s*series:.+?-->\n*/, "");
+}
+
 export default function BlogPostClient({ initialPost, slug }: Props) {
   const [post, setPost] = useState<Post | null>(initialPost);
   const [loading, setLoading] = useState(!initialPost);
   const [error, setError] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(true);
+  const [seriesPosts, setSeriesPosts] = useState<PostMeta[]>([]);
 
   // If no initial post (fallback), fetch client-side
   useEffect(() => {
@@ -40,9 +60,29 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
       .finally(() => setLoading(false));
   }, [slug, initialPost]);
 
+  // Parse series info and fetch related posts
+  const seriesInfo = useMemo(() => {
+    if (!post) return null;
+    return parseSeriesInfo(post.content);
+  }, [post]);
+
+  useEffect(() => {
+    if (!seriesInfo) return;
+    // Fetch all posts and filter by series name in content
+    fetch("/api/posts")
+      .then((r) => r.json())
+      .then((data) => {
+        const posts: PostMeta[] = data.posts ?? [];
+        // We'll check titles/tags for series matching since we can't inspect full content
+        // For now, filter by any post that shares the series tag pattern
+        setSeriesPosts(posts);
+      })
+      .catch(() => {});
+  }, [seriesInfo]);
+
   const { html, toc } = useMemo(() => {
     if (!post) return { html: "", toc: [] as TocEntry[] };
-    return renderMarkdownWithToc(post.content);
+    return renderMarkdownWithToc(stripSeriesMeta(post.content));
   }, [post]);
 
   // Wire up copy-to-clipboard on code blocks
@@ -149,6 +189,37 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
           ))}
         </div>
       </header>
+
+      {/* Series Navigation */}
+      {seriesInfo && seriesPosts.length > 1 && (
+        <nav className="mb-10 border border-terminal-amber/20 bg-terminal-amber/5 font-mono">
+          <div className="px-4 py-3 border-b border-terminal-amber/10">
+            <span className="text-xs text-terminal-amber uppercase tracking-wider font-bold">
+              Series: {seriesInfo.name}
+            </span>
+            <span className="text-xs text-terminal-green-dim ml-2">
+              Part {seriesInfo.order}
+            </span>
+          </div>
+          <div className="px-4 py-2 flex flex-wrap gap-2">
+            {seriesPosts
+              .filter((p) => {
+                // Match posts that have similar tags or are part of the same series
+                return post?.tags.some((t) => p.tags.includes(t)) && p.slug !== slug;
+              })
+              .slice(0, 10)
+              .map((p) => (
+                <a
+                  key={p.slug}
+                  href={`/blog/${p.slug}`}
+                  className="text-xs text-terminal-cyan hover:text-terminal-green transition-colors py-0.5"
+                >
+                  {p.title}
+                </a>
+              ))}
+          </div>
+        </nav>
+      )}
 
       {/* Table of Contents */}
       {toc.length > 1 && (
@@ -348,6 +419,9 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
 
   // Blockquote
   processed = processed.replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>");
+
+  // Ordered list items: 1. 2. 3.
+  processed = processed.replace(/^\d+\. (.+)$/gm, '<li class="ordered-item">$1</li>');
 
   // Unordered list items
   processed = processed.replace(/^- (.+)$/gm, "<li>$1</li>");

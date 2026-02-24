@@ -65,6 +65,26 @@ function renderPreview(md: string): string {
     }
   );
 
+  // Callout blocks: [!type]...[/!type]
+  result = result.replace(
+    /\[!(info|warning|danger|tip)\]\n([\s\S]*?)\n\[\/!\1\]/g,
+    (_m, type: string, content: string) => {
+      const colors: Record<string, string> = { info: "#00D4FF", warning: "#FFB000", danger: "#FF0033", tip: "#00FF41" };
+      const icons: Record<string, string> = { info: "i", warning: "!", danger: "x", tip: "~" };
+      return `<div style="border-left:3px solid ${colors[type]};background:${colors[type]}10;padding:12px 16px;margin:1em 0;font-family:monospace;font-size:12px"><span style="color:${colors[type]};font-weight:bold;text-transform:uppercase">[${icons[type]}] ${type}</span><div style="color:#d4d4d4;margin-top:6px">${content}</div></div>`;
+    }
+  );
+
+  // Collapsible: [details Title]...[/details]
+  result = result.replace(
+    /\[details ([^\]]+)\]\n([\s\S]*?)\n\[\/details\]/g,
+    '<details style="border:1px solid #2A2A2A;margin:1em 0;font-family:monospace;font-size:12px"><summary style="padding:8px 12px;cursor:pointer;color:#00FF41;font-weight:bold">$1</summary><div style="padding:8px 12px;color:#d4d4d4;border-top:1px solid #2A2A2A">$2</div></details>'
+  );
+
+  // Task lists: - [ ] and - [x]
+  result = result.replace(/^- \[x\] (.+)$/gm, '<div style="font-family:monospace;font-size:12px;padding:2px 0"><span style="color:#00FF41">&#9745;</span> <span style="text-decoration:line-through;opacity:0.6">$1</span></div>');
+  result = result.replace(/^- \[ \] (.+)$/gm, '<div style="font-family:monospace;font-size:12px;padding:2px 0"><span style="color:#555">&#9744;</span> $1</div>');
+
   result = result
     .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')
     .replace(/`([^`]+)`/g, "<code>$1</code>")
@@ -74,6 +94,9 @@ function renderPreview(md: string): string {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/~~(.+?)~~/g, "<del>$1</del>")
+    .replace(/==(.+?)==/g, '<mark style="background:#FFB00030;color:#FFB000;padding:0 3px">$1</mark>')
+    .replace(/\[\^(\d+)\](?!:)/g, '<sup style="color:#00D4FF;cursor:help">[$1]</sup>')
+    .replace(/\[\^(\d+)\]: (.+)$/gm, '<div style="font-size:11px;color:#888;border-top:1px solid #2A2A2A;padding-top:4px;margin-top:8px"><sup style="color:#00D4FF">[$1]</sup> $2</div>')
     .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%">')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color:#00d4ff">$1</a>')
     .replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>")
@@ -111,6 +134,11 @@ const TOOLBAR: ToolbarAction[] = [
   { label: "Link", icon: "🔗", action: "insert", insert: "[text](url)", title: "Link" },
   { label: "Image", icon: "📷", action: "upload", title: "Upload image" },
   { label: "Table", icon: "⊞", action: "insert", insert: "\n| Header | Header | Header |\n| :--- | :--- | :--- |\n| Cell | Cell | Cell |\n| Cell | Cell | Cell |\n", title: "Insert table" },
+  { label: "Task", icon: "☐", action: "prefix", before: "- [ ] ", title: "Task list item" },
+  { label: "Callout", icon: "!", action: "insert", insert: "\n[!info]\nYour note here.\n[/!info]\n", title: "Callout block (info/warning/danger/tip)" },
+  { label: "Details", icon: "▸", action: "insert", insert: "\n[details Summary title]\nCollapsible content here.\n[/details]\n", title: "Collapsible section" },
+  { label: "Mark", icon: "M", action: "wrap", before: "==", after: "==", title: "Highlight text" },
+  { label: "Footnote", icon: "fn", action: "insert", insert: "[^1]\n\n[^1]: Footnote text here.", title: "Footnote" },
   { label: "HR", icon: "—", action: "insert", insert: "\n---\n", title: "Horizontal rule" },
   { label: "PGP", icon: "PGP", action: "pgp", title: "Encrypt selection with PGP" },
   { label: "Redact", icon: "█", action: "redact", title: "Redact selected text" },

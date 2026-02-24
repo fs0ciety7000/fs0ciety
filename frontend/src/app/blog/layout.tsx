@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BlogHeader } from "@/components/blog/BlogHeader";
 import { BlogFooter } from "@/components/blog/BlogFooter";
 import { SearchDialog } from "@/components/blog/SearchDialog";
+import { BlogShell } from "@/components/blog/BlogShell";
 
 const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
 
@@ -35,14 +36,16 @@ export default function BlogLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-terminal-black text-[#d4d4d4]">
-      <div className="noise-overlay" aria-hidden="true" />
-      <BlogHeader />
-      <SearchDialog />
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-10">
-        {children}
-      </main>
-      <BlogFooter />
-    </div>
+    <BlogShell>
+      <div className="blog-bg min-h-screen flex flex-col">
+        <div className="noise-overlay blog-noise" aria-hidden="true" />
+        <BlogHeader />
+        <SearchDialog />
+        <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-10">
+          {children}
+        </main>
+        <BlogFooter />
+      </div>
+    </BlogShell>
   );
 }

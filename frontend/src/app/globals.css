@@ -225,6 +225,40 @@ body {
   margin: 1.5em 0;
 }
 
+.prose-fs0ciety table,
+.prose-fs0ciety .md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  margin: 1.5em 0;
+}
+
+.prose-fs0ciety table th,
+.prose-fs0ciety .md-table th {
+  color: #00FF41;
+  font-weight: 700;
+  padding: 0.5em 0.75em;
+  border: 1px solid #2A2A2A;
+  border-bottom: 2px solid #00FF41;
+  background: #111111;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.prose-fs0ciety table td,
+.prose-fs0ciety .md-table td {
+  padding: 0.5em 0.75em;
+  border: 1px solid #2A2A2A;
+  color: #d4d4d4;
+}
+
+.prose-fs0ciety table tr:hover,
+.prose-fs0ciety .md-table tr:hover {
+  background: rgba(0, 255, 65, 0.03);
+}
+
 .prose-fs0ciety hr {
   border: none;
   border-top: 1px solid #2A2A2A;

@@ -221,6 +221,41 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
     return `\x00CODEBLOCK_${idx}\x00`;
   });
 
+  // Tables — parse markdown tables into styled HTML
+  processed = processed.replace(
+    /(?:^|\n)((?:\|.+\|\n)+)/g,
+    (_match, tableBlock: string) => {
+      const lines = tableBlock.trim().split("\n");
+      if (lines.length < 2 || !/^\|[\s:]*-+/.test(lines[1])) return _match;
+
+      const parseRow = (line: string) =>
+        line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+
+      const headers = parseRow(lines[0]);
+      const sepCells = parseRow(lines[1]);
+      const aligns = sepCells.map((c) => {
+        if (c.startsWith(":") && c.endsWith(":")) return "center";
+        if (c.endsWith(":")) return "right";
+        return "left";
+      });
+      const rows = lines.slice(2).map(parseRow);
+
+      const thCells = headers
+        .map((h, i) => `<th style="text-align:${aligns[i] || "left"}">${h}</th>`)
+        .join("");
+      const tbody = rows
+        .map(
+          (row) =>
+            `<tr>${row
+              .map((cell, i) => `<td style="text-align:${aligns[i] || "left"}">${cell}</td>`)
+              .join("")}</tr>`
+        )
+        .join("");
+
+      return `\n<table class="md-table"><thead><tr>${thCells}</tr></thead><tbody>${tbody}</tbody></table>\n`;
+    }
+  );
+
   // Extract headings and build ToC
   processed = processed.replace(/^(#{1,3}) (.+)$/gm, (_match, hashes: string, text: string) => {
     const level = hashes.length;

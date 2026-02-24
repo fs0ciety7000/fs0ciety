@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Subdomain routing middleware for fs0ciety.org:
  *   blog.fs0ciety.org  → /blog
- *   dash.fs0ciety.org  → /dashboard
+ *   dash.fs0ciety.org  → /dash (startpage)
  *   fs0ciety.org       → / (no rewrite)
  *
  * Also injects security headers on every response.
@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const SUBDOMAIN_MAP: Record<string, string> = {
   blog: "/blog",
-  dash: "/dashboard",
+  dash: "/dash",
 };
 
 /** Security headers applied to every response. */

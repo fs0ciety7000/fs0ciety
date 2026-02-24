@@ -1269,10 +1269,12 @@ dependencies = [
  "chrono",
  "dotenvy",
  "futures",
+ "img-parts",
  "jsonwebtoken",
  "reqwest",
  "serde",
  "serde_json",
+ "sha2",
  "surrealdb",
  "thiserror 2.0.18",
  "tokio",
@@ -1987,6 +1989,17 @@ checksum = "3acae9609540aa318d1bc588455225fb2085b9ed0c4f6bd0d9d5bcd86f1a0344"
 dependencies = [
  "icu_normalizer",
  "icu_properties",
+]
+
+[[package]]
+name = "img-parts"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b4e24cfdc6f897b582508e3c382eaf5378076898f80500a80d10d761ae85e90"
+dependencies = [
+ "bytes",
+ "crc32fast",
+ "miniz_oxide",
 ]
 
 [[package]]

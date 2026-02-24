@@ -6,10 +6,22 @@ const SAB_URL = process.env.SAB_URL || "https://sabnzbd.cinenode.org";
 const SAB_API_KEY = process.env.SAB_API_KEY || "";
 
 async function sabFetch(mode: string, extra = "") {
-  const url = `${SAB_URL}/sabnzbd/api?mode=${mode}&apikey=${SAB_API_KEY}&output=json${extra}`;
-  const res = await fetch(url);
-  if (!res.ok) return null;
-  return res.json();
+  // Dedicated subdomain: API is at /api (not /sabnzbd/api)
+  const url = `${SAB_URL}/api?mode=${mode}&apikey=${SAB_API_KEY}&output=json${extra}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    // SABnzbd returns {"status": false, "error": "..."} on API key mismatch
+    if (data?.status === false) return null;
+    return data;
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
 }
 
 function formatBytes(b: number): string {
@@ -90,22 +102,10 @@ export async function GET() {
     let totalBytes = 0;
 
     if (statsRaw) {
-      // total is in bytes
-      totalBytes = statsRaw.total || 0;
-
-      // Monthly: current month key
-      const now = new Date();
-      const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
       // Server stats structure: { day_size, week_size, month_size, total_size, servers: {...} }
-      if (statsRaw.month_size) {
-        monthTotal = statsRaw.month_size;
-      }
-
-      // Also try total_size
-      if (statsRaw.total_size) {
-        totalBytes = statsRaw.total_size;
-      }
+      if (statsRaw.month_size) monthTotal = statsRaw.month_size;
+      if (statsRaw.total_size) totalBytes = statsRaw.total_size;
+      else if (statsRaw.total) totalBytes = statsRaw.total;
     }
 
     // Queue stats
@@ -113,7 +113,10 @@ export async function GET() {
       ? parseInt(queueRaw.queue.noofslots_total)
       : activeDownloads.length;
 
+    const connected = queueRaw !== null || historyRaw !== null || statsRaw !== null;
+
     return NextResponse.json({
+      connected,
       speed: currentSpeed,
       speedBps,
       queue: {
@@ -133,8 +136,8 @@ export async function GET() {
     });
   } catch {
     return NextResponse.json(
-      { speed: "0", speedBps: 0, queue: { count: 0, active: [] }, history: { recent: [], totalCompleted: 0 }, stats: { monthDownloaded: "0 B", totalDownloaded: "0 B" } },
-      { status: 500 }
+      { connected: false, speed: "0 B/s", speedBps: 0, queue: { count: 0, active: [] }, history: { recent: [], totalCompleted: 0 }, stats: { monthDownloaded: "0 B", totalDownloaded: "0 B" } },
+      { status: 200 }
     );
   }
 }

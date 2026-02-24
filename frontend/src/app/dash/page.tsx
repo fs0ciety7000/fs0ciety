@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ── Icon CDN ────────────────────────────────────────────────
 const ICON = (name: string) =>
@@ -155,6 +156,7 @@ interface QbitData {
 }
 
 interface SABData {
+  connected?: boolean;
   speed: string;
   speedBps: number;
   queue: {
@@ -264,114 +266,189 @@ function formatETA(seconds: number | null): string {
 function cx(theme: DashTheme) {
   const ind = theme === "industrial";
   return {
+    // ── neo-industrial dark: deep steel + orange/amber accents ──
     page: ind
-      ? "min-h-screen bg-[#F5F2EE] p-4 md:p-6 lg:p-8 font-mono dash-industrial"
+      ? "min-h-screen bg-[#0D0E11] p-4 md:p-6 lg:p-8 font-mono dash-industrial"
       : "min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono",
     card: ind
-      ? "bg-white border border-[#E7E5E4] rounded-xl shadow-sm p-5"
+      ? "relative bg-[#141619] border border-[#252830] p-4 overflow-hidden"
       : "border border-terminal-green/20 bg-terminal-black-light p-4",
     cardHover: ind
-      ? "bg-white border border-[#E7E5E4] rounded-xl shadow-sm hover:shadow-md hover:border-[#E8613C]/30 transition-all"
+      ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/30 transition-all"
       : "border border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
-    title: ind ? "text-[#1C1917]" : "text-terminal-green",
-    titleDim: ind ? "text-[#78716C]" : "text-terminal-green-dim",
-    textMain: ind ? "text-[#1C1917]" : "text-terminal-green",
-    textDim: ind ? "text-[#78716C]" : "text-terminal-green-dim",
-    textMuted: ind ? "text-[#A8A29E]" : "text-terminal-green-dim/50",
-    textMuted2: ind ? "text-[#D6D3D1]" : "text-terminal-green-dim/30",
-    accent: ind ? "text-[#E8613C]" : "text-terminal-amber",
-    link: ind ? "text-[#2563EB]" : "text-terminal-cyan",
-    green: ind ? "text-[#16A34A]" : "text-terminal-green",
-    red: ind ? "text-[#DC2626]" : "text-terminal-red",
-    amber: ind ? "text-[#D97706]" : "text-terminal-amber",
-    cyan: ind ? "text-[#2563EB]" : "text-terminal-cyan",
-    purple: ind ? "text-[#7C3AED]" : "text-terminal-purple",
-    border: ind ? "border-[#E7E5E4]" : "border-terminal-gray-light",
-    borderAccent: ind ? "border-[#E8613C]/30" : "border-terminal-green/20",
-    bg: ind ? "bg-[#F5F2EE]" : "bg-terminal-black",
-    bgCard: ind ? "bg-white" : "bg-terminal-black",
-    bgAlt: ind ? "bg-[#EEEBE6]" : "bg-terminal-black-light",
+    title: ind ? "text-[#E8E4DC]" : "text-terminal-green",
+    titleDim: ind ? "text-[#9A948C]" : "text-terminal-green-dim",
+    textMain: ind ? "text-[#E8E4DC]" : "text-terminal-green",
+    textDim: ind ? "text-[#9A948C]" : "text-terminal-green-dim",
+    textMuted: ind ? "text-[#5A5550]" : "text-terminal-green-dim/50",
+    textMuted2: ind ? "text-[#383530]" : "text-terminal-green-dim/30",
+    accent: ind ? "text-[#F5622A]" : "text-terminal-amber",
+    link: ind ? "text-[#22D3EE]" : "text-terminal-cyan",
+    green: ind ? "text-[#34D399]" : "text-terminal-green",
+    red: ind ? "text-[#F87171]" : "text-terminal-red",
+    amber: ind ? "text-[#F5A623]" : "text-terminal-amber",
+    cyan: ind ? "text-[#22D3EE]" : "text-terminal-cyan",
+    purple: ind ? "text-[#A78BFA]" : "text-terminal-purple",
+    border: ind ? "border-[#252830]" : "border-terminal-gray-light",
+    borderAccent: ind ? "border-[#F5622A]/30" : "border-terminal-green/20",
+    bg: ind ? "bg-[#0D0E11]" : "bg-terminal-black",
+    bgCard: ind ? "bg-[#141619]" : "bg-terminal-black",
+    bgAlt: ind ? "bg-[#1C1D22]" : "bg-terminal-black-light",
     statBox: ind
-      ? "bg-[#EEEBE6] border border-[#E7E5E4] rounded-lg p-3"
+      ? "bg-[#1C1D22] border border-[#252830] p-3"
       : "border border-terminal-gray-light bg-terminal-black p-3",
     linkCard: ind
-      ? "group flex items-center gap-3 px-3 py-2.5 bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm transition-all"
+      ? "group flex items-center gap-3 px-3 py-2 bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40 hover:bg-[#1C1D22] transition-all"
       : "group flex items-center gap-3 px-3 py-2.5 border border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
     linkIcon: ind
-      ? "opacity-70 group-hover:opacity-100 transition-opacity shrink-0"
+      ? "opacity-50 group-hover:opacity-90 transition-opacity shrink-0"
       : "opacity-60 group-hover:opacity-100 transition-opacity shrink-0",
     linkText: ind
-      ? "text-xs font-mono text-[#78716C] group-hover:text-[#1C1917] transition-colors truncate"
+      ? "text-xs font-mono text-[#9A948C] group-hover:text-[#E8E4DC] transition-colors truncate"
       : "text-xs font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors truncate",
     linkArrow: ind
-      ? "ml-auto text-[#D6D3D1] text-[10px] group-hover:text-[#E8613C] transition-colors shrink-0"
+      ? "ml-auto text-[#383530] text-[10px] group-hover:text-[#F5622A] transition-colors shrink-0"
       : "ml-auto text-terminal-green-dim/30 text-[10px] group-hover:text-terminal-green/50 transition-colors shrink-0",
-    sectionIcon: ind ? "text-[#E8613C] text-xs" : "text-terminal-amber text-xs",
+    sectionIcon: ind ? "text-[#F5622A] text-xs" : "text-terminal-amber text-xs",
     sectionTitle: ind
-      ? "text-xs font-mono text-[#1C1917] uppercase tracking-wider font-bold"
+      ? "text-xs font-mono text-[#9A948C] uppercase tracking-widest font-bold"
       : "text-xs font-mono text-terminal-green uppercase tracking-wider font-bold",
-    sectionBorder: ind ? "border-b border-[#E7E5E4]" : "border-b border-terminal-gray-light",
-    progressBg: ind ? "bg-[#E7E5E4]" : "bg-terminal-green/10",
-    progressFill: ind ? "bg-[#E8613C]" : "bg-terminal-green/60",
-    progressFillAlt: ind ? "bg-[#2563EB]" : "bg-terminal-cyan/60",
-    chartColor1: ind ? "#E8613C" : "#00D4FF",
-    chartColor2: ind ? "#DC2626" : "#FF0033",
-    liveTag: ind ? "text-[10px] font-mono text-[#E8613C] animate-pulse" : "text-[10px] font-mono text-terminal-green animate-pulse",
+    sectionBorder: ind ? "border-b border-[#252830]" : "border-b border-terminal-gray-light",
+    progressBg: ind ? "bg-[#1C1D22]" : "bg-terminal-green/10",
+    progressFill: ind ? "bg-[#F5622A]" : "bg-terminal-green/60",
+    progressFillAlt: ind ? "bg-[#22D3EE]" : "bg-terminal-cyan/60",
+    chartColor1: ind ? "#F5622A" : "#00D4FF",
+    chartColor2: ind ? "#F87171" : "#FF0033",
+    liveTag: ind ? "text-[10px] font-mono text-[#F5622A] animate-pulse" : "text-[10px] font-mono text-terminal-green animate-pulse",
     headerLink: ind
-      ? "text-xs text-[#78716C] hover:text-[#E8613C] transition-colors border border-[#E7E5E4] px-3 py-1 rounded-lg"
+      ? "text-xs text-[#9A948C] hover:text-[#F5622A] transition-colors border border-[#252830] px-3 py-1"
       : "text-xs text-terminal-green-dim hover:text-terminal-green transition-colors border border-terminal-green/20 px-3 py-1",
     headerLinkActive: ind
-      ? "text-xs text-[#2563EB] hover:text-[#E8613C] transition-colors border border-[#2563EB]/20 px-3 py-1 rounded-lg"
+      ? "text-xs text-[#22D3EE] hover:text-[#F5622A] transition-colors border border-[#22D3EE]/20 px-3 py-1"
       : "text-xs text-terminal-cyan hover:text-terminal-green transition-colors border border-terminal-cyan/20 px-3 py-1",
     mediaIcon: ind
-      ? "group flex flex-col items-center gap-1.5 py-2 px-1 bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm transition-all"
+      ? "group flex flex-col items-center gap-1.5 py-2 px-1 bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40 hover:bg-[#1C1D22] transition-all"
       : "group flex flex-col items-center gap-1.5 py-2 px-1 border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
     mediaIconLabel: ind
-      ? "text-[9px] font-mono text-[#78716C] group-hover:text-[#1C1917] transition-colors"
+      ? "text-[9px] font-mono text-[#5A5550] group-hover:text-[#9A948C] transition-colors"
       : "text-[9px] font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors",
     imgThumb: ind
-      ? "w-10 h-14 object-cover shrink-0 border border-[#E7E5E4] rounded"
+      ? "w-10 h-14 object-cover shrink-0 border border-[#252830]"
       : "w-10 h-14 object-cover shrink-0 border border-terminal-green/20",
   };
 }
 
+// ── Service Status Hook ──────────────────────────────────────
+
+function useServiceStatus(urls: string[]) {
+  const [status, setStatus] = useState<Record<string, boolean | undefined>>({});
+
+  useEffect(() => {
+    if (!urls.length) return;
+    const check = () => {
+      const encoded = urls.join(",");
+      fetch(`/dash/api/status?urls=${encodeURIComponent(encoded)}`)
+        .then((r) => r.json())
+        .then((results: Array<{ url: string; up: boolean }>) => {
+          const map: Record<string, boolean> = {};
+          for (const r of results) map[r.url] = r.up;
+          setStatus(map);
+        })
+        .catch(() => {});
+    };
+    check();
+    const interval = setInterval(check, 60_000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return status;
+}
+
 // ── Shared Components ───────────────────────────────────────
 
-function LinkCard({ link, theme }: { link: AppLink; theme: DashTheme }) {
+function StatusLed({ up, theme }: { up?: boolean; theme: DashTheme }) {
+  const ind = theme === "industrial";
+  if (up === undefined) {
+    return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ind ? "bg-[#383530]" : "bg-terminal-green-dim/20"}`} />;
+  }
+  if (up) {
+    return (
+      <span className="relative shrink-0 flex w-1.5 h-1.5">
+        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${ind ? "bg-[#34D399]" : "bg-terminal-green"}`} />
+        <span className={`relative inline-flex rounded-full w-1.5 h-1.5 ${ind ? "bg-[#34D399]" : "bg-terminal-green"}`} />
+      </span>
+    );
+  }
+  return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ind ? "bg-[#F87171]" : "bg-terminal-red"}`} />;
+}
+
+function CornerBrackets({ color = "#F5622A", size = 8 }: { color?: string; size?: number }) {
+  const b: React.CSSProperties = { position: "absolute", borderColor: color, borderStyle: "solid", width: size, height: size };
+  return (
+    <>
+      <span style={{ ...b, top: 0, left: 0, borderWidth: "1.5px 0 0 1.5px" }} />
+      <span style={{ ...b, top: 0, right: 0, borderWidth: "1.5px 1.5px 0 0" }} />
+      <span style={{ ...b, bottom: 0, left: 0, borderWidth: "0 0 1.5px 1.5px" }} />
+      <span style={{ ...b, bottom: 0, right: 0, borderWidth: "0 1.5px 1.5px 0" }} />
+    </>
+  );
+}
+
+function LinkCard({ link, theme, up }: { link: AppLink; theme: DashTheme; up?: boolean }) {
   const c = cx(theme);
   return (
     <a href={link.url} target="_blank" rel="noopener noreferrer" className={c.linkCard}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={link.icon} alt="" width={20} height={20}
+        src={link.icon} alt="" width={18} height={18}
         className={c.linkIcon}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
       />
       <span className={c.linkText}>{link.name}</span>
-      <span className={c.linkArrow}>&rarr;</span>
+      <StatusLed up={up} theme={theme} />
     </a>
   );
 }
 
 function SectionHeader({ title, icon, extra, theme }: { title: string; icon: string; extra?: React.ReactNode; theme: DashTheme }) {
   const c = cx(theme);
+  const ind = theme === "industrial";
   return (
     <div className={`flex items-center gap-2 mb-3 pb-2 ${c.sectionBorder}`}>
-      <span className={c.sectionIcon}>{icon}</span>
-      <h2 className={c.sectionTitle}>{title}</h2>
-      {extra && <div className="ml-auto">{extra}</div>}
+      {!ind && <span className={c.sectionIcon}>{icon}</span>}
+      <h2 className={ind
+        ? "font-display text-sm font-bold uppercase tracking-[0.22em] text-[#E8E4DC] shrink-0"
+        : c.sectionTitle}>{title}</h2>
+      {ind && <div className="flex-1 h-px bg-[#252830] ml-2" />}
+      {extra && <div className="shrink-0 ml-2">{extra}</div>}
     </div>
   );
 }
 
 function StatBox({ label, value, sub, color, theme }: { label: string; value: string; sub?: string; color?: string; theme: DashTheme }) {
   const c = cx(theme);
-  const defaultColor = theme === "industrial" ? "text-[#1C1917]" : "text-terminal-green";
+  const defaultColor = theme === "industrial" ? "text-[#E8E4DC]" : "text-terminal-green";
   return (
     <div className={c.statBox}>
       <div className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider mb-1`}>{label}</div>
       <div className={`text-lg font-bold font-mono tabular-nums ${color || defaultColor}`}>{value}</div>
       {sub && <div className={`text-[10px] font-mono ${c.textMuted2} mt-0.5`}>{sub}</div>}
+    </div>
+  );
+}
+
+function HudStat({ label, value, unit, color, theme }: { label: string; value: string; unit?: string; color?: string; theme: DashTheme }) {
+  const c = cx(theme);
+  if (theme !== "industrial") return <StatBox label={label} value={value} color={color} theme={theme} />;
+  return (
+    <div className="relative bg-[#0D0E11] border border-[#252830] p-3 overflow-hidden">
+      <CornerBrackets color="#F5622A" size={6} />
+      <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-1`}>{label}</div>
+      <div className="flex items-baseline gap-1">
+        <span className={`font-display text-2xl font-black tabular-nums leading-none ${color || "text-[#E8E4DC]"}`}>{value}</span>
+        {unit && <span className={`text-[9px] font-mono ${c.textMuted} uppercase ml-0.5`}>{unit}</span>}
+      </div>
     </div>
   );
 }
@@ -412,10 +489,10 @@ function RSSFeed({ theme }: { theme: DashTheme }) {
   const sourceColor = (src: string) => {
     if (theme === "industrial") {
       const map: Record<string, string> = {
-        Korben: "text-[#D97706]", "The Verge": "text-[#2563EB]", Wired: "text-[#7C3AED]",
-        TechCrunch: "text-[#16A34A]", fs0ciety: "text-[#DC2626]",
+        Korben: "text-[#F5A623]", "The Verge": "text-[#22D3EE]", Wired: "text-[#A78BFA]",
+        TechCrunch: "text-[#34D399]", fs0ciety: "text-[#F87171]",
       };
-      return map[src] || "text-[#78716C]";
+      return map[src] || "text-[#9A948C]";
     }
     return SOURCE_COLORS[src] || "text-terminal-green-dim";
   };
@@ -428,10 +505,10 @@ function RSSFeed({ theme }: { theme: DashTheme }) {
       ) : items.length === 0 ? (
         <div className={`text-xs font-mono ${c.textMuted} py-4`}>No feed items available.</div>
       ) : (
-        <div className="space-y-0.5 max-h-[360px] overflow-y-auto">
+        <div className="space-y-0.5 max-h-[calc(100vh-260px)] overflow-y-auto">
           {items.map((item, i) => (
             <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
-              className={`group flex items-start gap-2 py-1.5 px-1 ${theme === "industrial" ? "hover:bg-[#EEEBE6]" : "hover:bg-terminal-green/5"} transition-colors rounded-sm`}>
+              className={`group flex items-start gap-2 py-1.5 px-1 ${theme === "industrial" ? "hover:bg-[#1C1D22]" : "hover:bg-terminal-green/5"} transition-colors`}>
               <span className={`text-[10px] font-mono shrink-0 w-16 uppercase font-bold ${sourceColor(item.source)}`}>
                 {item.source}
               </span>
@@ -499,16 +576,16 @@ function Calendar({ theme }: { theme: DashTheme }) {
 
   const dayBtnCls = (isSelected: boolean, isToday: boolean) => {
     if (theme === "industrial") {
-      if (isSelected) return "bg-[#E8613C] text-white font-bold rounded-lg";
-      if (isToday) return "text-[#E8613C] font-bold border border-[#E8613C]/30 rounded-lg";
-      return "text-[#78716C] hover:bg-[#EEEBE6] rounded-lg";
+      if (isSelected) return "bg-[#F5622A] text-[#E8E4DC] font-bold";
+      if (isToday) return "text-[#F5622A] font-bold border border-[#F5622A]/40";
+      return "text-[#9A948C] hover:bg-[#1C1D22]";
     }
     if (isSelected) return "bg-terminal-green text-terminal-black font-bold";
     if (isToday) return "text-terminal-green font-bold border border-terminal-green/40";
     return "text-terminal-green-dim hover:bg-terminal-green/10";
   };
 
-  const dotColor = theme === "industrial" ? "bg-[#E8613C]" : "bg-terminal-amber";
+  const dotColor = theme === "industrial" ? "bg-[#F5622A]" : "bg-terminal-amber";
 
   return (
     <div className={c.card}>
@@ -550,7 +627,7 @@ function Calendar({ theme }: { theme: DashTheme }) {
         ) : (
           <div className="space-y-2">
             {dayEvents.map((ev, i) => (
-              <div key={i} className={`flex items-start gap-2 py-1.5 px-2 border-l-2 ${theme === "industrial" ? "border-[#E8613C] bg-[#E8613C]/5 rounded-r-lg" : "border-terminal-amber bg-terminal-amber/5"}`}>
+              <div key={i} className={`flex items-start gap-2 py-1.5 px-2 border-l-2 ${theme === "industrial" ? "border-[#F5622A] bg-[#F5622A]/5" : "border-terminal-amber bg-terminal-amber/5"}`}>
                 <span className={`text-[10px] font-mono ${c.accent} shrink-0 tabular-nums mt-0.5`}>{formatEventTime(ev.dtstart)}</span>
                 <div className="flex-1 min-w-0">
                   <div className={`text-xs font-mono ${c.textMain} truncate`}>{ev.summary}</div>
@@ -591,14 +668,15 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
     <div className="space-y-4">
       {data.counts && (
         <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
           <SectionHeader title="Jellyfin Library" icon=">" theme={theme} />
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <StatBox label="Movies" value={formatNumber(data.counts.movies)} color={c.amber} theme={theme} />
-            <StatBox label="Series" value={formatNumber(data.counts.series)} color={c.cyan} theme={theme} />
-            <StatBox label="Episodes" value={formatNumber(data.counts.episodes)} color={c.green} theme={theme} />
-            <StatBox label="Artists" value={formatNumber(data.counts.artists)} color={c.purple} theme={theme} />
-            <StatBox label="Albums" value={formatNumber(data.counts.albums)} color={c.amber} theme={theme} />
-            <StatBox label="Songs" value={formatNumber(data.counts.songs)} color={c.cyan} theme={theme} />
+            <HudStat label="Movies" value={formatNumber(data.counts.movies)} color={c.amber} theme={theme} />
+            <HudStat label="Series" value={formatNumber(data.counts.series)} color={c.cyan} theme={theme} />
+            <HudStat label="Episodes" value={formatNumber(data.counts.episodes)} color={c.green} theme={theme} />
+            <HudStat label="Artists" value={formatNumber(data.counts.artists)} color={c.purple} theme={theme} />
+            <HudStat label="Albums" value={formatNumber(data.counts.albums)} color={c.amber} theme={theme} />
+            <HudStat label="Songs" value={formatNumber(data.counts.songs)} color={c.cyan} theme={theme} />
           </div>
         </div>
       )}
@@ -642,7 +720,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {data.recent.map((item) => (
               <a key={item.id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`} target="_blank" rel="noopener noreferrer"
-                className={`group overflow-hidden ${theme === "industrial" ? "bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
+                className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.imageUrl} alt="" className="w-full h-28 object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
@@ -670,7 +748,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
 
 // ── AdGuard Section ─────────────────────────────────────────
 
-function AdGuardSection({ theme }: { theme: DashTheme }) {
+function AdGuardSection({ theme, compact = false }: { theme: DashTheme; compact?: boolean }) {
   const [data, setData] = useState<AdGuardData | null>(null);
   const [loading, setLoading] = useState(true);
   const c = cx(theme);
@@ -691,35 +769,40 @@ function AdGuardSection({ theme }: { theme: DashTheme }) {
 
   return (
     <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="AdGuard Home" icon="!" theme={theme}
         extra={<span className={`text-[10px] font-mono ${running ? c.green : c.red}`}>{running ? "● RUNNING" : "● DOWN"}</span>} />
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         <StatBox label="Queries" value={formatNumber(stats.totalQueries)} color={c.cyan} theme={theme} />
         <StatBox label="Blocked" value={formatNumber(stats.blockedFiltering)} sub={`${blockRate}%`} color={c.red} theme={theme} />
-        <StatBox label="Avg Latency" value={`${(stats.avgProcessingTime * 1000).toFixed(1)}ms`} color={c.amber} theme={theme} />
+        <StatBox label="Latency" value={`${(stats.avgProcessingTime * 1000).toFixed(1)}ms`} color={c.amber} theme={theme} />
       </div>
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div>
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>DNS Queries (24h)</div>
-          <MiniChart data={stats.dnsQueries} color={c.chartColor1} height={50} />
-        </div>
-        <div>
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Blocked (24h)</div>
-          <MiniChart data={stats.blockedSeries} color={c.chartColor2} height={50} />
-        </div>
-      </div>
-      {stats.topBlocked.length > 0 && (
-        <div>
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Top Blocked</div>
-          <div className="space-y-0.5">
-            {stats.topBlocked.map((d, i) => (
-              <div key={i} className="flex items-center justify-between text-[10px] font-mono gap-2">
-                <span className={`${c.red} truncate flex-1`}>{d.domain}</span>
-                <span className={`${c.textMuted2} tabular-nums shrink-0`}>{d.count}</span>
-              </div>
-            ))}
+      {!compact && (
+        <>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>DNS Queries (24h)</div>
+              <MiniChart data={stats.dnsQueries} color={c.chartColor1} height={44} />
+            </div>
+            <div>
+              <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Blocked (24h)</div>
+              <MiniChart data={stats.blockedSeries} color={c.chartColor2} height={44} />
+            </div>
           </div>
-        </div>
+          {stats.topBlocked.length > 0 && (
+            <div>
+              <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Top Blocked</div>
+              <div className="space-y-0.5">
+                {stats.topBlocked.slice(0, 5).map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-[10px] font-mono gap-2">
+                    <span className={`${c.red} truncate flex-1`}>{d.domain}</span>
+                    <span className={`${c.textMuted2} tabular-nums shrink-0`}>{d.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -743,10 +826,10 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
   const statusColor = (status: string) => {
     if (theme === "industrial") {
       const map: Record<string, string> = {
-        pending: "text-[#D97706]", approved: "text-[#2563EB]", available: "text-[#16A34A]",
-        declined: "text-[#DC2626]", processing: "text-[#7C3AED]",
+        pending: "text-[#F5A623]", approved: "text-[#22D3EE]", available: "text-[#34D399]",
+        declined: "text-[#F87171]", processing: "text-[#A78BFA]",
       };
-      return map[status] || "text-[#78716C]";
+      return map[status] || "text-[#9A948C]";
     }
     return STATUS_COLORS[status] || "text-terminal-green-dim";
   };
@@ -756,12 +839,13 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
 
   return (
     <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Seerr Requests" icon="?" theme={theme} />
       {data.counts && (
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <StatBox label="Available" value={`${data.counts.available}/${data.counts.total}`} color={c.green} theme={theme} />
-          <StatBox label="Pending" value={data.counts.pending.toString()} color={c.amber} theme={theme} />
-          <StatBox label="Approved" value={data.counts.approved.toString()} color={c.cyan} theme={theme} />
+          <HudStat label="Available" value={`${data.counts.available}/${data.counts.total}`} color={c.green} theme={theme} />
+          <HudStat label="Pending" value={data.counts.pending.toString()} color={c.amber} theme={theme} />
+          <HudStat label="Approved" value={data.counts.approved.toString()} color={c.cyan} theme={theme} />
         </div>
       )}
       {data.requests.length > 0 && (
@@ -770,9 +854,9 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
             <div key={req.id} className="flex items-center gap-3 py-1.5">
               {req.posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={req.posterUrl} alt="" className={`w-8 h-12 object-cover shrink-0 ${theme === "industrial" ? "border border-[#E7E5E4] rounded" : "border border-terminal-gray-light"}`} />
+                <img src={req.posterUrl} alt="" className={`w-8 h-12 object-cover shrink-0 ${theme === "industrial" ? "border border-[#252830]" : "border border-terminal-gray-light"}`} />
               ) : (
-                <div className={`w-8 h-12 shrink-0 flex items-center justify-center ${theme === "industrial" ? "bg-[#EEEBE6] border border-[#E7E5E4] rounded" : "bg-terminal-gray border border-terminal-gray-light"}`}>
+                <div className={`w-8 h-12 shrink-0 flex items-center justify-center ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-gray border border-terminal-gray-light"}`}>
                   <span className={`text-[8px] font-mono ${c.textMuted2}`}>{req.type === "movie" ? "F" : "TV"}</span>
                 </div>
               )}
@@ -817,28 +901,25 @@ function QBitSection({ theme }: { theme: DashTheme }) {
 
   return (
     <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="qBittorrent" icon="↓" theme={theme}
         extra={hasActive ? <span className={c.liveTag}>LIVE</span> : undefined} />
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-3">
         {data.counts && (
           <>
-            <StatBox label="Total" value={data.counts.total.toString()} theme={theme} />
-            <StatBox label="Downloading" value={data.counts.downloading.toString()} color={c.cyan} theme={theme} />
-            <StatBox label="Seeding" value={data.counts.seeding.toString()} color={c.green} theme={theme} />
-            <StatBox label="Paused" value={data.counts.paused.toString()} color={c.textDim} theme={theme} />
+            <HudStat label="Downloading" value={data.counts.downloading.toString()} color={c.cyan} theme={theme} />
+            <HudStat label="Seeding" value={data.counts.seeding.toString()} color={c.green} theme={theme} />
           </>
         )}
       </div>
 
       {/* Transfer stats */}
       {data.transfer && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-          <StatBox label="DL Speed" value={data.transfer.dlSpeed} color={c.cyan} theme={theme} />
-          <StatBox label="UL Speed" value={data.transfer.ulSpeed} color={c.amber} theme={theme} />
-          <StatBox label="Total DL" value={data.transfer.totalDownloaded} color={c.accent} theme={theme} />
-          <StatBox label="Total UL" value={data.transfer.totalUploaded} color={c.textDim} theme={theme} />
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <HudStat label="DL Speed" value={data.transfer.dlSpeed} color={c.cyan} theme={theme} />
+          <HudStat label="UL Speed" value={data.transfer.ulSpeed} color={c.amber} theme={theme} />
         </div>
       )}
 
@@ -848,7 +929,7 @@ function QBitSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
           <div className="space-y-2">
             {data.activeDownloads.map((dl, i) => (
-              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#EEEBE6] rounded-lg" : "bg-terminal-black border border-terminal-gray-light"}`}>
+              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
                   <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
@@ -892,19 +973,32 @@ function SABSection({ theme }: { theme: DashTheme }) {
   if (loading) return <div className={c.card}><SectionHeader title="SABnzbd" icon="↧" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data) return null;
 
+  if (data.connected === false) {
+    return (
+      <div className={c.card}>
+        <SectionHeader title="SABnzbd" icon="↧" theme={theme}
+          extra={<span className={`text-[10px] font-mono ${c.red}`}>● UNREACHABLE</span>} />
+        <div className={`text-xs font-mono ${c.textMuted} py-2`}>
+          Cannot reach SABnzbd — check SAB_URL / SAB_API_KEY or network access.
+        </div>
+      </div>
+    );
+  }
+
   const hasActive = data.queue.active.length > 0;
 
   return (
     <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="SABnzbd" icon="↧" theme={theme}
         extra={hasActive ? <span className={c.liveTag}>LIVE</span> : undefined} />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-        <StatBox label="Speed" value={data.speed} color={c.cyan} theme={theme} />
-        <StatBox label="Queue" value={data.queue.count.toString()} color={c.amber} theme={theme} />
-        <StatBox label="This Month" value={data.stats.monthDownloaded} color={c.accent} theme={theme} />
-        <StatBox label="All Time" value={data.stats.totalDownloaded} theme={theme} />
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <HudStat label="Speed" value={data.speed} color={c.cyan} theme={theme} />
+        <HudStat label="Queue" value={data.queue.count.toString()} color={c.amber} theme={theme} />
+        <HudStat label="This Month" value={data.stats.monthDownloaded} color={c.accent} theme={theme} />
+        <HudStat label="All Time" value={data.stats.totalDownloaded} theme={theme} />
       </div>
 
       {/* Active downloads */}
@@ -913,7 +1007,7 @@ function SABSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
           <div className="space-y-2">
             {data.queue.active.map((dl, i) => (
-              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#EEEBE6] rounded-lg" : "bg-terminal-black border border-terminal-gray-light"}`}>
+              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
                   <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
@@ -962,22 +1056,60 @@ function DashThemeToggle({ theme, setTheme }: { theme: DashTheme; setTheme: (t: 
   return (
     <button
       onClick={() => setTheme(ind ? "terminal" : "industrial")}
-      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+      className={`flex items-center gap-2 px-3 py-1.5 border transition-all ${
         ind
-          ? "bg-white border-[#E7E5E4] hover:border-[#E8613C]/30 shadow-sm"
+          ? "bg-[#141619] border-[#252830] hover:border-[#F5622A]/40"
           : "bg-terminal-black-light border-terminal-gray-light hover:border-terminal-green/30"
       }`}
-      title={`Switch to ${ind ? "Terminal" : "Industrial"} theme`}
+      title={`Switch to ${ind ? "Terminal" : "Neo-Industrial"} theme`}
     >
-      <span className={`w-5 h-2.5 rounded-full relative ${ind ? "bg-[#D6D3D1]" : "bg-[#333]"}`}>
+      <span className={`w-5 h-2.5 rounded-full relative ${ind ? "bg-[#252830]" : "bg-[#333]"}`}>
         <span className={`absolute top-0.5 w-1.5 h-1.5 rounded-full transition-transform ${
-          ind ? "left-[12px] bg-[#E8613C]" : "left-0.5 bg-[#00FF41]"
+          ind ? "left-[12px] bg-[#F5622A]" : "left-0.5 bg-[#00FF41]"
         }`} />
       </span>
-      <span className={`text-[10px] font-mono uppercase tracking-wider ${ind ? "text-[#78716C]" : "text-[#888]"}`}>
-        {ind ? "Industrial" : "Terminal"}
+      <span className={`text-[10px] font-mono uppercase tracking-wider ${ind ? "text-[#9A948C]" : "text-[#888]"}`}>
+        {ind ? "Neo-Industrial" : "Terminal"}
       </span>
     </button>
+  );
+}
+
+// ── Tab system ───────────────────────────────────────────────
+
+type DashTab = "start" | "media";
+
+const TABS: { id: DashTab; label: string; icon: string }[] = [
+  { id: "start", label: "Start", icon: ">" },
+  { id: "media", label: "Media", icon: "▶" },
+];
+
+function TabBar({ active, onSelect, theme }: { active: DashTab; onSelect: (t: DashTab) => void; theme: DashTheme }) {
+  const ind = theme === "industrial";
+  return (
+    <div className="flex items-center gap-1">
+      {TABS.map((tab) => {
+        const isActive = tab.id === active;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => onSelect(tab.id)}
+            className={`flex items-center gap-1.5 px-3 py-1 text-xs font-mono uppercase tracking-widest transition-all ${
+              isActive
+                ? ind
+                  ? "border-b-2 border-[#F5622A] text-[#F5622A]"
+                  : "border-b-2 border-terminal-green text-terminal-green"
+                : ind
+                  ? "text-[#5A5550] hover:text-[#9A948C] border-b-2 border-transparent"
+                  : "text-terminal-green-dim/50 hover:text-terminal-green-dim border-b-2 border-transparent"
+            }`}
+          >
+            <span className="text-[10px]">{tab.icon}</span>
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -986,7 +1118,13 @@ function DashThemeToggle({ theme, setTheme }: { theme: DashTheme; setTheme: (t: 
 export default function StartPage() {
   const [time, setTime] = useState("");
   const [theme, setTheme] = useDashTheme();
+  const [tabState, setTabState] = useState<{ current: DashTab; prev: DashTab }>({ current: "start", prev: "start" });
+  const tab = tabState.current;
+  const tabDir = (["start", "media"] as DashTab[]).indexOf(tabState.current) - (["start", "media"] as DashTab[]).indexOf(tabState.prev);
+  const handleTabChange = useCallback((t: DashTab) => { setTabState((s) => ({ current: t, prev: s.current })); }, []);
   const c = cx(theme);
+  const serviceUrls = useMemo(() => PERSONAL_LINKS.map((l) => l.url), []);
+  const serviceStatus = useServiceStatus(serviceUrls);
 
   useEffect(() => {
     function tick() {
@@ -1003,89 +1141,135 @@ export default function StartPage() {
   }, []);
 
   return (
-    <div className={c.page}>
-      {/* Header */}
-      <header className={`flex items-center justify-between mb-6 pb-4 border-b ${c.border} ${theme === "industrial" ? "bg-transparent" : ""}`}>
+    <div className={c.page} style={theme === "industrial" ? {
+      backgroundImage: "linear-gradient(rgba(37,40,50,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(37,40,50,0.35) 1px, transparent 1px)",
+      backgroundSize: "48px 48px",
+    } : undefined}>
+
+      {/* ── Header ── */}
+      <header className={`flex items-center justify-between mb-4 pb-3 border-b ${c.border}`}>
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="fs0ciety" width={32} height={32} className={theme === "industrial" ? "opacity-50" : "opacity-70"} />
+          <img src="/logo.svg" alt="fs0ciety" width={28} height={28} className={theme === "industrial" ? "opacity-50" : "opacity-70"} />
           <div>
-            <h1 className={`text-lg md:text-xl font-bold ${c.title}`}>
-              fs0ciety<span className={c.titleDim}>.start</span>
+            <h1 className={theme === "industrial"
+              ? "font-display text-xl font-black uppercase tracking-[0.18em] text-[#E8E4DC]"
+              : `text-base font-bold ${c.title}`}>
+              fs0ciety<span className={theme === "industrial" ? "text-[#F5622A]" : c.titleDim}>.start</span>
             </h1>
             <div className={`text-[10px] ${c.textMuted} capitalize`}>{time}</div>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <TabBar active={tab} onSelect={handleTabChange} theme={theme} />
+          <span className={`mx-1 ${c.textMuted2}`}>|</span>
           <DashThemeToggle theme={theme} setTheme={setTheme} />
           <a href="/" className={c.headerLink}>terminal</a>
-          <a href="/dashboard" className={c.headerLinkActive}>seedbox</a>
         </div>
       </header>
 
-      {/* Top row: Links + RSS + Calendar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 mb-6">
-        {/* Left: Links */}
-        <div className="lg:col-span-3 space-y-4">
-          <div className={c.card}>
-            <SectionHeader title="Self-Hosted" icon=">" theme={theme} />
-            <div className="grid grid-cols-1 gap-1">
-              {PERSONAL_LINKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
+      {/* ── Tab content with slide transition ── */}
+      <AnimatePresence mode="wait" custom={tabDir}>
+        <motion.div
+          key={tab}
+          custom={tabDir}
+          variants={{
+            initial: (d: number) => ({ opacity: 0, x: d >= 0 ? 12 : -12 }),
+            animate: { opacity: 1, x: 0 },
+            exit: (d: number) => ({ opacity: 0, x: d >= 0 ? -12 : 12 }),
+          }}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={{ duration: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          {/* ── Tab: Start ── */}
+          {tab === "start" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+              {/* Left: Self-Hosted + Bookmarks */}
+              <motion.div className="lg:col-span-3 space-y-3"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0 }}>
+                <div className={c.card}>
+                  {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+                  <SectionHeader title="Self-Hosted" icon=">" theme={theme} />
+                  <div className="grid grid-cols-2 gap-0.5">
+                    {PERSONAL_LINKS.map((link) => (
+                      <LinkCard key={link.name} link={link} theme={theme} up={serviceStatus[link.url]} />
+                    ))}
+                  </div>
+                </div>
+                <div className={c.card}>
+                  {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+                  <SectionHeader title="Bookmarks" icon="~" theme={theme} />
+                  <div className="grid grid-cols-2 gap-0.5">
+                    {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Center: RSS */}
+              <motion.div className="lg:col-span-6"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.05 }}>
+                <RSSFeed theme={theme} />
+              </motion.div>
+
+              {/* Right: Calendar + AdGuard compact */}
+              <motion.div className="lg:col-span-3 space-y-3"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.10 }}>
+                <Calendar theme={theme} />
+                <AdGuardSection theme={theme} compact />
+              </motion.div>
             </div>
-          </div>
-          <div className={c.card}>
-            <SectionHeader title="Bookmarks" icon="~" theme={theme} />
-            <div className="grid grid-cols-1 gap-1">
-              {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
+          )}
+
+          {/* ── Tab: Media ── */}
+          {tab === "media" && (
+            <div className="space-y-3">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0 }}>
+                <div className={c.card}>
+                  {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {MEDIA_LINKS.map((link) => (
+                      <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer"
+                        className={`group flex items-center gap-2 px-3 py-1.5 border transition-all ${
+                          theme === "industrial"
+                            ? "bg-[#141619] border-[#252830] hover:border-[#F5622A]/40 hover:bg-[#1C1D22]"
+                            : "border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5"
+                        }`}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={link.icon} alt="" width={16} height={16}
+                          className="opacity-50 group-hover:opacity-100 transition-opacity"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        <span className={c.mediaIconLabel + " text-[10px]"}>{link.name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.07 }}>
+                <QBitSection theme={theme} />
+                <SABSection theme={theme} />
+                <SeerrSection theme={theme} />
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.14 }}>
+                <JellyfinSection theme={theme} />
+              </motion.div>
             </div>
-          </div>
-        </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
-        {/* Center: RSS */}
-        <div className="lg:col-span-6 space-y-4">
-          <RSSFeed theme={theme} />
-
-          {/* Media Links */}
-          <div className={c.card}>
-            <SectionHeader title="Media Stack" icon="%" theme={theme} />
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
-              {MEDIA_LINKS.map((link) => (
-                <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className={c.mediaIcon}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={link.icon} alt="" width={20} height={20}
-                    className="opacity-50 group-hover:opacity-100 transition-opacity"
-                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  <span className={c.mediaIconLabel}>{link.name}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Calendar */}
-        <div className="lg:col-span-3">
-          <Calendar theme={theme} />
-        </div>
-      </div>
-
-      {/* Downloads Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
-        <QBitSection theme={theme} />
-        <SABSection theme={theme} />
-      </div>
-
-      {/* Media Section */}
-      <div className="space-y-6 mb-6">
-        <JellyfinSection theme={theme} />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AdGuardSection theme={theme} />
-          <SeerrSection theme={theme} />
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className={`pt-4 border-t ${c.border}`}>
+      {/* ── Footer ── */}
+      <footer className={`mt-4 pt-3 border-t ${c.border}`}>
         <div className={`flex items-center justify-between text-[10px] font-mono ${c.textMuted2}`}>
           <span>fs0ciety.org</span>
           <span>

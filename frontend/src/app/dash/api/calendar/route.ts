@@ -16,16 +16,24 @@ interface CalEvent {
 }
 
 function parseICalDate(val: string): string {
-  const clean = val.replace(/^.*:/, "");
-  if (clean.length === 8) {
+  // Strip property name (e.g. "DTSTART;TZID=Europe/Paris:" → just the date part)
+  const clean = val.replace(/^.*:/, "").trim();
+
+  // All-day: YYYYMMDD
+  if (/^\d{8}$/.test(clean)) {
     return `${clean.slice(0, 4)}-${clean.slice(4, 6)}-${clean.slice(6, 8)}`;
   }
-  const y = clean.slice(0, 4);
-  const m = clean.slice(4, 6);
-  const d = clean.slice(6, 8);
-  const h = clean.slice(9, 11) || "00";
-  const min = clean.slice(11, 13) || "00";
-  return `${y}-${m}-${d}T${h}:${min}:00`;
+
+  // DateTime: YYYYMMDDTHHMMSS[Z]
+  const isUtc = clean.endsWith("Z");
+  const digits = clean.replace(/Z$/, "");
+  const y = digits.slice(0, 4);
+  const mo = digits.slice(4, 6);
+  const d = digits.slice(6, 8);
+  const h = digits.slice(9, 11) || "00";
+  const min = digits.slice(11, 13) || "00";
+  // Preserve the Z suffix so JavaScript Date correctly treats it as UTC
+  return `${y}-${mo}-${d}T${h}:${min}:00${isUtc ? "Z" : ""}`;
 }
 
 function parseICal(text: string): CalEvent[] {

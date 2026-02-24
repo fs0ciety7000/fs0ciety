@@ -1,8 +1,10 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&display=swap");
 @import "tailwindcss";
 
 /* ── fs0ciety Global Styles ────────────────────────────────── */
 
 @theme {
+  --font-display: "Barlow Condensed", "Exo 2", "Arial Narrow", sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --color-terminal-green: #00FF41;
@@ -773,23 +775,24 @@ html {
    ═════════════════════════════════════════════════════════════ */
 
 [data-theme="industrial"] {
-  --ind-bg: #F5F2EE;
-  --ind-bg-alt: #EEEBE6;
-  --ind-bg-card: #FFFFFF;
-  --ind-text: #1C1917;
-  --ind-text-dim: #78716C;
-  --ind-text-muted: #A8A29E;
-  --ind-border: #E7E5E4;
-  --ind-border-strong: #D6D3D1;
-  --ind-accent: #E8613C;
-  --ind-accent-dim: #DC4A20;
-  --ind-link: #2563EB;
-  --ind-link-hover: #1D4ED8;
-  --ind-green: #16A34A;
-  --ind-red: #DC2626;
-  --ind-amber: #D97706;
-  --ind-code-bg: #292524;
-  --ind-code-text: #F5F5F4;
+  /* ── Neo-Industrial Dark Palette ── */
+  --ind-bg: #0D0E11;
+  --ind-bg-alt: #141619;
+  --ind-bg-card: #1A1C21;
+  --ind-text: #E8E4DC;
+  --ind-text-dim: #9A948C;
+  --ind-text-muted: #5A5550;
+  --ind-border: #252830;
+  --ind-border-strong: #383B47;
+  --ind-accent: #F5622A;
+  --ind-accent-dim: #D94E1A;
+  --ind-link: #22D3EE;
+  --ind-link-hover: #06B6D4;
+  --ind-green: #34D399;
+  --ind-red: #F87171;
+  --ind-amber: #F5A623;
+  --ind-code-bg: #080909;
+  --ind-code-text: #E8E4DC;
 }
 
 /* ── Base overrides ───────────────────────────────────────── */
@@ -797,6 +800,21 @@ html {
 [data-theme="industrial"] .blog-bg {
   background-color: var(--ind-bg);
   color: var(--ind-text);
+}
+
+/* ── Dashboard dark industrial grid overlay ───────────────── */
+
+.dash-industrial {
+  position: relative;
+}
+
+/* Subtle orange accent on scrollbar for industrial dark */
+.dash-industrial ::-webkit-scrollbar-thumb {
+  background: var(--ind-border-strong, #383B47);
+}
+
+.dash-industrial ::-webkit-scrollbar-thumb:hover {
+  background: var(--ind-accent, #F5622A);
 }
 
 [data-theme="industrial"] .blog-noise {
@@ -827,7 +845,7 @@ html {
 [data-theme="industrial"] header.border-b {
   background: var(--ind-bg-card);
   border-color: var(--ind-border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.6);
 }
 
 [data-theme="industrial"] header .text-terminal-green,
@@ -931,7 +949,7 @@ html {
 [data-theme="industrial"] .toc-container {
   background: var(--ind-bg-card);
   border-color: var(--ind-border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.5);
 }
 
 [data-theme="industrial"] .toc-container button {
@@ -959,12 +977,12 @@ html {
 [data-theme="industrial"] .post-card-glitch {
   background: var(--ind-bg-card);
   border-color: var(--ind-border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 [data-theme="industrial"] .post-card-glitch:hover {
   border-color: var(--ind-accent);
-  box-shadow: 0 4px 12px rgba(232, 97, 60, 0.08);
+  box-shadow: 0 4px 20px rgba(245, 98, 42, 0.2);
   animation: none;
 }
 
@@ -1115,28 +1133,28 @@ html {
 }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-info {
-  background: rgba(37, 99, 235, 0.05);
+  background: rgba(34, 211, 238, 0.07);
   border-color: var(--ind-link);
 }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-info .callout-label { color: var(--ind-link); }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-warning {
-  background: rgba(217, 119, 6, 0.05);
+  background: rgba(245, 166, 35, 0.07);
   border-color: var(--ind-amber);
 }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-warning .callout-label { color: var(--ind-amber); }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-danger {
-  background: rgba(220, 38, 38, 0.05);
+  background: rgba(248, 113, 113, 0.07);
   border-color: var(--ind-red);
 }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-danger .callout-label { color: var(--ind-red); }
 
 [data-theme="industrial"] .prose-fs0ciety .callout-tip {
-  background: rgba(22, 163, 74, 0.05);
+  background: rgba(52, 211, 153, 0.07);
   border-color: var(--ind-green);
 }
 
@@ -1192,9 +1210,9 @@ html {
 
 /* PGP blocks */
 [data-theme="industrial"] .prose-fs0ciety .border-terminal-purple\/30 {
-  border-color: #7C3AED;
-  background: rgba(124, 58, 237, 0.04);
-  border-radius: 8px;
+  border-color: #A78BFA;
+  background: rgba(167, 139, 250, 0.07);
+  border-radius: 4px;
 }
 
 /* Terminal blocks */

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const ALLOWED_FEEDS = [
   "https://korben.info/feed",
   "https://www.theverge.com/rss/index.xml",

@@ -153,6 +153,40 @@ interface QbitData {
     state: string;
     category: string;
   }>;
+  activeSeeds: Array<{
+    name: string;
+    size: string;
+    ratio: number;
+    ulspeed: string;
+    state: string;
+    category: string;
+  }>;
+}
+
+interface RadarrData {
+  stats: {
+    total: number;
+    monitored: number;
+    withFile: number;
+    missing: number;
+  } | null;
+  diskspace: Array<{
+    path: string;
+    label: string;
+    freeSpace: string;
+    totalSpace: string;
+    usedPercent: number;
+  }>;
+}
+
+interface SonarrData {
+  stats: {
+    total: number;
+    monitored: number;
+    episodes: number;
+    downloaded: number;
+    missing: number;
+  } | null;
 }
 
 interface SABData {
@@ -948,6 +982,32 @@ function QBitSection({ theme }: { theme: DashTheme }) {
           </div>
         </div>
       )}
+
+      {/* Seeding list */}
+      {(data.activeSeeds || []).length > 0 && (
+        <div className={hasActive ? "mt-3" : ""}>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2 flex items-center gap-2`}>
+            <span>Seeding</span>
+            <span className={`${c.green} tabular-nums`}>{data.counts?.seeding}</span>
+            <span className={c.textMuted2}>total — top 5 shown</span>
+          </div>
+          <div className="space-y-1.5">
+            {(data.activeSeeds || []).map((s, i) => (
+              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className={`text-[11px] font-mono ${c.textDim} truncate flex-1 mr-2`}>{s.name}</span>
+                  <span className={`text-[10px] font-mono ${c.green} tabular-nums shrink-0`}>✓ {s.ratio.toFixed(2)}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-mono ${c.amber} tabular-nums`}>↑ {s.ulspeed}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.size}</span>
+                  {s.category && <span className={`text-[10px] font-mono ${c.accent}`}>{s.category}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1045,6 +1105,96 @@ function SABSection({ theme }: { theme: DashTheme }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Radarr Section ───────────────────────────────────────────
+
+function RadarrSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<RadarrData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/radarr")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="Radarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data?.stats) return null;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Radarr" icon="▶" theme={theme}
+        extra={<a href="https://radarr.cinenode.org" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <HudStat label="Total Films" value={data.stats.total.toString()} color={c.amber} theme={theme} />
+        <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.cyan} theme={theme} />
+        <HudStat label="Downloaded" value={data.stats.withFile.toString()} color={c.green} theme={theme} />
+        <HudStat label="Missing" value={data.stats.missing.toString()} color={data.stats.missing > 0 ? c.red : c.textMuted} theme={theme} />
+      </div>
+      {data.diskspace.length > 0 && (
+        <div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Disk Space — cinenode.org</div>
+          <div className="space-y-2.5">
+            {data.diskspace.map((d, i) => (
+              <div key={i}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[10px] font-mono ${c.textDim} truncate`}>{d.label || d.path}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums shrink-0 ml-2`}>{d.freeSpace} free</span>
+                </div>
+                <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
+                  <div
+                    className={`h-full rounded-full transition-all ${d.usedPercent > 85 ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+                    style={{ width: `${d.usedPercent}%` }}
+                  />
+                </div>
+                <div className={`text-[9px] font-mono ${c.textMuted2} mt-0.5 text-right`}>
+                  {d.usedPercent}% of {d.totalSpace}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Sonarr Section ───────────────────────────────────────────
+
+function SonarrSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<SonarrData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/sonarr")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="Sonarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data?.stats) return null;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Sonarr" icon="▶" theme={theme}
+        extra={<a href="https://sonarr.cinenode.org" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+      <div className="grid grid-cols-2 gap-2">
+        <HudStat label="Series" value={data.stats.total.toString()} color={c.cyan} theme={theme} />
+        <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.amber} theme={theme} />
+        <HudStat label="Episodes" value={formatNumber(data.stats.downloaded)} color={c.green} theme={theme} />
+        <HudStat label="Missing" value={data.stats.missing.toString()} color={data.stats.missing > 0 ? c.red : c.textMuted} theme={theme} />
+      </div>
     </div>
   );
 }
@@ -1259,8 +1409,15 @@ export default function StartPage() {
                 <SeerrSection theme={theme} />
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.14 }}>
+                <RadarrSection theme={theme} />
+                <SonarrSection theme={theme} />
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.21 }}>
                 <JellyfinSection theme={theme} />
               </motion.div>
             </div>

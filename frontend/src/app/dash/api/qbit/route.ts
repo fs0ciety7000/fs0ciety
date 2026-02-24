@@ -160,6 +160,16 @@ export async function GET() {
       category: t.category || "",
     }));
 
+    // Active seeds with details
+    const activeSeeds = seeding.map((t) => ({
+      name: t.name,
+      size: formatBytes(t.total_size),
+      ratio: Math.round(t.ratio * 100) / 100,
+      ulspeed: formatBytes(t.upspeed) + "/s",
+      state: stateLabel(t.state),
+      category: t.category || "",
+    }));
+
     return NextResponse.json({
       counts: {
         total: torrents.length,
@@ -176,6 +186,7 @@ export async function GET() {
           }
         : null,
       activeDownloads: activeDownloads.slice(0, 10),
+      activeSeeds: activeSeeds.slice(0, 5),
     });
   } catch {
     return NextResponse.json(

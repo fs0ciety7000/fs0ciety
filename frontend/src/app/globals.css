@@ -1263,3 +1263,814 @@ html {
 [data-theme="industrial"] .bg-terminal-green {
   background-color: var(--ind-accent);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NEO-INDUSTRIAL V2 — SPECTR DESIGN SYSTEM
+   Tactical / Military / Cybersec aesthetic
+   Premium animations, better typography, micro-interactions
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Enhanced Font Stack ──────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── CSS Custom Properties (Dark / Terminal) ──────────────── */
+
+:root {
+  --spectr-font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --spectr-font-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --spectr-font-mono: "JetBrains Mono", "Fira Code", monospace;
+
+  /* Dark mode (default) */
+  --spectr-bg-primary: #0A0A0A;
+  --spectr-bg-secondary: #111111;
+  --spectr-bg-elevated: #161616;
+  --spectr-bg-surface: #1A1A1A;
+  --spectr-text-primary: #E8E8E8;
+  --spectr-text-secondary: #A3A3A3;
+  --spectr-text-muted: #666666;
+  --spectr-border-primary: #2A2A2A;
+  --spectr-border-accent: rgba(0, 255, 65, 0.2);
+  --spectr-accent-primary: #00FF41;
+  --spectr-accent-secondary: #00D4FF;
+  --spectr-accent-tertiary: #FFB000;
+  --spectr-accent-danger: #FF0033;
+  --spectr-glow-primary: rgba(0, 255, 65, 0.15);
+  --spectr-glow-secondary: rgba(0, 212, 255, 0.15);
+  --spectr-shadow-card: 0 0 0 transparent;
+  --spectr-radius: 0px;
+  --spectr-noise-opacity: 0.035;
+  --spectr-scanline-opacity: 0.15;
+}
+
+/* ── CSS Custom Properties (Light / Industrial) ───────────── */
+
+[data-theme="industrial"] {
+  --spectr-bg-primary: #FAF9F6;
+  --spectr-bg-secondary: #F5F2EE;
+  --spectr-bg-elevated: #FFFFFF;
+  --spectr-bg-surface: #EEEBE6;
+  --spectr-text-primary: #1C1917;
+  --spectr-text-secondary: #57534E;
+  --spectr-text-muted: #A8A29E;
+  --spectr-border-primary: #E7E5E4;
+  --spectr-border-accent: rgba(232, 97, 60, 0.2);
+  --spectr-accent-primary: #E8613C;
+  --spectr-accent-secondary: #2563EB;
+  --spectr-accent-tertiary: #D97706;
+  --spectr-accent-danger: #DC2626;
+  --spectr-glow-primary: rgba(232, 97, 60, 0.08);
+  --spectr-glow-secondary: rgba(37, 99, 235, 0.08);
+  --spectr-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --spectr-radius: 8px;
+  --spectr-noise-opacity: 0;
+  --spectr-scanline-opacity: 0;
+}
+
+/* ── Spectr Card System ───────────────────────────────────── */
+
+.spectr-card {
+  position: relative;
+  background: var(--spectr-bg-elevated);
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: var(--spectr-radius);
+  box-shadow: var(--spectr-shadow-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.spectr-card:hover {
+  border-color: var(--spectr-accent-primary);
+  box-shadow: var(--spectr-shadow-card), 0 0 20px var(--spectr-glow-primary);
+}
+
+/* Corner brackets for dark mode cards */
+.spectr-card::before,
+.spectr-card::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--spectr-accent-primary);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.spectr-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+  border-color: inherit;
+}
+
+.spectr-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+  border-color: inherit;
+}
+
+.spectr-card:hover::before,
+.spectr-card:hover::after {
+  opacity: 1;
+  border-color: var(--spectr-accent-primary);
+}
+
+[data-theme="industrial"] .spectr-card::before,
+[data-theme="industrial"] .spectr-card::after {
+  display: none;
+}
+
+[data-theme="industrial"] .spectr-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Spectr Header Bar ────────────────────────────────────── */
+
+.spectr-header {
+  background: var(--spectr-bg-elevated);
+  border-bottom: 1px solid var(--spectr-border-primary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.spectr-header-glass {
+  background: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+[data-theme="industrial"] .spectr-header-glass {
+  background: rgba(250, 249, 246, 0.9);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
+
+/* ── Spectr Classification Bar ────────────────────────────── */
+
+.spectr-classification {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 0.25rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.spectr-classification-dark {
+  background: #0D0D0D;
+  color: var(--spectr-accent-primary);
+  border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+}
+
+.spectr-classification-light {
+  background: #292524;
+  color: #D6D3D1;
+  border-bottom: none;
+}
+
+.spectr-classification .spectr-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--spectr-accent-primary);
+  animation: spectr-pulse 2s ease-in-out infinite;
+}
+
+@keyframes spectr-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--spectr-glow-primary); }
+  50% { opacity: 0.5; box-shadow: 0 0 8px 4px var(--spectr-glow-primary); }
+}
+
+/* ── Spectr Nav Links ─────────────────────────────────────── */
+
+.spectr-nav-link {
+  position: relative;
+  color: var(--spectr-text-secondary);
+  font-family: var(--spectr-font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0;
+  transition: color 0.2s;
+}
+
+.spectr-nav-link:hover {
+  color: var(--spectr-accent-primary);
+}
+
+.spectr-nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--spectr-accent-primary);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.spectr-nav-link:hover::after {
+  width: 100%;
+}
+
+/* ── Spectr Tag Pills ─────────────────────────────────────── */
+
+.spectr-tag {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: var(--spectr-radius);
+  color: var(--spectr-text-secondary);
+  background: transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-transform: lowercase;
+}
+
+.spectr-tag:hover {
+  border-color: var(--spectr-accent-primary);
+  color: var(--spectr-accent-primary);
+  background: var(--spectr-glow-primary);
+}
+
+.spectr-tag-active {
+  border-color: var(--spectr-accent-primary);
+  color: var(--spectr-accent-primary);
+  background: var(--spectr-glow-primary);
+}
+
+/* ── Spectr Section Label ─────────────────────────────────── */
+
+.spectr-label {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--spectr-text-muted);
+}
+
+.spectr-label-accent {
+  color: var(--spectr-accent-primary);
+}
+
+/* ── Spectr Divider ───────────────────────────────────────── */
+
+.spectr-divider {
+  height: 1px;
+  background: var(--spectr-border-primary);
+  position: relative;
+}
+
+.spectr-divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 60px;
+  height: 1px;
+  background: var(--spectr-accent-primary);
+}
+
+/* ── Spectr Grid Pattern ──────────────────────────────────── */
+
+.spectr-grid-bg {
+  background-image:
+    linear-gradient(var(--spectr-border-primary) 1px, transparent 1px),
+    linear-gradient(90deg, var(--spectr-border-primary) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity: 0.3;
+}
+
+[data-theme="industrial"] .spectr-grid-bg {
+  display: none;
+}
+
+/* ── Spectr Status Indicator ──────────────────────────────── */
+
+.spectr-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--spectr-font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.spectr-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.spectr-status-online .spectr-status-dot {
+  background: #00FF41;
+  box-shadow: 0 0 6px rgba(0, 255, 65, 0.5);
+  animation: spectr-pulse 2s ease-in-out infinite;
+}
+
+[data-theme="industrial"] .spectr-status-online .spectr-status-dot {
+  background: #16A34A;
+  box-shadow: none;
+}
+
+/* ── Spectr Typography ────────────────────────────────────── */
+
+.spectr-display {
+  font-family: var(--spectr-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.spectr-heading {
+  font-family: var(--spectr-font-mono);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.spectr-body {
+  font-family: var(--spectr-font-body);
+  font-weight: 400;
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+.spectr-caption {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--spectr-text-muted);
+}
+
+/* ── Spectr Hover Glow ────────────────────────────────────── */
+
+.spectr-glow {
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.spectr-glow:hover {
+  box-shadow: 0 0 20px var(--spectr-glow-primary), 0 0 40px var(--spectr-glow-primary);
+}
+
+[data-theme="industrial"] .spectr-glow:hover {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Spectr Scan Effect ───────────────────────────────────── */
+
+.spectr-scan::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--spectr-accent-primary),
+    transparent
+  );
+  opacity: 0;
+  animation: spectr-scan-line 4s linear infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+@keyframes spectr-scan-line {
+  0% { top: -2px; opacity: 0; }
+  5% { opacity: 0.6; }
+  95% { opacity: 0.6; }
+  100% { top: 100%; opacity: 0; }
+}
+
+[data-theme="industrial"] .spectr-scan::before {
+  display: none;
+}
+
+/* ── Spectr Reading Progress V2 ───────────────────────────── */
+
+.spectr-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.spectr-progress-bar {
+  height: 100%;
+  background: var(--spectr-accent-primary);
+  transition: width 0.15s ease-out;
+  position: relative;
+}
+
+.spectr-progress-bar::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 8px;
+  height: 6px;
+  background: var(--spectr-accent-primary);
+  filter: blur(4px);
+}
+
+[data-theme="industrial"] .spectr-progress-bar::after {
+  display: none;
+}
+
+/* ── Spectr Search Dialog ─────────────────────────────────── */
+
+.spectr-search-backdrop {
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[data-theme="industrial"] .spectr-search-backdrop {
+  background: rgba(28, 25, 23, 0.5);
+}
+
+.spectr-search-panel {
+  background: var(--spectr-bg-primary);
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: var(--spectr-radius);
+  box-shadow: 0 0 40px var(--spectr-glow-primary);
+  overflow: hidden;
+}
+
+[data-theme="industrial"] .spectr-search-panel {
+  background: var(--spectr-bg-elevated);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+}
+
+.spectr-search-result {
+  transition: all 0.15s;
+}
+
+.spectr-search-result:hover,
+.spectr-search-result-active {
+  background: var(--spectr-glow-primary);
+}
+
+/* ── Spectr Post Card ─────────────────────────────────────── */
+
+.spectr-post-card {
+  position: relative;
+  background: var(--spectr-bg-elevated);
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: var(--spectr-radius);
+  box-shadow: var(--spectr-shadow-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.spectr-post-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 0;
+  background: var(--spectr-accent-primary);
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+}
+
+.spectr-post-card:hover::before {
+  height: 100%;
+}
+
+.spectr-post-card:hover {
+  border-color: var(--spectr-accent-primary);
+  box-shadow: var(--spectr-shadow-card), 0 0 30px var(--spectr-glow-primary);
+}
+
+[data-theme="industrial"] .spectr-post-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Dark mode: corner brackets */
+.spectr-post-card .spectr-bracket-tl,
+.spectr-post-card .spectr-bracket-br {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.spectr-post-card .spectr-bracket-tl {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--spectr-accent-primary);
+  border-left: 2px solid var(--spectr-accent-primary);
+}
+
+.spectr-post-card .spectr-bracket-br {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid var(--spectr-accent-primary);
+  border-right: 2px solid var(--spectr-accent-primary);
+}
+
+.spectr-post-card:hover .spectr-bracket-tl,
+.spectr-post-card:hover .spectr-bracket-br {
+  opacity: 1;
+}
+
+[data-theme="industrial"] .spectr-post-card .spectr-bracket-tl,
+[data-theme="industrial"] .spectr-post-card .spectr-bracket-br {
+  display: none;
+}
+
+/* ── Spectr Article Styles ────────────────────────────────── */
+
+.spectr-article-header {
+  position: relative;
+  padding-bottom: 2rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--spectr-border-primary);
+}
+
+.spectr-article-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 80px;
+  height: 2px;
+  background: var(--spectr-accent-primary);
+}
+
+.spectr-article-meta {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--spectr-text-secondary);
+}
+
+.spectr-article-title {
+  font-family: var(--spectr-font-display);
+  font-weight: 700;
+  font-size: 2.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--spectr-text-primary);
+  margin: 0.75rem 0;
+}
+
+@media (min-width: 640px) {
+  .spectr-article-title {
+    font-size: 2.75rem;
+  }
+}
+
+/* ── Spectr ToC ───────────────────────────────────────────── */
+
+.spectr-toc {
+  background: var(--spectr-bg-elevated);
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: var(--spectr-radius);
+  box-shadow: var(--spectr-shadow-card);
+  overflow: hidden;
+}
+
+.spectr-toc-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--spectr-border-primary);
+  font-family: var(--spectr-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--spectr-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.spectr-toc-header:hover {
+  color: var(--spectr-accent-primary);
+}
+
+.spectr-toc-link {
+  display: block;
+  padding: 0.35rem 1rem;
+  font-family: var(--spectr-font-mono);
+  font-size: 0.75rem;
+  color: var(--spectr-text-secondary);
+  transition: all 0.2s;
+  border-left: 2px solid transparent;
+}
+
+.spectr-toc-link:hover {
+  color: var(--spectr-accent-primary);
+  border-left-color: var(--spectr-accent-primary);
+  background: var(--spectr-glow-primary);
+}
+
+/* ── Spectr Footer ────────────────────────────────────────── */
+
+.spectr-footer {
+  border-top: 1px solid var(--spectr-border-primary);
+  background: var(--spectr-bg-secondary);
+}
+
+.spectr-footer-link {
+  color: var(--spectr-text-muted);
+  font-family: var(--spectr-font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.spectr-footer-link:hover {
+  color: var(--spectr-accent-primary);
+}
+
+/* ── Spectr Theme Toggle V2 ───────────────────────────────── */
+
+.spectr-theme-toggle {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--spectr-bg-elevated);
+  border: 1px solid var(--spectr-border-primary);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: var(--spectr-shadow-card);
+}
+
+.spectr-theme-toggle:hover {
+  border-color: var(--spectr-accent-primary);
+  box-shadow: var(--spectr-shadow-card), 0 0 12px var(--spectr-glow-primary);
+}
+
+[data-theme="industrial"] .spectr-theme-toggle:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.spectr-theme-track {
+  width: 32px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--spectr-border-primary);
+  position: relative;
+  transition: background 0.3s;
+}
+
+.spectr-theme-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--spectr-accent-primary);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.spectr-theme-thumb-on {
+  transform: translateX(16px);
+}
+
+.spectr-theme-label {
+  font-family: var(--spectr-font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--spectr-text-muted);
+  transition: color 0.2s;
+}
+
+/* ── Spectr Animations ────────────────────────────────────── */
+
+@keyframes spectr-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spectr-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spectr-slide-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spectr-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.spectr-animate-in {
+  animation: spectr-slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.spectr-animate-fade {
+  animation: spectr-fade-in 0.4s ease-out forwards;
+}
+
+/* ── Spectr Prose Enhancements ────────────────────────────── */
+
+.prose-fs0ciety {
+  font-family: var(--spectr-font-body);
+}
+
+.prose-fs0ciety h1,
+.prose-fs0ciety h2,
+.prose-fs0ciety h3 {
+  font-family: var(--spectr-font-display);
+}
+
+/* Ordered list styling */
+.prose-fs0ciety .ordered-item {
+  list-style: decimal;
+  margin-left: 1.5em;
+}
+
+/* ── Spectr Accessibility ─────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .spectr-card:hover,
+  .spectr-post-card:hover,
+  .spectr-glow:hover {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .spectr-scan::before,
+  .spectr-status-online .spectr-status-dot,
+  .spectr-classification .spectr-pulse {
+    animation: none !important;
+  }
+
+  .noise-overlay {
+    animation: none !important;
+  }
+}
+
+/* ── Spectr Print Styles ──────────────────────────────────── */
+
+@media print {
+  .spectr-header,
+  .spectr-footer,
+  .spectr-theme-toggle,
+  .spectr-classification,
+  .spectr-progress,
+  .noise-overlay,
+  .crt-overlay {
+    display: none !important;
+  }
+
+  .spectr-post-card::before,
+  .spectr-post-card .spectr-bracket-tl,
+  .spectr-post-card .spectr-bracket-br {
+    display: none !important;
+  }
+
+  .prose-fs0ciety {
+    color: #000 !important;
+    font-size: 12pt !important;
+  }
+
+  .prose-fs0ciety h1,
+  .prose-fs0ciety h2,
+  .prose-fs0ciety h3 {
+    color: #000 !important;
+  }
+}

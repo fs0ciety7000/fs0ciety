@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import type { PostMeta } from "@/types";
 
 const CIPHER = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*!?";
@@ -42,74 +43,89 @@ function useCipherReveal(text: string, speed = 20, cycles = 3) {
 
 interface PostCardProps {
   post: PostMeta;
+  index?: number;
 }
 
-export function PostCard({ post }: PostCardProps) {
+export function PostCard({ post, index = 0 }: PostCardProps) {
   const d = new Date(post.createdAt);
   const date = isNaN(d.getTime())
-    ? "—"
+    ? "\u2014"
     : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
   const cipherTitle = useCipherReveal(post.title);
 
   return (
-    <article className="group post-card-glitch border border-terminal-gray-light hover:border-terminal-green/40 bg-terminal-black-light transition-colors">
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.06, ease: [0.4, 0, 0.2, 1] }}
+      className="group spectr-post-card"
+    >
+      {/* Corner brackets (dark mode) */}
+      <span className="spectr-bracket-tl" />
+      <span className="spectr-bracket-br" />
+
       <Link href={`/blog/${post.slug}`} className="block p-6">
-        {/* Meta row */}
-        <div className="flex items-center gap-3 mb-2 text-xs font-mono text-terminal-green-dim opacity-50">
-          {post.author && (
-            <>
-              <span
-                className="text-terminal-cyan hover:text-terminal-green transition-colors cursor-pointer"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  window.location.href = `/profile/${post.author}`;
-                }}
-                role="link"
-                tabIndex={0}
-              >
-                @{post.author}
-              </span>
-              <span>&middot;</span>
-            </>
-          )}
-          <time>{date}</time>
-          <span>&middot;</span>
-          <span>{post.readingTime} min read</span>
-          <span>&middot;</span>
-          <span>{post.wordCount} words</span>
+        {/* Classification + meta row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3 spectr-caption">
+            {post.author && (
+              <>
+                <span
+                  className="hover:opacity-100 transition-opacity cursor-pointer"
+                  style={{ color: "var(--spectr-accent-secondary)" }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = `/profile/${post.author}`;
+                  }}
+                  role="link"
+                  tabIndex={0}
+                >
+                  @{post.author}
+                </span>
+                <span style={{ opacity: 0.2 }}>/</span>
+              </>
+            )}
+            <time style={{ color: "var(--spectr-text-muted)" }}>{date}</time>
+            <span style={{ opacity: 0.2 }}>/</span>
+            <span style={{ color: "var(--spectr-text-muted)" }}>{post.readingTime}m read</span>
+          </div>
+          <span className="spectr-label" style={{ opacity: 0.3 }}>
+            {post.wordCount.toLocaleString()}w
+          </span>
         </div>
 
-        {/* Title — cipher decode effect */}
-        <h2 className="text-lg font-mono font-bold text-terminal-green group-hover:text-terminal-green-dim transition-colors mb-2">
+        {/* Title */}
+        <h2 className="spectr-display text-lg mb-2 transition-colors" style={{ color: "var(--spectr-text-primary)" }}>
           {cipherTitle}
         </h2>
 
         {/* Excerpt */}
         {post.excerpt && (
-          <p className="text-sm text-[#a3a3a3] font-sans mb-3 line-clamp-2">
+          <p className="spectr-body text-sm mb-4 line-clamp-2" style={{ color: "var(--spectr-text-secondary)", lineHeight: 1.6 }}>
             {post.excerpt}
           </p>
         )}
 
-        {/* Tags */}
-        <div className="flex flex-wrap gap-2">
-          {post.tags.map((tag) => (
-            <span
-              key={tag}
-              className="text-xs font-mono px-2 py-0.5 border border-terminal-green/20 text-terminal-green-dim"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
+        {/* Tags + read indicator */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-1.5">
+            {post.tags.map((tag) => (
+              <span key={tag} className="spectr-tag" style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem" }}>
+                #{tag}
+              </span>
+            ))}
+          </div>
 
-        {/* Read more indicator */}
-        <div className="mt-4 text-xs font-mono text-terminal-cyan opacity-0 group-hover:opacity-60 transition-opacity">
-          cat {post.slug} &rarr;
+          <span
+            className="spectr-label opacity-0 group-hover:opacity-60 transition-opacity"
+            style={{ color: "var(--spectr-accent-secondary)" }}
+          >
+            read &rarr;
+          </span>
         </div>
       </Link>
-    </article>
+    </motion.article>
   );
 }

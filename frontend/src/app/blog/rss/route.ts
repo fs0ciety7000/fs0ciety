@@ -11,6 +11,7 @@ interface RSSPost {
   tags: string[];
   createdAt: string;
   readingTime: number;
+  wordCount: number;
 }
 
 function escapeXml(s: string): string {
@@ -47,6 +48,7 @@ export async function GET() {
       <description>${escapeXml(p.excerpt)}</description>
       <author>${escapeXml(p.author)}</author>
       ${p.tags.map((t) => `<category>${escapeXml(t)}</category>`).join("\n      ")}
+      <enclosure url="${blogUrl}/${escapeXml(p.slug)}" type="text/html" length="${p.wordCount}" />
     </item>`
     )
     .join("\n");

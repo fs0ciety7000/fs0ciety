@@ -21,10 +21,10 @@ export function ReadingProgress() {
   if (progress <= 0) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 h-[2px]">
+    <div className="spectr-progress">
       <div
-        className="h-full bg-terminal-green transition-[width] duration-150 ease-out"
-        style={{ width: `${progress}%`, boxShadow: "0 0 8px rgba(0, 255, 65, 0.6)" }}
+        className="spectr-progress-bar"
+        style={{ width: `${progress}%` }}
       />
     </div>
   );

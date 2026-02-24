@@ -28,19 +28,20 @@ export function useTheme(): [BlogTheme, (t: BlogTheme) => void] {
 
 export function ThemeToggle() {
   const [theme, setTheme] = useTheme();
+  const isIndustrial = theme === "industrial";
 
   return (
     <button
-      onClick={() => setTheme(theme === "terminal" ? "industrial" : "terminal")}
-      className="theme-toggle-btn"
-      title={`Switch to ${theme === "terminal" ? "Industrial" : "Terminal"} theme`}
+      onClick={() => setTheme(isIndustrial ? "terminal" : "industrial")}
+      className="spectr-theme-toggle"
+      title={`Switch to ${isIndustrial ? "Blacksite" : "Clearance"} mode`}
       aria-label="Toggle theme"
     >
-      <span className="theme-toggle-track">
-        <span className={`theme-toggle-thumb ${theme === "industrial" ? "theme-toggle-thumb-on" : ""}`} />
+      <span className="spectr-theme-track">
+        <span className={`spectr-theme-thumb ${isIndustrial ? "spectr-theme-thumb-on" : ""}`} />
       </span>
-      <span className="theme-toggle-label">
-        {theme === "terminal" ? "Terminal" : "Industrial"}
+      <span className="spectr-theme-label">
+        {isIndustrial ? "Clearance" : "Blacksite"}
       </span>
     </button>
   );

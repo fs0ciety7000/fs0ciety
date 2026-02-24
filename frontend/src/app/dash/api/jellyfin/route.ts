@@ -45,6 +45,7 @@ interface JellyfinItem {
   Name: string;
   Type: string;
   SeriesName?: string;
+  SeriesId?: string;
   DateCreated?: string;
   ImageTags?: { Primary?: string };
   ProductionYear?: number;
@@ -59,14 +60,19 @@ export async function GET() {
   }
 
   try {
-    const [countsRes, sessionsRes, recentRes] = await Promise.allSettled([
-      fetch(`${JELLYFIN_URL}/Items/Counts`, { headers: headers() }),
-      fetch(`${JELLYFIN_URL}/Sessions`, { headers: headers() }),
-      fetch(
-        `${JELLYFIN_URL}/Items/Latest?Limit=12&EnableImages=true&ImageTypeLimit=1&EnableTotalRecordCount=false`,
-        { headers: headers() }
-      ),
-    ]);
+    const [countsRes, sessionsRes, recentMoviesRes, recentEpisodesRes] =
+      await Promise.allSettled([
+        fetch(`${JELLYFIN_URL}/Items/Counts`, { headers: headers() }),
+        fetch(`${JELLYFIN_URL}/Sessions`, { headers: headers() }),
+        fetch(
+          `${JELLYFIN_URL}/Items/Latest?IncludeItemTypes=Movie&Limit=12&EnableImages=true&ImageTypeLimit=1`,
+          { headers: headers() }
+        ),
+        fetch(
+          `${JELLYFIN_URL}/Items/Latest?IncludeItemTypes=Episode&Limit=24&EnableImages=true&ImageTypeLimit=1&Fields=SeriesName,SeriesId`,
+          { headers: headers() }
+        ),
+      ]);
 
     // Counts
     let counts: JellyfinCounts | null = null;
@@ -98,7 +104,6 @@ export async function GET() {
           const imageUrl = item.ImageTags?.Primary
             ? `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?maxHeight=200&api_key=${JELLYFIN_API_KEY}`
             : null;
-
           return {
             user: s.UserName,
             client: s.Client,
@@ -113,29 +118,63 @@ export async function GET() {
         });
     }
 
-    // Recent items
-    let recent: Array<{
+    // Recent movies
+    let recentMovies: Array<{
       id: string;
       name: string;
-      type: string;
-      seriesName?: string;
       year?: number;
       dateCreated?: string;
       imageUrl: string | null;
     }> = [];
-    if (recentRes.status === "fulfilled" && recentRes.value.ok) {
-      const items: JellyfinItem[] = await recentRes.value.json();
-      recent = items.map((item) => ({
+    if (recentMoviesRes.status === "fulfilled" && recentMoviesRes.value.ok) {
+      const movies: JellyfinItem[] = await recentMoviesRes.value.json();
+      recentMovies = movies.map((item) => ({
         id: item.Id,
         name: item.Name,
-        type: item.Type,
-        seriesName: item.SeriesName,
         year: item.ProductionYear,
         dateCreated: item.DateCreated,
         imageUrl: item.ImageTags?.Primary
-          ? `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?maxHeight=150&api_key=${JELLYFIN_API_KEY}`
+          ? `${JELLYFIN_URL}/Items/${item.Id}/Images/Primary?maxHeight=300&api_key=${JELLYFIN_API_KEY}`
           : null,
       }));
+    }
+
+    // Recent episodes → deduplicated by series, using series poster
+    let recentEpisodes: Array<{
+      id: string;
+      name: string;
+      seriesName?: string;
+      seriesId?: string;
+      dateCreated?: string;
+      imageUrl: string | null;
+    }> = [];
+    if (
+      recentEpisodesRes.status === "fulfilled" &&
+      recentEpisodesRes.value.ok
+    ) {
+      const episodes: JellyfinItem[] = await recentEpisodesRes.value.json();
+      const seenSeries = new Set<string>();
+      for (const ep of episodes) {
+        const key = ep.SeriesId || ep.Id;
+        if (ep.SeriesId && seenSeries.has(key)) continue;
+        if (ep.SeriesId) seenSeries.add(key);
+
+        recentEpisodes.push({
+          id: ep.Id,
+          name: ep.Name,
+          seriesName: ep.SeriesName,
+          seriesId: ep.SeriesId,
+          dateCreated: ep.DateCreated,
+          // Use series poster for series items
+          imageUrl: ep.SeriesId
+            ? `${JELLYFIN_URL}/Items/${ep.SeriesId}/Images/Primary?maxHeight=300&api_key=${JELLYFIN_API_KEY}`
+            : ep.ImageTags?.Primary
+            ? `${JELLYFIN_URL}/Items/${ep.Id}/Images/Primary?maxHeight=300&api_key=${JELLYFIN_API_KEY}`
+            : null,
+        });
+
+        if (recentEpisodes.length >= 12) break;
+      }
     }
 
     return NextResponse.json({
@@ -150,9 +189,13 @@ export async function GET() {
           }
         : null,
       nowPlaying,
-      recent,
+      recentMovies,
+      recentEpisodes,
     });
   } catch {
-    return NextResponse.json({ counts: null, nowPlaying: [], recent: [] }, { status: 500 });
+    return NextResponse.json(
+      { counts: null, nowPlaying: [], recentMovies: [], recentEpisodes: [] },
+      { status: 500 }
+    );
   }
 }

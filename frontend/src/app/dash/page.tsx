@@ -88,12 +88,18 @@ interface JellyfinData {
     isPaused: boolean;
     imageUrl: string | null;
   }>;
-  recent: Array<{
+  recentMovies: Array<{
     id: string;
     name: string;
-    type: string;
-    seriesName?: string;
     year?: number;
+    dateCreated?: string;
+    imageUrl: string | null;
+  }>;
+  recentEpisodes: Array<{
+    id: string;
+    name: string;
+    seriesName?: string;
+    seriesId?: string;
     dateCreated?: string;
     imageUrl: string | null;
   }>;
@@ -189,6 +195,35 @@ interface SonarrData {
   } | null;
 }
 
+interface PlexData {
+  connected: boolean;
+  libraries: { movies: number; shows: number; episodes: number } | null;
+  nowPlaying: Array<{
+    user: string;
+    device: string;
+    title: string;
+    seriesName?: string;
+    type: string;
+    progress: number;
+    isPaused: boolean;
+    imageUrl: string | null;
+  }>;
+  recentMovies: Array<{
+    id: string;
+    name: string;
+    year?: number;
+    imageUrl: string | null;
+    href: string;
+  }>;
+  recentEpisodes: Array<{
+    id: string;
+    name: string;
+    seriesName?: string;
+    imageUrl: string | null;
+    href: string;
+  }>;
+}
+
 interface SABData {
   connected?: boolean;
   speed: string;
@@ -238,6 +273,27 @@ function useDashTheme(): [DashTheme, (t: DashTheme) => void] {
   };
 
   return [theme, setTheme];
+}
+
+// ── Media mode ──────────────────────────────────────────────
+
+type MediaMode = "jellyfin" | "plex" | "both";
+const MEDIA_MODE_KEY = "fs0ciety_media_mode";
+
+function useMediaMode(): [MediaMode, (m: MediaMode) => void] {
+  const [mode, setModeState] = useState<MediaMode>("jellyfin");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(MEDIA_MODE_KEY) as MediaMode | null;
+    if (saved === "plex" || saved === "both") setModeState(saved);
+  }, []);
+
+  const setMode = (m: MediaMode) => {
+    setModeState(m);
+    localStorage.setItem(MEDIA_MODE_KEY, m);
+  };
+
+  return [mode, setMode];
 }
 
 // ── Colors ──────────────────────────────────────────────────
@@ -696,10 +752,31 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
   }, []);
 
   if (loading) return <div className={c.card}><SectionHeader title="Jellyfin" icon=">" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data) return null;
+  if (!data) return (
+    <div className={c.card}>
+      <SectionHeader title="Jellyfin" icon=">" theme={theme} />
+      <div className={`text-xs font-mono ${c.textMuted} py-2`}>Unable to connect to Jellyfin — check JELLYFIN_API_KEY.</div>
+    </div>
+  );
+
+  const posterCard = (id: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
+    <a key={id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${id}`} target="_blank" rel="noopener noreferrer"
+      className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="" className="w-full h-36 object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+      ) : (
+        <div className={`w-full h-36 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+      )}
+      <div className="p-1.5">
+        <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors leading-tight`}>{title}</div>
+        {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
+      </div>
+    </a>
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {data.counts && (
         <div className={c.card}>
           {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
@@ -733,9 +810,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
                     <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
-                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>
-                      {s.isPaused ? "⏸" : "▶"}
-                    </span>
+                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>{s.isPaused ? "⏸" : "▶"}</span>
                     <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.device}</span>
                   </div>
                   <div className={`w-full h-0.5 ${c.progressBg} mt-1`}>
@@ -748,31 +823,147 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
         </div>
       )}
 
-      {data.recent.length > 0 && (
+      {data.recentMovies.length > 0 && (
         <div className={c.card}>
-          <SectionHeader title="Recently Added" icon="+" theme={theme} />
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {data.recent.map((item) => (
-              <a key={item.id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`} target="_blank" rel="noopener noreferrer"
-                className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
-                {item.imageUrl ? (
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+          <SectionHeader title="Recent Films" icon="▶" theme={theme} />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+            {data.recentMovies.map((item) =>
+              posterCard(item.id, item.imageUrl, item.name, item.year?.toString(), "Film")
+            )}
+          </div>
+        </div>
+      )}
+
+      {data.recentEpisodes.length > 0 && (
+        <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+          <SectionHeader title="Recent Shows" icon="▶" theme={theme} />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+            {data.recentEpisodes.map((item) =>
+              posterCard(
+                item.seriesId || item.id,
+                item.imageUrl,
+                item.seriesName || item.name,
+                item.name !== item.seriesName ? item.name : undefined,
+                "TV"
+              )
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Plex Section ─────────────────────────────────────────────
+
+function PlexSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<PlexData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/plex")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    const interval = setInterval(() => {
+      fetch("/dash/api/plex").then((r) => r.json()).then(setData).catch(() => {});
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="Plex" icon=">" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data || !data.connected) return (
+    <div className={c.card}>
+      <SectionHeader title="Plex" icon=">" theme={theme} />
+      <div className={`text-xs font-mono ${c.textMuted} py-2`}>Unable to connect to Plex — check PLEX_TOKEN.</div>
+    </div>
+  );
+
+  const posterCard = (id: string, href: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
+    <a key={id} href={href} target="_blank" rel="noopener noreferrer"
+      className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
+      {imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={imageUrl} alt="" className="w-full h-36 object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+      ) : (
+        <div className={`w-full h-36 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+      )}
+      <div className="p-1.5">
+        <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors leading-tight`}>{title}</div>
+        {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
+      </div>
+    </a>
+  );
+
+  return (
+    <div className="space-y-3">
+      {data.libraries && (
+        <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+          <SectionHeader title="Plex Library" icon=">" theme={theme} />
+          <div className="grid grid-cols-3 gap-2">
+            <HudStat label="Movies" value={formatNumber(data.libraries.movies)} color={c.amber} theme={theme} />
+            <HudStat label="Shows" value={formatNumber(data.libraries.shows)} color={c.cyan} theme={theme} />
+            <HudStat label="Episodes" value={formatNumber(data.libraries.episodes)} color={c.green} theme={theme} />
+          </div>
+        </div>
+      )}
+
+      {data.nowPlaying.length > 0 && (
+        <div className={c.card}>
+          <SectionHeader title="Now Playing" icon="▶" theme={theme}
+            extra={<span className={c.liveTag}>LIVE</span>} />
+          <div className="space-y-3">
+            {data.nowPlaying.map((s, i) => (
+              <div key={i} className="flex items-center gap-3">
+                {s.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.imageUrl} alt="" className="w-full h-28 object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
-                ) : (
-                  <div className={`w-full h-28 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>
-                    {item.type === "Movie" ? "Film" : "TV"}
-                  </div>
+                  <img src={s.imageUrl} alt="" className={c.imgThumb} />
                 )}
-                <div className="p-1.5">
-                  <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors`}>
-                    {item.seriesName || item.name}
+                <div className="flex-1 min-w-0">
+                  <div className={`text-xs font-mono ${c.textMain} truncate`}>
+                    {s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}
                   </div>
-                  {item.seriesName && (
-                    <div className={`text-[9px] font-mono ${c.textMuted2} truncate`}>{item.name}</div>
-                  )}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
+                    <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
+                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>{s.isPaused ? "⏸" : "▶"}</span>
+                    <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.device}</span>
+                  </div>
+                  <div className={`w-full h-0.5 ${c.progressBg} mt-1`}>
+                    <div className={`h-full ${c.progressFill} transition-all`} style={{ width: `${s.progress}%` }} />
+                  </div>
                 </div>
-              </a>
+              </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {data.recentMovies.length > 0 && (
+        <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+          <SectionHeader title="Recent Films" icon="▶" theme={theme} />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+            {data.recentMovies.map((item) =>
+              posterCard(item.id, item.href, item.imageUrl, item.name, item.year?.toString(), "Film")
+            )}
+          </div>
+        </div>
+      )}
+
+      {data.recentEpisodes.length > 0 && (
+        <div className={c.card}>
+          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+          <SectionHeader title="Recent Shows" icon="▶" theme={theme} />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+            {data.recentEpisodes.map((item) =>
+              posterCard(item.id, item.href, item.imageUrl, item.name, undefined, "TV")
+            )}
           </div>
         </div>
       )}
@@ -1138,30 +1329,29 @@ function RadarrSection({ theme }: { theme: DashTheme }) {
         <HudStat label="Downloaded" value={data.stats.withFile.toString()} color={c.green} theme={theme} />
         <HudStat label="Missing" value={data.stats.missing.toString()} color={data.stats.missing > 0 ? c.red : c.textMuted} theme={theme} />
       </div>
-      {data.diskspace.length > 0 && (
-        <div>
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Disk Space — cinenode.org</div>
-          <div className="space-y-2.5">
-            {data.diskspace.map((d, i) => (
-              <div key={i}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className={`text-[10px] font-mono ${c.textDim} truncate`}>{d.label || d.path}</span>
-                  <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums shrink-0 ml-2`}>{d.freeSpace} free</span>
-                </div>
-                <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
-                  <div
-                    className={`h-full rounded-full transition-all ${d.usedPercent > 85 ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
-                    style={{ width: `${d.usedPercent}%` }}
-                  />
-                </div>
-                <div className={`text-[9px] font-mono ${c.textMuted2} mt-0.5 text-right`}>
-                  {d.usedPercent}% of {d.totalSpace}
-                </div>
-              </div>
-            ))}
+      {(() => {
+        const disk = data.diskspace.find(d => d.path === "/mnt/mpathae");
+        if (!disk) return null;
+        const warn = disk.usedPercent > 85;
+        return (
+          <div>
+            <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Disk — cinenode.org</div>
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-[10px] font-mono ${c.textDim}`}>/storage</span>
+              <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{disk.freeSpace} free</span>
+            </div>
+            <div className={`w-full h-1.5 ${c.progressBg} rounded-full`}>
+              <div
+                className={`h-full rounded-full transition-all ${warn ? (theme === "industrial" ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+                style={{ width: `${disk.usedPercent}%` }}
+              />
+            </div>
+            <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-0.5 text-right`}>
+              {disk.usedPercent}% of {disk.totalSpace}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -1225,6 +1415,34 @@ function DashThemeToggle({ theme, setTheme }: { theme: DashTheme; setTheme: (t: 
   );
 }
 
+// ── Media Mode Toggle ────────────────────────────────────────
+
+function MediaModeToggle({ mode, setMode, theme }: { mode: MediaMode; setMode: (m: MediaMode) => void; theme: DashTheme }) {
+  const ind = theme === "industrial";
+  const options: { value: MediaMode; label: string }[] = [
+    { value: "jellyfin", label: "Jellyfin" },
+    { value: "both", label: "Both" },
+    { value: "plex", label: "Plex" },
+  ];
+  return (
+    <div className={`flex items-center gap-0.5 p-0.5 ${ind ? "bg-[#0D0E11] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+      {options.map((opt) => {
+        const active = mode === opt.value;
+        return (
+          <button key={opt.value} onClick={() => setMode(opt.value)}
+            className={`px-3 py-1 text-[10px] font-mono uppercase tracking-wider transition-all ${
+              active
+                ? ind ? "bg-[#F5622A] text-[#0D0E11] font-bold" : "bg-terminal-green text-terminal-black font-bold"
+                : ind ? "text-[#5A5550] hover:text-[#9A948C]" : "text-terminal-green-dim/50 hover:text-terminal-green-dim"
+            }`}>
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Tab system ───────────────────────────────────────────────
 
 type DashTab = "start" | "media";
@@ -1268,6 +1486,7 @@ function TabBar({ active, onSelect, theme }: { active: DashTab; onSelect: (t: Da
 export default function StartPage() {
   const [time, setTime] = useState("");
   const [theme, setTheme] = useDashTheme();
+  const [mediaMode, setMediaMode] = useMediaMode();
   const [tabState, setTabState] = useState<{ current: DashTab; prev: DashTab }>({ current: "start", prev: "start" });
   const tab = tabState.current;
   const tabDir = (["start", "media"] as DashTab[]).indexOf(tabState.current) - (["start", "media"] as DashTab[]).indexOf(tabState.prev);
@@ -1416,9 +1635,19 @@ export default function StartPage() {
                 <SonarrSection theme={theme} />
               </motion.div>
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              <motion.div className="flex items-center justify-between"
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.21 }}>
-                <JellyfinSection theme={theme} />
+                <span className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider`}>Media Server</span>
+                <MediaModeToggle mode={mediaMode} setMode={setMediaMode} theme={theme} />
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.25 }}>
+                <div className="space-y-3">
+                  {(mediaMode === "jellyfin" || mediaMode === "both") && <JellyfinSection theme={theme} />}
+                  {(mediaMode === "plex" || mediaMode === "both") && <PlexSection theme={theme} />}
+                </div>
               </motion.div>
             </div>
           )}

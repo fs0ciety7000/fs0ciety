@@ -86,8 +86,7 @@ services:
       - traefik.http.routers.surrealdb.entrypoints=https
       - traefik.http.routers.surrealdb.tls.certresolver=letsencrypt
       - traefik.http.services.surrealdb.loadbalancer.server.port=8000
-    networks:
-      - coolify
+
 
   # ── Tor Hidden Service ────────────────────────────────────
   # Runs a Tor daemon that exposes the frontend as a .onion site.

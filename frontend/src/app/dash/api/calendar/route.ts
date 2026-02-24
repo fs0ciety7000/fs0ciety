@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 const ICAL_URL =
   "https://calendar.google.com/calendar/ical/1521e628a07f4ad3ba9865d0c254a339976e87cef50e289275e39aa03a527e9c%40group.calendar.google.com/private-50ef96f5e8b3c025e6f07be3d0d613f1/basic.ics";
 

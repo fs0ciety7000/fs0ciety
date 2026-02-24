@@ -300,6 +300,24 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
     }
   );
 
+  // Callout blocks: [!type]...[/!type]
+  processed = processed.replace(
+    /\[!(info|warning|danger|tip)\]\n?([\s\S]*?)\n?\[\/!\1\]/g,
+    (_m, type: string, content: string) => {
+      return `<div class="callout callout-${type}"><span class="callout-label">${type}</span><div class="callout-content">${content}</div></div>`;
+    }
+  );
+
+  // Collapsible: [details Title]...[/details]
+  processed = processed.replace(
+    /\[details ([^\]]+)\]\n?([\s\S]*?)\n?\[\/details\]/g,
+    '<details class="collapsible"><summary>$1</summary><div class="collapsible-content">$2</div></details>'
+  );
+
+  // Task lists: - [x] and - [ ]
+  processed = processed.replace(/^- \[x\] (.+)$/gm, '<div class="task-item task-done"><span class="task-check">&#9745;</span> <span class="task-text-done">$1</span></div>');
+  processed = processed.replace(/^- \[ \] (.+)$/gm, '<div class="task-item"><span class="task-check-empty">&#9744;</span> $1</div>');
+
   // Inline code
   processed = processed.replace(/`([^`]+)`/g, "<code>$1</code>");
 
@@ -317,6 +335,16 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
 
   // Italic
   processed = processed.replace(/\*(.+?)\*/g, "<em>$1</em>");
+
+  // Highlight
+  processed = processed.replace(/==(.+?)==/g, '<mark class="highlight">$1</mark>');
+
+  // Footnote references and definitions
+  processed = processed.replace(/\[\^(\d+)\](?!:)/g, '<sup class="footnote-ref"><a href="#fn-$1" id="fnref-$1">[$1]</a></sup>');
+  processed = processed.replace(
+    /\[\^(\d+)\]: (.+)$/gm,
+    '<div class="footnote" id="fn-$1"><sup class="footnote-ref">[$1]</sup> $2 <a href="#fnref-$1" class="footnote-back">&uarr;</a></div>'
+  );
 
   // Blockquote
   processed = processed.replace(/^> (.+)$/gm, "<blockquote>$1</blockquote>");

@@ -6,32 +6,29 @@ const SEERR_URL = process.env.SEERR_URL || "https://requests.cinenode.org";
 const SEERR_API_KEY = process.env.SEERR_API_KEY || "";
 
 function seerrHeaders(): HeadersInit {
-  return {
-    "X-Api-Key": SEERR_API_KEY,
-    Accept: "application/json",
-  };
+  return { "X-Api-Key": SEERR_API_KEY, Accept: "application/json" };
+}
+
+interface SeerrMedia {
+  id: number;
+  tmdbId: number;
+  tvdbId?: number;
+  status: number;
+  mediaType: string;
+  posterPath?: string;
+  // Jellyseerr includes these directly
+  title?: string;
+  originalTitle?: string;
+  name?: string;
+  originalName?: string;
 }
 
 interface SeerrRequest {
   id: number;
   status: number; // 1=pending, 2=approved, 3=declined, 4=processing, 5=available
   type: "movie" | "tv";
-  media: {
-    id: number;
-    tmdbId: number;
-    tvdbId?: number;
-    status: number;
-    mediaType: string;
-    posterPath?: string;
-  };
-  requestedBy: {
-    id: number;
-    displayName: string;
-    avatar?: string;
-  };
-  modifiedBy?: {
-    displayName: string;
-  };
+  media: SeerrMedia;
+  requestedBy: { id: number; displayName: string; avatar?: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -58,14 +55,24 @@ function statusLabel(status: number): string {
   }
 }
 
-// Fetch media details from Seerr to get the title
-async function fetchMediaTitle(req: SeerrRequest): Promise<string> {
+// Try to get title from the media object directly (Jellyseerr embeds it),
+// then fall back to a single Seerr API call with a 4s timeout.
+async function resolveTitle(req: SeerrRequest): Promise<string> {
+  const direct =
+    req.type === "movie"
+      ? req.media.title || req.media.originalTitle
+      : req.media.name || req.media.originalName;
+  if (direct) return direct;
+
   try {
     const endpoint =
       req.type === "movie"
         ? `${SEERR_URL}/api/v1/movie/${req.media.tmdbId}`
         : `${SEERR_URL}/api/v1/tv/${req.media.tmdbId}`;
-    const res = await fetch(endpoint, { headers: seerrHeaders() });
+    const res = await fetch(endpoint, {
+      headers: seerrHeaders(),
+      signal: AbortSignal.timeout(4000),
+    });
     if (res.ok) {
       const data = await res.json();
       return data.title || data.name || "Unknown";
@@ -84,10 +91,9 @@ export async function GET() {
 
   try {
     const [requestsRes, countRes] = await Promise.allSettled([
-      fetch(
-        `${SEERR_URL}/api/v1/request?take=10&skip=0&sort=modified&requestedBy=all`,
-        { headers: seerrHeaders() }
-      ),
+      fetch(`${SEERR_URL}/api/v1/request?take=10&skip=0&sort=added`, {
+        headers: seerrHeaders(),
+      }),
       fetch(`${SEERR_URL}/api/v1/request/count`, { headers: seerrHeaders() }),
     ]);
 
@@ -105,10 +111,8 @@ export async function GET() {
       const data = await requestsRes.value.json();
       const rawRequests: SeerrRequest[] = data.results || [];
 
-      // Fetch titles in parallel
-      const titles = await Promise.all(
-        rawRequests.map((r) => fetchMediaTitle(r))
-      );
+      // Resolve titles in parallel (uses embedded field if available)
+      const titles = await Promise.all(rawRequests.map(resolveTitle));
 
       requests = rawRequests.map((r, i) => ({
         id: r.id,

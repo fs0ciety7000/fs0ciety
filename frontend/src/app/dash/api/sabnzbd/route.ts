@@ -70,11 +70,11 @@ export async function GET() {
       }
     }
 
-    // Global speed from queue
-    const currentSpeed = queueRaw?.queue?.speed || "0 B/s";
+    // Global speed — kbpersec is more reliable than the speed string field
     const speedBps = queueRaw?.queue?.kbpersec
       ? parseFloat(queueRaw.queue.kbpersec) * 1024
       : 0;
+    const currentSpeed = speedBps > 0 ? formatBytes(speedBps) + "/s" : "0 B/s";
 
     // History - recent completed
     const recentHistory: Array<{

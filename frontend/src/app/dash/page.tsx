@@ -754,7 +754,9 @@ function Calendar({ theme }: { theme: DashTheme }) {
 function JellyfinSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<JellyfinData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(true);
   const c = cx(theme);
+  const ind = theme === "industrial";
 
   useEffect(() => {
     fetch("/dash/api/jellyfin")
@@ -776,46 +778,45 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
     </div>
   );
 
-  const posterCard = (id: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
-    <a key={id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${id}`} target="_blank" rel="noopener noreferrer"
-      className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
+  const divider = `border-t ${ind ? "border-[#252830]" : "border-terminal-gray-light"} pt-3 mt-3`;
+  const hasRecent = data.recentMovies.length > 0 || data.recentEpisodes.length > 0;
+
+  const posterCard = (id: string, href: string, imageUrl: string | null, title: string, sub?: string) => (
+    <a key={id} href={href} target="_blank" rel="noopener noreferrer"
+      className={`group overflow-hidden ${ind ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
       <div className="w-full aspect-[2/3] overflow-hidden">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
         ) : (
-          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-[9px] font-mono`}>?</div>
         )}
       </div>
-      <div className="p-1.5">
-        <div className={`text-[10px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
-        {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
+      <div className="p-1">
+        <div className={`text-[9px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
+        {sub && <div className={`text-[8px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
       </div>
     </a>
   );
 
   return (
-    <div className="space-y-3">
-      {data.counts && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Jellyfin Library" icon=">" theme={theme} />
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <HudStat label="Movies" value={formatNumber(data.counts.movies)} color={c.amber} theme={theme} />
-            <HudStat label="Series" value={formatNumber(data.counts.series)} color={c.cyan} theme={theme} />
-            <HudStat label="Episodes" value={formatNumber(data.counts.episodes)} color={c.green} theme={theme} />
-            <HudStat label="Artists" value={formatNumber(data.counts.artists)} color={c.purple} theme={theme} />
-            <HudStat label="Albums" value={formatNumber(data.counts.albums)} color={c.amber} theme={theme} />
-            <HudStat label="Songs" value={formatNumber(data.counts.songs)} color={c.cyan} theme={theme} />
-          </div>
-        </div>
-      )}
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Jellyfin" icon=">" theme={theme}
+        extra={hasRecent ? (
+          <button onClick={() => setExpanded(!expanded)}
+            className={`text-[9px] font-mono px-2 py-0.5 border transition-all ${ind ? "border-[#252830] text-[#5A5550] hover:text-[#9A948C] hover:border-[#F5622A]/30" : "border-terminal-gray-light text-terminal-green-dim/40 hover:text-terminal-green-dim"}`}>
+            {expanded ? "▲" : "▼"}
+          </button>
+        ) : undefined} />
 
+      {/* Now Playing */}
       {data.nowPlaying.length > 0 && (
-        <div className={c.card}>
-          <SectionHeader title="Now Playing" icon="▶" theme={theme}
-            extra={<span className={c.liveTag}>LIVE</span>} />
-          <div className="space-y-3">
+        <div className="mb-3">
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2 flex items-center gap-2`}>
+            <span>Now Playing</span><span className={c.liveTag}>LIVE</span>
+          </div>
+          <div className="space-y-2">
             {data.nowPlaying.map((s, i) => (
               <div key={i} className="flex items-center gap-3">
                 {s.imageUrl && (
@@ -823,9 +824,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
                   <img src={s.imageUrl} alt="" className={c.imgThumb} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className={`text-xs font-mono ${c.textMain} truncate`}>
-                    {s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}
-                  </div>
+                  <div className={`text-xs font-mono ${c.textMain} truncate`}>{s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}</div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
                     <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
@@ -842,30 +841,42 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
         </div>
       )}
 
-      {data.recentMovies.length > 0 && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Recent Films" icon="▶" theme={theme} />
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+      {/* Library stats */}
+      {data.counts && (
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <HudStat label="Movies" value={formatNumber(data.counts.movies)} color={c.amber} theme={theme} />
+          <HudStat label="Series" value={formatNumber(data.counts.series)} color={c.cyan} theme={theme} />
+          <HudStat label="Episodes" value={formatNumber(data.counts.episodes)} color={c.green} theme={theme} />
+          <HudStat label="Artists" value={formatNumber(data.counts.artists)} color={c.purple} theme={theme} />
+          <HudStat label="Albums" value={formatNumber(data.counts.albums)} color={c.amber} theme={theme} />
+          <HudStat label="Songs" value={formatNumber(data.counts.songs)} color={c.cyan} theme={theme} />
+        </div>
+      )}
+
+      {/* Recent Films — collapsible */}
+      {expanded && data.recentMovies.length > 0 && (
+        <div className={divider}>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2`}>Recent Films</div>
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
             {data.recentMovies.map((item) =>
-              posterCard(item.id, item.imageUrl, item.name, item.year?.toString(), "Film")
+              posterCard(item.id, `https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`, item.imageUrl, item.name, item.year?.toString())
             )}
           </div>
         </div>
       )}
 
-      {data.recentEpisodes.length > 0 && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Recent Shows" icon="▶" theme={theme} />
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+      {/* Recent Shows — collapsible */}
+      {expanded && data.recentEpisodes.length > 0 && (
+        <div className={divider}>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2`}>Recent Shows</div>
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
             {data.recentEpisodes.map((item) =>
               posterCard(
                 item.seriesId || item.id,
+                `https://jellyfin.cinenode.org/web/#!/details?id=${item.seriesId || item.id}`,
                 item.imageUrl,
                 item.seriesName || item.name,
-                item.name !== item.seriesName ? item.name : undefined,
-                "TV"
+                item.name !== item.seriesName ? item.name : undefined
               )
             )}
           </div>
@@ -880,7 +891,9 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
 function PlexSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<PlexData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(true);
   const c = cx(theme);
+  const ind = theme === "industrial";
 
   useEffect(() => {
     fetch("/dash/api/plex")
@@ -902,43 +915,45 @@ function PlexSection({ theme }: { theme: DashTheme }) {
     </div>
   );
 
-  const posterCard = (id: string, href: string, imageUrl: string | null, title: string, sub?: string, placeholder = "?") => (
+  const divider = `border-t ${ind ? "border-[#252830]" : "border-terminal-gray-light"} pt-3 mt-3`;
+  const hasRecent = data.recentMovies.length > 0 || data.recentEpisodes.length > 0;
+
+  const posterCard = (id: string, href: string, imageUrl: string | null, title: string, sub?: string) => (
     <a key={id} href={href} target="_blank" rel="noopener noreferrer"
-      className={`group overflow-hidden ${theme === "industrial" ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
+      className={`group overflow-hidden ${ind ? "bg-[#141619] border border-[#252830] hover:border-[#F5622A]/40" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
       <div className="w-full aspect-[2/3] overflow-hidden">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity" />
+          <img src={imageUrl} alt="" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
         ) : (
-          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>{placeholder}</div>
+          <div className={`w-full h-full ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-[9px] font-mono`}>?</div>
         )}
       </div>
-      <div className="p-1.5">
-        <div className={`text-[10px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
-        {sub && <div className={`text-[9px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
+      <div className="p-1">
+        <div className={`text-[9px] font-mono ${c.textDim} truncate leading-tight`}>{title}</div>
+        {sub && <div className={`text-[8px] font-mono ${c.textMuted2} truncate mt-0.5`}>{sub}</div>}
       </div>
     </a>
   );
 
   return (
-    <div className="space-y-3">
-      {data.libraries && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Plex Library" icon=">" theme={theme} />
-          <div className="grid grid-cols-3 gap-2">
-            <HudStat label="Movies" value={formatNumber(data.libraries.movies)} color={c.amber} theme={theme} />
-            <HudStat label="Shows" value={formatNumber(data.libraries.shows)} color={c.cyan} theme={theme} />
-            <HudStat label="Episodes" value={formatNumber(data.libraries.episodes)} color={c.green} theme={theme} />
-          </div>
-        </div>
-      )}
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Plex" icon=">" theme={theme}
+        extra={hasRecent ? (
+          <button onClick={() => setExpanded(!expanded)}
+            className={`text-[9px] font-mono px-2 py-0.5 border transition-all ${ind ? "border-[#252830] text-[#5A5550] hover:text-[#9A948C] hover:border-[#F5622A]/30" : "border-terminal-gray-light text-terminal-green-dim/40 hover:text-terminal-green-dim"}`}>
+            {expanded ? "▲" : "▼"}
+          </button>
+        ) : undefined} />
 
+      {/* Now Playing */}
       {data.nowPlaying.length > 0 && (
-        <div className={c.card}>
-          <SectionHeader title="Now Playing" icon="▶" theme={theme}
-            extra={<span className={c.liveTag}>LIVE</span>} />
-          <div className="space-y-3">
+        <div className="mb-3">
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2 flex items-center gap-2`}>
+            <span>Now Playing</span><span className={c.liveTag}>LIVE</span>
+          </div>
+          <div className="space-y-2">
             {data.nowPlaying.map((s, i) => (
               <div key={i} className="flex items-center gap-3">
                 {s.imageUrl && (
@@ -946,9 +961,7 @@ function PlexSection({ theme }: { theme: DashTheme }) {
                   <img src={s.imageUrl} alt="" className={c.imgThumb} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className={`text-xs font-mono ${c.textMain} truncate`}>
-                    {s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}
-                  </div>
+                  <div className={`text-xs font-mono ${c.textMain} truncate`}>{s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}</div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
                     <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
@@ -965,25 +978,34 @@ function PlexSection({ theme }: { theme: DashTheme }) {
         </div>
       )}
 
-      {data.recentMovies.length > 0 && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Recent Films" icon="▶" theme={theme} />
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+      {/* Library stats */}
+      {data.libraries && (
+        <div className="grid grid-cols-3 gap-2">
+          <HudStat label="Movies" value={formatNumber(data.libraries.movies)} color={c.amber} theme={theme} />
+          <HudStat label="Shows" value={formatNumber(data.libraries.shows)} color={c.cyan} theme={theme} />
+          <HudStat label="Episodes" value={formatNumber(data.libraries.episodes)} color={c.green} theme={theme} />
+        </div>
+      )}
+
+      {/* Recent Films — collapsible */}
+      {expanded && data.recentMovies.length > 0 && (
+        <div className={divider}>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2`}>Recent Films</div>
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
             {data.recentMovies.map((item) =>
-              posterCard(item.id, item.href, item.imageUrl, item.name, item.year?.toString(), "Film")
+              posterCard(item.id, item.href, item.imageUrl, item.name, item.year?.toString())
             )}
           </div>
         </div>
       )}
 
-      {data.recentEpisodes.length > 0 && (
-        <div className={c.card}>
-          {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-          <SectionHeader title="Recent Shows" icon="▶" theme={theme} />
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+      {/* Recent Shows — collapsible */}
+      {expanded && data.recentEpisodes.length > 0 && (
+        <div className={divider}>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2`}>Recent Shows</div>
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
             {data.recentEpisodes.map((item) =>
-              posterCard(item.id, item.href, item.imageUrl, item.name, item.seasonLabel, "TV")
+              posterCard(item.id, item.href, item.imageUrl, item.name, item.seasonLabel)
             )}
           </div>
         </div>

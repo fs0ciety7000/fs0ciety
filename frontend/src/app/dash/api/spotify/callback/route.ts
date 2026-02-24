@@ -54,8 +54,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect back to the dash with a success indicator
-  return NextResponse.redirect(
-    new URL("/dash?spotify=connected", request.nextUrl.origin)
-  );
+  // Redirect back to the dash — derive origin from REDIRECT_URI (avoids 0.0.0.0:3000 in dev)
+  const appOrigin = new URL(REDIRECT_URI).origin;
+  return NextResponse.redirect(`${appOrigin}/dash?spotify=connected`);
 }

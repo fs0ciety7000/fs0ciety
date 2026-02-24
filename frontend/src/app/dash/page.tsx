@@ -271,6 +271,57 @@ interface SpotifyData {
   authUrl?: string;
 }
 
+interface NowPlayingItem {
+  source: "jellyfin" | "plex";
+  user: string;
+  device: string;
+  title: string;
+  seriesName?: string;
+  type: string;
+  progress: number;
+  isPaused: boolean;
+  imageUrl: string | null;
+  thumbUrl: string | null;
+}
+
+interface WeatherData {
+  current: {
+    temp: number;
+    feelsLike: number;
+    humidity: number;
+    windKph: number;
+    label: string;
+    icon: string;
+  };
+  forecast: Array<{
+    date: string;
+    high: number;
+    low: number;
+    precipChance: number;
+    label: string;
+    icon: string;
+  }>;
+}
+
+interface ProwlarrData {
+  indexers: Array<{
+    id: number;
+    name: string;
+    queries: number;
+    grabs: number;
+    rss: number;
+    failedQueries: number;
+    failRate: number;
+    avgMs: number;
+  }>;
+  totals: {
+    queries: number;
+    grabs: number;
+    failed: number;
+    indexerCount: number;
+  };
+}
+
 // ── Theme ───────────────────────────────────────────────────
 
 type DashTheme = "terminal" | "industrial";
@@ -810,37 +861,6 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
           </button>
         ) : undefined} />
 
-      {/* Now Playing */}
-      {data.nowPlaying.length > 0 && (
-        <div className="mb-3">
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2 flex items-center gap-2`}>
-            <span>Now Playing</span><span className={c.liveTag}>LIVE</span>
-          </div>
-          <div className="space-y-2">
-            {data.nowPlaying.map((s, i) => (
-              <div key={i} className="flex items-center gap-3">
-                {s.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.imageUrl} alt="" className={c.imgThumb} />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className={`text-xs font-mono ${c.textMain} truncate`}>{s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
-                    <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
-                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>{s.isPaused ? "⏸" : "▶"}</span>
-                    <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.device}</span>
-                  </div>
-                  <div className={`w-full h-0.5 ${c.progressBg} mt-1`}>
-                    <div className={`h-full ${c.progressFill} transition-all`} style={{ width: `${s.progress}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Library stats */}
       {data.counts && (
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -946,37 +966,6 @@ function PlexSection({ theme }: { theme: DashTheme }) {
             {expanded ? "▲" : "▼"}
           </button>
         ) : undefined} />
-
-      {/* Now Playing */}
-      {data.nowPlaying.length > 0 && (
-        <div className="mb-3">
-          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2 flex items-center gap-2`}>
-            <span>Now Playing</span><span className={c.liveTag}>LIVE</span>
-          </div>
-          <div className="space-y-2">
-            {data.nowPlaying.map((s, i) => (
-              <div key={i} className="flex items-center gap-3">
-                {s.imageUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.imageUrl} alt="" className={c.imgThumb} />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className={`text-xs font-mono ${c.textMain} truncate`}>{s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}</div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
-                    <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
-                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>{s.isPaused ? "⏸" : "▶"}</span>
-                    <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.device}</span>
-                  </div>
-                  <div className={`w-full h-0.5 ${c.progressBg} mt-1`}>
-                    <div className={`h-full ${c.progressFill} transition-all`} style={{ width: `${s.progress}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Library stats */}
       {data.libraries && (
@@ -1306,7 +1295,7 @@ function SABSection({ theme }: { theme: DashTheme }) {
         <div>
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
           <div className="space-y-2">
-            {data.queue.active.map((dl, i) => (
+            {data.queue.active.slice(0, 5).map((dl, i) => (
               <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
@@ -1470,17 +1459,32 @@ function msToTime(ms: number): string {
 function SpotifySection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<SpotifyData | null>(null);
   const [loading, setLoading] = useState(true);
+  // Local progress counter ticked every second for smooth display
+  const [localProgressMs, setLocalProgressMs] = useState(0);
   const c = cx(theme);
 
   useEffect(() => {
     const load = () => fetch("/dash/api/spotify")
       .then((r) => r.json())
-      .then(setData)
+      .then((d: SpotifyData) => {
+        setData(d);
+        // Reset local timer whenever we get fresh data
+        setLocalProgressMs(d.track?.progressMs ?? 0);
+      })
       .catch(() => {});
     load().finally(() => setLoading(false));
-    const interval = setInterval(load, 15_000);
-    return () => clearInterval(interval);
+    const pollInterval = setInterval(load, 15_000);
+    return () => clearInterval(pollInterval);
   }, []);
+
+  // Tick local progress every second when playing
+  useEffect(() => {
+    if (!data?.playing || !data.track) return;
+    const tick = setInterval(() => {
+      setLocalProgressMs((prev) => Math.min(prev + 1000, data.track!.durationMs));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [data]);
 
   if (loading) return null;
 
@@ -1514,6 +1518,7 @@ function SpotifySection({ theme }: { theme: DashTheme }) {
 
   const { track } = data;
   const spotifyGreen = theme === "industrial" ? "#1DB954" : "text-terminal-green";
+  const displayProgress = Math.min((localProgressMs / track.durationMs) * 100, 100);
 
   return (
     <div className={c.card}>
@@ -1538,16 +1543,206 @@ function SpotifySection({ theme }: { theme: DashTheme }) {
         </div>
         <div className="shrink-0 text-right">
           <div className={`text-[10px] font-mono tabular-nums ${c.textMuted}`}>
-            {msToTime(track.progressMs)} / {msToTime(track.durationMs)}
+            {msToTime(localProgressMs)} / {msToTime(track.durationMs)}
           </div>
         </div>
       </div>
       <div className={`w-full h-0.5 ${c.progressBg} mt-2 rounded-full`}>
         <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${track.progress}%`, backgroundColor: spotifyGreen }}
+          className="h-full rounded-full"
+          style={{ width: `${displayProgress}%`, backgroundColor: spotifyGreen, transition: "width 1s linear" }}
         />
       </div>
+    </div>
+  );
+}
+
+// ── Now Playing Section ──────────────────────────────────────
+
+function NowPlayingSection({ theme }: { theme: DashTheme }) {
+  const [items, setItems] = useState<NowPlayingItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/nowplaying")
+      .then((r) => r.json())
+      .then((d) => setItems(d.items || []))
+      .catch(() => {});
+    load().finally(() => setLoading(false));
+    const interval = setInterval(load, 15_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading || items.length === 0) return null;
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Now Playing" icon="▶" theme={theme}
+        extra={<span className={c.liveTag}>LIVE</span>} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {items.map((item, i) => (
+          <div key={i} className={`flex gap-3 p-2 ${ind ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+            {item.thumbUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.thumbUrl} alt="" className="w-14 h-20 object-cover shrink-0" />
+            ) : (
+              <div className={`w-14 h-20 shrink-0 flex items-center justify-center ${c.bgAlt} ${c.textMuted2} text-[9px] font-mono`}>?</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className={`text-[8px] font-mono uppercase font-bold px-1 py-0.5 ${
+                  item.source === "jellyfin"
+                    ? (ind ? "bg-[#A78BFA]/20 text-[#A78BFA]" : "bg-terminal-purple/20 text-terminal-purple")
+                    : (ind ? "bg-[#F5A623]/20 text-[#F5A623]" : "bg-terminal-amber/20 text-terminal-amber")
+                }`}>{item.source}</span>
+                <span className={`text-[10px] ${item.isPaused ? c.amber : c.green}`}>{item.isPaused ? "⏸" : "▶"}</span>
+              </div>
+              <div className={`text-xs font-mono font-bold ${c.textMain} truncate leading-tight`}>
+                {item.seriesName || item.title}
+              </div>
+              {item.seriesName && (
+                <div className={`text-[10px] font-mono ${c.textDim} truncate`}>{item.title}</div>
+              )}
+              <div className={`text-[10px] font-mono ${c.textMuted} mt-1 truncate`}>{item.user}</div>
+              <div className={`text-[9px] font-mono ${c.textMuted2} truncate`}>{item.device}</div>
+              <div className={`w-full h-0.5 ${c.progressBg} mt-2`}>
+                <div className={`h-full ${c.progressFill}`} style={{ width: `${item.progress}%` }} />
+              </div>
+              <div className={`text-[9px] font-mono ${c.textMuted2} mt-0.5 tabular-nums`}>{item.progress}%</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Weather Section ──────────────────────────────────────────
+
+function WeatherSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<WeatherData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    fetch("/dash/api/weather")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return null;
+  if (!data?.current) return null;
+
+  const { current, forecast } = data;
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Weather" icon="~" theme={theme} />
+      {/* Current */}
+      <div className="flex items-center gap-3 mb-3">
+        <span className="text-3xl leading-none">{current.icon}</span>
+        <div>
+          <div className={`text-2xl font-mono font-bold leading-none ${c.textMain}`}>{current.temp}°C</div>
+          <div className={`text-[10px] font-mono ${c.textMuted} mt-0.5`}>{current.label}</div>
+        </div>
+        <div className="ml-auto text-right space-y-0.5">
+          <div className={`text-[10px] font-mono ${c.textDim}`}>Feels {current.feelsLike}°C</div>
+          <div className={`text-[10px] font-mono ${c.textMuted}`}>{current.humidity}% RH</div>
+          <div className={`text-[10px] font-mono ${c.textMuted}`}>{current.windKph} km/h</div>
+        </div>
+      </div>
+      {/* 5-day forecast */}
+      <div className={`border-t ${c.border} pt-2`}>
+        <div className="grid grid-cols-5 gap-1">
+          {forecast.map((day, i) => (
+            <div key={i} className={`text-center p-1.5 ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+              <div className={`text-[9px] font-mono ${c.textMuted} mb-0.5 capitalize`}>
+                {new Date(day.date + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short" })}
+              </div>
+              <div className="text-base leading-none mb-0.5">{day.icon}</div>
+              <div className={`text-[10px] font-mono font-bold ${c.textMain} tabular-nums`}>{day.high}°</div>
+              <div className={`text-[9px] font-mono ${c.textMuted} tabular-nums`}>{day.low}°</div>
+              {day.precipChance > 0 && (
+                <div className={`text-[8px] font-mono ${c.cyan} tabular-nums mt-0.5`}>{day.precipChance}%</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Prowlarr Section ─────────────────────────────────────────
+
+function ProwlarrSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<ProwlarrData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    fetch("/dash/api/prowlarr")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      <SectionHeader title="Prowlarr" icon="⊞" theme={theme} />
+      <div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div>
+    </div>
+  );
+  if (!data) return null;
+
+  const maxQueries = Math.max(...data.indexers.map((idx) => idx.queries), 1);
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Prowlarr" icon="⊞" theme={theme}
+        extra={<a href="https://prowlarr.cinenode.org/indexers/stats" target="_blank" rel="noopener noreferrer" className={c.headerLink}>stats →</a>} />
+      <div className="grid grid-cols-3 gap-2 mb-4">
+        <HudStat label="Queries" value={formatNumber(data.totals.queries)} color={c.cyan} theme={theme} />
+        <HudStat label="Grabs" value={formatNumber(data.totals.grabs)} color={c.green} theme={theme} />
+        <HudStat label="Indexers" value={data.totals.indexerCount.toString()} color={c.amber} theme={theme} />
+      </div>
+      {data.indexers.length > 0 && (
+        <div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider mb-2`}>Queries by indexer</div>
+          <div className="space-y-2">
+            {data.indexers.slice(0, 8).map((idx) => (
+              <div key={idx.id}>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className={`text-[10px] font-mono ${c.textDim} truncate flex-1 mr-2`}>{idx.name}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`text-[9px] font-mono ${c.textMuted2} tabular-nums`}>{idx.queries}q</span>
+                    {idx.failRate > 0 && (
+                      <span className={`text-[9px] font-mono tabular-nums ${idx.failRate > 20 ? c.red : c.amber}`}>{idx.failRate}%✗</span>
+                    )}
+                    <span className={`text-[9px] font-mono ${c.textMuted2} tabular-nums`}>{idx.avgMs}ms</span>
+                  </div>
+                </div>
+                <div className={`w-full h-1 ${c.progressBg}`}>
+                  <div
+                    className={`h-full ${c.progressFillAlt} transition-all`}
+                    style={{ width: `${(idx.queries / maxQueries) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1747,10 +1942,11 @@ export default function StartPage() {
                 <RSSFeed theme={theme} />
               </motion.div>
 
-              {/* Right: Spotify + Calendar + AdGuard compact */}
+              {/* Right: Weather + Spotify + Calendar + AdGuard compact */}
               <motion.div className="lg:col-span-3 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.10 }}>
+                <WeatherSection theme={theme} />
                 <SpotifySection theme={theme} />
                 <Calendar theme={theme} />
                 <AdGuardSection theme={theme} compact />
@@ -1784,9 +1980,14 @@ export default function StartPage() {
                 </div>
               </motion.div>
 
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.07 }}>
+                <NowPlayingSection theme={theme} />
+              </motion.div>
+
               <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.07 }}>
+                transition={{ duration: 0.2, delay: 0.10 }}>
                 <QBitSection theme={theme} />
                 <SABSection theme={theme} />
                 <SeerrSection theme={theme} />
@@ -1794,21 +1995,26 @@ export default function StartPage() {
 
               <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.14 }}>
+                transition={{ duration: 0.2, delay: 0.17 }}>
                 <RadarrSection theme={theme} />
                 <SonarrSection theme={theme} />
                 <StorageSection theme={theme} />
               </motion.div>
 
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.21 }}>
+                <ProwlarrSection theme={theme} />
+              </motion.div>
+
               <motion.div className="flex items-center justify-between"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.21 }}>
+                transition={{ duration: 0.2, delay: 0.25 }}>
                 <span className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider`}>Media Server</span>
                 <MediaModeToggle mode={mediaMode} setMode={setMediaMode} theme={theme} />
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.25 }}>
+                transition={{ duration: 0.2, delay: 0.29 }}>
                 <div className="space-y-3">
                   {(mediaMode === "jellyfin" || mediaMode === "both") && <JellyfinSection theme={theme} />}
                   {(mediaMode === "plex" || mediaMode === "both") && <PlexSection theme={theme} />}

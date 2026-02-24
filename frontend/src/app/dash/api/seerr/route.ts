@@ -16,7 +16,6 @@ interface SeerrMedia {
   status: number;
   mediaType: string;
   posterPath?: string;
-  // Jellyseerr includes these directly
   title?: string;
   originalTitle?: string;
   name?: string;
@@ -55,14 +54,21 @@ function statusLabel(status: number): string {
   }
 }
 
-// Try to get title from the media object directly (Jellyseerr embeds it),
-// then fall back to a single Seerr API call with a 4s timeout.
-async function resolveTitle(req: SeerrRequest): Promise<string> {
-  const direct =
+interface ResolvedMedia { title: string; posterPath: string | null }
+
+// Fetch title + poster for a request.
+// Jellyseerr may embed title/name and posterPath directly in media;
+// if not, fetch the individual media endpoint (movie/{tmdbId} or tv/{tmdbId}).
+async function resolveMedia(req: SeerrRequest): Promise<ResolvedMedia> {
+  const directTitle =
     req.type === "movie"
       ? req.media.title || req.media.originalTitle
       : req.media.name || req.media.originalName;
-  if (direct) return direct;
+  const directPoster = req.media.posterPath || null;
+
+  if (directTitle && directPoster) {
+    return { title: directTitle, posterPath: directPoster };
+  }
 
   try {
     const endpoint =
@@ -75,10 +81,14 @@ async function resolveTitle(req: SeerrRequest): Promise<string> {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.title || data.name || "Unknown";
+      return {
+        title: data.title || data.name || directTitle || "Unknown",
+        posterPath: data.posterPath || directPoster,
+      };
     }
   } catch { /* ignore */ }
-  return "Unknown";
+
+  return { title: directTitle || "Unknown", posterPath: directPoster };
 }
 
 export async function GET() {
@@ -111,16 +121,15 @@ export async function GET() {
       const data = await requestsRes.value.json();
       const rawRequests: SeerrRequest[] = data.results || [];
 
-      // Resolve titles in parallel (uses embedded field if available)
-      const titles = await Promise.all(rawRequests.map(resolveTitle));
+      const resolved = await Promise.all(rawRequests.map(resolveMedia));
 
       requests = rawRequests.map((r, i) => ({
         id: r.id,
-        title: titles[i],
+        title: resolved[i].title,
         type: r.type,
         status: statusLabel(r.status),
-        posterUrl: r.media.posterPath
-          ? `https://image.tmdb.org/t/p/w185${r.media.posterPath}`
+        posterUrl: resolved[i].posterPath
+          ? `https://image.tmdb.org/t/p/w342${resolved[i].posterPath}`
           : null,
         requestedBy: r.requestedBy.displayName,
         createdAt: r.createdAt,

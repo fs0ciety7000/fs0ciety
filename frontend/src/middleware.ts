@@ -6,13 +6,52 @@ import { NextRequest, NextResponse } from "next/server";
  *   dash.fs0ciety.org  → /dash (startpage)
  *   fs0ciety.org       → / (no rewrite)
  *
- * Also injects security headers on every response.
+ * Also injects security headers on every response and protects /dash
+ * with HMAC-signed session cookie auth backed by Jellyseerr.
  */
 
 const SUBDOMAIN_MAP: Record<string, string> = {
   blog: "/blog",
   dash: "/dash",
 };
+
+// ── Dash auth ────────────────────────────────────────────────
+
+const DASH_SESSION_COOKIE = "dash_session";
+
+/** Paths that bypass auth — login page + auth API routes */
+const DASH_PUBLIC_PREFIXES = [
+  "/dash/login",
+  "/dash/api/auth",
+  "/dash/api/spotify/auth",
+  "/dash/api/spotify/callback",
+];
+
+function isDashPublic(path: string): boolean {
+  return DASH_PUBLIC_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?")
+  );
+}
+
+async function verifyDashSession(token: string): Promise<boolean> {
+  const secret = process.env.DASH_SESSION_SECRET || "fs0ciety-dash-secret-key-change-me";
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [userId, ts, sig] = parts;
+  const payload = `${userId}.${ts}`;
+  try {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+    );
+    const expected = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
+    const expectedSig = btoa(String.fromCharCode(...new Uint8Array(expected)))
+      .replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+    return expectedSig === sig;
+  } catch {
+    return false;
+  }
+}
 
 /** Security headers applied to every response. */
 const SECURITY_HEADERS: Record<string, string> = {
@@ -42,7 +81,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const domain = process.env.NEXT_PUBLIC_DOMAIN || "fs0ciety.org";
 
@@ -50,8 +89,12 @@ export function middleware(request: NextRequest) {
   const hostWithoutPort = host.split(":")[0];
   const domainWithoutPort = domain.split(":")[0];
 
+  const { pathname } = request.nextUrl;
+  let effectivePath = pathname;
+  let isDashSubdomain = false;
+  let shouldRewrite = false;
+
   // Extract subdomain: "blog.fs0ciety.org" → "blog"
-  // Only match if host ends with the domain and has a prefix
   if (
     hostWithoutPort !== domainWithoutPort &&
     hostWithoutPort.endsWith(`.${domainWithoutPort}`)
@@ -63,9 +106,6 @@ export function middleware(request: NextRequest) {
 
     const prefix = SUBDOMAIN_MAP[subdomain];
     if (prefix) {
-      const { pathname } = request.nextUrl;
-
-      // Don't rewrite if already prefixed, internal path, or a static file
       const isStaticFile = /\.\w{2,5}$/.test(pathname);
       if (
         !pathname.startsWith(prefix) &&
@@ -73,11 +113,30 @@ export function middleware(request: NextRequest) {
         !pathname.startsWith("/api") &&
         !isStaticFile
       ) {
-        const url = request.nextUrl.clone();
-        url.pathname = `${prefix}${pathname === "/" ? "" : pathname}`;
-        return applySecurityHeaders(NextResponse.rewrite(url));
+        effectivePath = `${prefix}${pathname === "/" ? "" : pathname}`;
+        shouldRewrite = true;
       }
+      if (subdomain === "dash") isDashSubdomain = true;
     }
+  }
+
+  // ── Dash auth gate ────────────────────────────────────────
+  if (effectivePath.startsWith("/dash") && !isDashPublic(effectivePath)) {
+    const sessionToken = request.cookies.get(DASH_SESSION_COOKIE)?.value;
+    const valid = sessionToken ? await verifyDashSession(sessionToken) : false;
+    if (!valid) {
+      // On dash.fs0ciety.org, /login will be rewritten to /dash/login by middleware
+      const loginPath = isDashSubdomain ? "/login" : "/dash/login";
+      const loginUrl = new URL(loginPath, request.url);
+      return applySecurityHeaders(NextResponse.redirect(loginUrl));
+    }
+  }
+
+  // ── Subdomain rewrite ─────────────────────────────────────
+  if (shouldRewrite) {
+    const url = request.nextUrl.clone();
+    url.pathname = effectivePath;
+    return applySecurityHeaders(NextResponse.rewrite(url));
   }
 
   return applySecurityHeaders(NextResponse.next());

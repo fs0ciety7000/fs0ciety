@@ -130,6 +130,80 @@ interface SeerrData {
   } | null;
 }
 
+interface QbitData {
+  counts: {
+    total: number;
+    downloading: number;
+    seeding: number;
+    paused: number;
+  } | null;
+  transfer: {
+    dlSpeed: string;
+    ulSpeed: string;
+    totalDownloaded: string;
+    totalUploaded: string;
+  } | null;
+  activeDownloads: Array<{
+    name: string;
+    size: string;
+    progress: number;
+    dlspeed: string;
+    eta: number | null;
+    state: string;
+    category: string;
+  }>;
+}
+
+interface SABData {
+  speed: string;
+  speedBps: number;
+  queue: {
+    count: number;
+    active: Array<{
+      name: string;
+      size: string;
+      progress: number;
+      speed: string;
+      timeLeft: string;
+      status: string;
+    }>;
+  };
+  history: {
+    recent: Array<{
+      name: string;
+      size: string;
+      status: string;
+      completedAt: string;
+    }>;
+    totalCompleted: number;
+  };
+  stats: {
+    monthDownloaded: string;
+    totalDownloaded: string;
+  };
+}
+
+// ── Theme ───────────────────────────────────────────────────
+
+type DashTheme = "terminal" | "industrial";
+const DASH_THEME_KEY = "fs0ciety_dash_theme";
+
+function useDashTheme(): [DashTheme, (t: DashTheme) => void] {
+  const [theme, setThemeState] = useState<DashTheme>("terminal");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(DASH_THEME_KEY) as DashTheme | null;
+    if (saved === "industrial") setThemeState("industrial");
+  }, []);
+
+  const setTheme = (t: DashTheme) => {
+    setThemeState(t);
+    localStorage.setItem(DASH_THEME_KEY, t);
+  };
+
+  return [theme, setTheme];
+}
+
 // ── Colors ──────────────────────────────────────────────────
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -176,56 +250,133 @@ function formatNumber(n: number): string {
   return n.toString();
 }
 
+function formatETA(seconds: number | null): string {
+  if (!seconds || seconds <= 0 || seconds > 8640000) return "--";
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h${m > 0 ? `${m}m` : ""}`;
+}
+
+// ── Theme-aware classes ─────────────────────────────────────
+
+function cx(theme: DashTheme) {
+  const ind = theme === "industrial";
+  return {
+    page: ind
+      ? "min-h-screen bg-[#F5F2EE] p-4 md:p-6 lg:p-8 font-mono dash-industrial"
+      : "min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono",
+    card: ind
+      ? "bg-white border border-[#E7E5E4] rounded-xl shadow-sm p-5"
+      : "border border-terminal-green/20 bg-terminal-black-light p-4",
+    cardHover: ind
+      ? "bg-white border border-[#E7E5E4] rounded-xl shadow-sm hover:shadow-md hover:border-[#E8613C]/30 transition-all"
+      : "border border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
+    title: ind ? "text-[#1C1917]" : "text-terminal-green",
+    titleDim: ind ? "text-[#78716C]" : "text-terminal-green-dim",
+    textMain: ind ? "text-[#1C1917]" : "text-terminal-green",
+    textDim: ind ? "text-[#78716C]" : "text-terminal-green-dim",
+    textMuted: ind ? "text-[#A8A29E]" : "text-terminal-green-dim/50",
+    textMuted2: ind ? "text-[#D6D3D1]" : "text-terminal-green-dim/30",
+    accent: ind ? "text-[#E8613C]" : "text-terminal-amber",
+    link: ind ? "text-[#2563EB]" : "text-terminal-cyan",
+    green: ind ? "text-[#16A34A]" : "text-terminal-green",
+    red: ind ? "text-[#DC2626]" : "text-terminal-red",
+    amber: ind ? "text-[#D97706]" : "text-terminal-amber",
+    cyan: ind ? "text-[#2563EB]" : "text-terminal-cyan",
+    purple: ind ? "text-[#7C3AED]" : "text-terminal-purple",
+    border: ind ? "border-[#E7E5E4]" : "border-terminal-gray-light",
+    borderAccent: ind ? "border-[#E8613C]/30" : "border-terminal-green/20",
+    bg: ind ? "bg-[#F5F2EE]" : "bg-terminal-black",
+    bgCard: ind ? "bg-white" : "bg-terminal-black",
+    bgAlt: ind ? "bg-[#EEEBE6]" : "bg-terminal-black-light",
+    statBox: ind
+      ? "bg-[#EEEBE6] border border-[#E7E5E4] rounded-lg p-3"
+      : "border border-terminal-gray-light bg-terminal-black p-3",
+    linkCard: ind
+      ? "group flex items-center gap-3 px-3 py-2.5 bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm transition-all"
+      : "group flex items-center gap-3 px-3 py-2.5 border border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
+    linkIcon: ind
+      ? "opacity-70 group-hover:opacity-100 transition-opacity shrink-0"
+      : "opacity-60 group-hover:opacity-100 transition-opacity shrink-0",
+    linkText: ind
+      ? "text-xs font-mono text-[#78716C] group-hover:text-[#1C1917] transition-colors truncate"
+      : "text-xs font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors truncate",
+    linkArrow: ind
+      ? "ml-auto text-[#D6D3D1] text-[10px] group-hover:text-[#E8613C] transition-colors shrink-0"
+      : "ml-auto text-terminal-green-dim/30 text-[10px] group-hover:text-terminal-green/50 transition-colors shrink-0",
+    sectionIcon: ind ? "text-[#E8613C] text-xs" : "text-terminal-amber text-xs",
+    sectionTitle: ind
+      ? "text-xs font-mono text-[#1C1917] uppercase tracking-wider font-bold"
+      : "text-xs font-mono text-terminal-green uppercase tracking-wider font-bold",
+    sectionBorder: ind ? "border-b border-[#E7E5E4]" : "border-b border-terminal-gray-light",
+    progressBg: ind ? "bg-[#E7E5E4]" : "bg-terminal-green/10",
+    progressFill: ind ? "bg-[#E8613C]" : "bg-terminal-green/60",
+    progressFillAlt: ind ? "bg-[#2563EB]" : "bg-terminal-cyan/60",
+    chartColor1: ind ? "#E8613C" : "#00D4FF",
+    chartColor2: ind ? "#DC2626" : "#FF0033",
+    liveTag: ind ? "text-[10px] font-mono text-[#E8613C] animate-pulse" : "text-[10px] font-mono text-terminal-green animate-pulse",
+    headerLink: ind
+      ? "text-xs text-[#78716C] hover:text-[#E8613C] transition-colors border border-[#E7E5E4] px-3 py-1 rounded-lg"
+      : "text-xs text-terminal-green-dim hover:text-terminal-green transition-colors border border-terminal-green/20 px-3 py-1",
+    headerLinkActive: ind
+      ? "text-xs text-[#2563EB] hover:text-[#E8613C] transition-colors border border-[#2563EB]/20 px-3 py-1 rounded-lg"
+      : "text-xs text-terminal-cyan hover:text-terminal-green transition-colors border border-terminal-cyan/20 px-3 py-1",
+    mediaIcon: ind
+      ? "group flex flex-col items-center gap-1.5 py-2 px-1 bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm transition-all"
+      : "group flex flex-col items-center gap-1.5 py-2 px-1 border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all",
+    mediaIconLabel: ind
+      ? "text-[9px] font-mono text-[#78716C] group-hover:text-[#1C1917] transition-colors"
+      : "text-[9px] font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors",
+    imgThumb: ind
+      ? "w-10 h-14 object-cover shrink-0 border border-[#E7E5E4] rounded"
+      : "w-10 h-14 object-cover shrink-0 border border-terminal-green/20",
+  };
+}
+
 // ── Shared Components ───────────────────────────────────────
 
-function LinkCard({ link }: { link: AppLink }) {
+function LinkCard({ link, theme }: { link: AppLink; theme: DashTheme }) {
+  const c = cx(theme);
   return (
-    <a
-      href={link.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="group flex items-center gap-3 px-3 py-2.5 border border-terminal-gray-light bg-terminal-black-light hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all"
-    >
+    <a href={link.url} target="_blank" rel="noopener noreferrer" className={c.linkCard}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={link.icon}
-        alt=""
-        width={20}
-        height={20}
-        className="opacity-60 group-hover:opacity-100 transition-opacity shrink-0"
+        src={link.icon} alt="" width={20} height={20}
+        className={c.linkIcon}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
       />
-      <span className="text-xs font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors truncate">
-        {link.name}
-      </span>
-      <span className="ml-auto text-terminal-green-dim/30 text-[10px] group-hover:text-terminal-green/50 transition-colors shrink-0">
-        &rarr;
-      </span>
+      <span className={c.linkText}>{link.name}</span>
+      <span className={c.linkArrow}>&rarr;</span>
     </a>
   );
 }
 
-function SectionHeader({ title, icon, extra }: { title: string; icon: string; extra?: React.ReactNode }) {
+function SectionHeader({ title, icon, extra, theme }: { title: string; icon: string; extra?: React.ReactNode; theme: DashTheme }) {
+  const c = cx(theme);
   return (
-    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-terminal-gray-light">
-      <span className="text-terminal-amber text-xs">{icon}</span>
-      <h2 className="text-xs font-mono text-terminal-green uppercase tracking-wider font-bold">{title}</h2>
+    <div className={`flex items-center gap-2 mb-3 pb-2 ${c.sectionBorder}`}>
+      <span className={c.sectionIcon}>{icon}</span>
+      <h2 className={c.sectionTitle}>{title}</h2>
       {extra && <div className="ml-auto">{extra}</div>}
     </div>
   );
 }
 
-function StatBox({ label, value, sub, color = "text-terminal-green" }: { label: string; value: string; sub?: string; color?: string }) {
+function StatBox({ label, value, sub, color, theme }: { label: string; value: string; sub?: string; color?: string; theme: DashTheme }) {
+  const c = cx(theme);
+  const defaultColor = theme === "industrial" ? "text-[#1C1917]" : "text-terminal-green";
   return (
-    <div className="border border-terminal-gray-light bg-terminal-black p-3">
-      <div className="text-[10px] font-mono text-terminal-green-dim/50 uppercase tracking-wider mb-1">{label}</div>
-      <div className={`text-lg font-bold font-mono tabular-nums ${color}`}>{value}</div>
-      {sub && <div className="text-[10px] font-mono text-terminal-green-dim/40 mt-0.5">{sub}</div>}
+    <div className={c.statBox}>
+      <div className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider mb-1`}>{label}</div>
+      <div className={`text-lg font-bold font-mono tabular-nums ${color || defaultColor}`}>{value}</div>
+      {sub && <div className={`text-[10px] font-mono ${c.textMuted2} mt-0.5`}>{sub}</div>}
     </div>
   );
 }
 
-// ── Mini ASCII chart for AdGuard ────────────────────────────
+// ── Mini chart ──────────────────────────────────────────────
 
 function MiniChart({ data, color = "#00FF41", height = 40 }: { data: number[]; color?: string; height?: number }) {
   if (!data.length) return null;
@@ -245,9 +396,10 @@ function MiniChart({ data, color = "#00FF41", height = 40 }: { data: number[]; c
 
 // ── RSS Feed ────────────────────────────────────────────────
 
-function RSSFeed() {
+function RSSFeed({ theme }: { theme: DashTheme }) {
   const [items, setItems] = useState<RSSItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const c = cx(theme);
 
   useEffect(() => {
     fetch("/dash/api/rss")
@@ -257,25 +409,37 @@ function RSSFeed() {
       .finally(() => setLoading(false));
   }, []);
 
+  const sourceColor = (src: string) => {
+    if (theme === "industrial") {
+      const map: Record<string, string> = {
+        Korben: "text-[#D97706]", "The Verge": "text-[#2563EB]", Wired: "text-[#7C3AED]",
+        TechCrunch: "text-[#16A34A]", fs0ciety: "text-[#DC2626]",
+      };
+      return map[src] || "text-[#78716C]";
+    }
+    return SOURCE_COLORS[src] || "text-terminal-green-dim";
+  };
+
   return (
-    <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-      <SectionHeader title="RSS Feeds" icon="$" />
+    <div className={c.card}>
+      <SectionHeader title="RSS Feeds" icon="$" theme={theme} />
       {loading ? (
-        <div className="text-xs font-mono text-terminal-green-dim animate-pulse py-4">Fetching feeds...</div>
+        <div className={`text-xs font-mono ${c.textDim} animate-pulse py-4`}>Fetching feeds...</div>
       ) : items.length === 0 ? (
-        <div className="text-xs font-mono text-terminal-green-dim/50 py-4">No feed items available.</div>
+        <div className={`text-xs font-mono ${c.textMuted} py-4`}>No feed items available.</div>
       ) : (
         <div className="space-y-0.5 max-h-[360px] overflow-y-auto">
           {items.map((item, i) => (
-            <a key={i} href={item.link} target="_blank" rel="noopener noreferrer" className="group flex items-start gap-2 py-1.5 px-1 hover:bg-terminal-green/5 transition-colors rounded-sm">
-              <span className={`text-[10px] font-mono shrink-0 w-16 uppercase font-bold ${SOURCE_COLORS[item.source] || "text-terminal-green-dim"}`}>
+            <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
+              className={`group flex items-start gap-2 py-1.5 px-1 ${theme === "industrial" ? "hover:bg-[#EEEBE6]" : "hover:bg-terminal-green/5"} transition-colors rounded-sm`}>
+              <span className={`text-[10px] font-mono shrink-0 w-16 uppercase font-bold ${sourceColor(item.source)}`}>
                 {item.source}
               </span>
-              <span className="text-xs font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors flex-1 min-w-0 line-clamp-2">
+              <span className={`text-xs font-mono ${c.textDim} group-hover:${c.textMain} transition-colors flex-1 min-w-0 line-clamp-2`}>
                 {item.title}
               </span>
               {item.pubDate && (
-                <span className="text-[10px] font-mono text-terminal-green-dim/40 shrink-0 tabular-nums">{timeAgo(item.pubDate)}</span>
+                <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0 tabular-nums`}>{timeAgo(item.pubDate)}</span>
               )}
             </a>
           ))}
@@ -287,11 +451,12 @@ function RSSFeed() {
 
 // ── Calendar ────────────────────────────────────────────────
 
-function Calendar() {
+function Calendar({ theme }: { theme: DashTheme }) {
   const [events, setEvents] = useState<CalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMonth, setViewMonth] = useState(new Date());
+  const c = cx(theme);
 
   useEffect(() => {
     fetch("/dash/api/calendar")
@@ -332,17 +497,30 @@ function Calendar() {
   const today = new Date();
   const monthLabel = viewMonth.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
 
+  const dayBtnCls = (isSelected: boolean, isToday: boolean) => {
+    if (theme === "industrial") {
+      if (isSelected) return "bg-[#E8613C] text-white font-bold rounded-lg";
+      if (isToday) return "text-[#E8613C] font-bold border border-[#E8613C]/30 rounded-lg";
+      return "text-[#78716C] hover:bg-[#EEEBE6] rounded-lg";
+    }
+    if (isSelected) return "bg-terminal-green text-terminal-black font-bold";
+    if (isToday) return "text-terminal-green font-bold border border-terminal-green/40";
+    return "text-terminal-green-dim hover:bg-terminal-green/10";
+  };
+
+  const dotColor = theme === "industrial" ? "bg-[#E8613C]" : "bg-terminal-amber";
+
   return (
-    <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-      <SectionHeader title="Calendar" icon="#" />
+    <div className={c.card}>
+      <SectionHeader title="Calendar" icon="#" theme={theme} />
       <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} className="text-xs font-mono text-terminal-green-dim hover:text-terminal-green px-2 py-1 transition-colors">&laquo;</button>
-        <span className="text-xs font-mono text-terminal-green capitalize">{monthLabel}</span>
-        <button onClick={nextMonth} className="text-xs font-mono text-terminal-green-dim hover:text-terminal-green px-2 py-1 transition-colors">&raquo;</button>
+        <button onClick={prevMonth} className={`text-xs font-mono ${c.textDim} hover:${c.textMain} px-2 py-1 transition-colors`}>&laquo;</button>
+        <span className={`text-xs font-mono ${c.textMain} capitalize`}>{monthLabel}</span>
+        <button onClick={nextMonth} className={`text-xs font-mono ${c.textDim} hover:${c.textMain} px-2 py-1 transition-colors`}>&raquo;</button>
       </div>
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"].map((d) => (
-          <div key={d} className="text-center text-[10px] font-mono text-terminal-green-dim/50 py-1">{d}</div>
+          <div key={d} className={`text-center text-[10px] font-mono ${c.textMuted} py-1`}>{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-0.5 mb-4">
@@ -353,29 +531,30 @@ function Calendar() {
           const isSelected = isSameDay(dateObj, selectedDate);
           const hasEvent = eventDates.has(`${dateObj.getFullYear()}-${dateObj.getMonth()}-${dateObj.getDate()}`);
           return (
-            <button key={`d-${day}`} onClick={() => setSelectedDate(dateObj)} className={`h-7 text-[11px] font-mono transition-colors relative ${isSelected ? "bg-terminal-green text-terminal-black font-bold" : isToday ? "text-terminal-green font-bold border border-terminal-green/40" : "text-terminal-green-dim hover:bg-terminal-green/10"}`}>
+            <button key={`d-${day}`} onClick={() => setSelectedDate(dateObj)}
+              className={`h-7 text-[11px] font-mono transition-colors relative ${dayBtnCls(isSelected, isToday)}`}>
               {day}
-              {hasEvent && !isSelected && <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-terminal-amber" />}
+              {hasEvent && !isSelected && <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dotColor}`} />}
             </button>
           );
         })}
       </div>
-      <div className="border-t border-terminal-gray-light pt-3">
-        <div className="text-[10px] font-mono text-terminal-green-dim/50 mb-2 uppercase tracking-wider">
+      <div className={`border-t ${c.border} pt-3`}>
+        <div className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider mb-2`}>
           {selectedDate.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
         </div>
         {loading ? (
-          <div className="text-xs font-mono text-terminal-green-dim animate-pulse">Loading...</div>
+          <div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div>
         ) : dayEvents.length === 0 ? (
-          <div className="text-xs font-mono text-terminal-green-dim/30 py-2">No events</div>
+          <div className={`text-xs font-mono ${c.textMuted2} py-2`}>No events</div>
         ) : (
           <div className="space-y-2">
             {dayEvents.map((ev, i) => (
-              <div key={i} className="flex items-start gap-2 py-1.5 px-2 border-l-2 border-terminal-amber bg-terminal-amber/5">
-                <span className="text-[10px] font-mono text-terminal-amber shrink-0 tabular-nums mt-0.5">{formatEventTime(ev.dtstart)}</span>
+              <div key={i} className={`flex items-start gap-2 py-1.5 px-2 border-l-2 ${theme === "industrial" ? "border-[#E8613C] bg-[#E8613C]/5 rounded-r-lg" : "border-terminal-amber bg-terminal-amber/5"}`}>
+                <span className={`text-[10px] font-mono ${c.accent} shrink-0 tabular-nums mt-0.5`}>{formatEventTime(ev.dtstart)}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-mono text-terminal-green truncate">{ev.summary}</div>
-                  {ev.location && <div className="text-[10px] font-mono text-terminal-green-dim/50 truncate">{ev.location}</div>}
+                  <div className={`text-xs font-mono ${c.textMain} truncate`}>{ev.summary}</div>
+                  {ev.location && <div className={`text-[10px] font-mono ${c.textMuted} truncate`}>{ev.location}</div>}
                 </div>
               </div>
             ))}
@@ -388,9 +567,10 @@ function Calendar() {
 
 // ── Jellyfin Section ────────────────────────────────────────
 
-function JellyfinSection() {
+function JellyfinSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<JellyfinData | null>(null);
   const [loading, setLoading] = useState(true);
+  const c = cx(theme);
 
   useEffect(() => {
     fetch("/dash/api/jellyfin")
@@ -404,55 +584,50 @@ function JellyfinSection() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading) return <div className="border border-terminal-green/20 bg-terminal-black-light p-4"><SectionHeader title="Jellyfin" icon=">" /><div className="text-xs font-mono text-terminal-green-dim animate-pulse">Loading...</div></div>;
+  if (loading) return <div className={c.card}><SectionHeader title="Jellyfin" icon=">" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data) return null;
 
   return (
     <div className="space-y-4">
-      {/* Stats */}
       {data.counts && (
-        <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-          <SectionHeader title="Jellyfin Library" icon=">" />
+        <div className={c.card}>
+          <SectionHeader title="Jellyfin Library" icon=">" theme={theme} />
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            <StatBox label="Movies" value={formatNumber(data.counts.movies)} color="text-terminal-amber" />
-            <StatBox label="Series" value={formatNumber(data.counts.series)} color="text-terminal-cyan" />
-            <StatBox label="Episodes" value={formatNumber(data.counts.episodes)} color="text-terminal-green" />
-            <StatBox label="Artists" value={formatNumber(data.counts.artists)} color="text-terminal-purple" />
-            <StatBox label="Albums" value={formatNumber(data.counts.albums)} color="text-terminal-amber" />
-            <StatBox label="Songs" value={formatNumber(data.counts.songs)} color="text-terminal-cyan" />
+            <StatBox label="Movies" value={formatNumber(data.counts.movies)} color={c.amber} theme={theme} />
+            <StatBox label="Series" value={formatNumber(data.counts.series)} color={c.cyan} theme={theme} />
+            <StatBox label="Episodes" value={formatNumber(data.counts.episodes)} color={c.green} theme={theme} />
+            <StatBox label="Artists" value={formatNumber(data.counts.artists)} color={c.purple} theme={theme} />
+            <StatBox label="Albums" value={formatNumber(data.counts.albums)} color={c.amber} theme={theme} />
+            <StatBox label="Songs" value={formatNumber(data.counts.songs)} color={c.cyan} theme={theme} />
           </div>
         </div>
       )}
 
-      {/* Now Playing */}
       {data.nowPlaying.length > 0 && (
-        <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-          <SectionHeader
-            title="Now Playing"
-            icon="▶"
-            extra={<span className="text-[10px] font-mono text-terminal-green animate-pulse">LIVE</span>}
-          />
+        <div className={c.card}>
+          <SectionHeader title="Now Playing" icon="▶" theme={theme}
+            extra={<span className={c.liveTag}>LIVE</span>} />
           <div className="space-y-3">
             {data.nowPlaying.map((s, i) => (
               <div key={i} className="flex items-center gap-3">
                 {s.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.imageUrl} alt="" className="w-10 h-14 object-cover shrink-0 border border-terminal-green/20" />
+                  <img src={s.imageUrl} alt="" className={c.imgThumb} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-mono text-terminal-green truncate">
+                  <div className={`text-xs font-mono ${c.textMain} truncate`}>
                     {s.seriesName ? `${s.seriesName} — ${s.title}` : s.title}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-mono text-terminal-green-dim">{s.user}</span>
-                    <span className="text-[10px] font-mono text-terminal-cyan tabular-nums">{s.progress}%</span>
-                    <span className={`text-[10px] ${s.isPaused ? "text-terminal-amber" : "text-terminal-green"}`}>
+                    <span className={`text-[10px] font-mono ${c.textDim}`}>{s.user}</span>
+                    <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{s.progress}%</span>
+                    <span className={`text-[10px] ${s.isPaused ? c.amber : c.green}`}>
                       {s.isPaused ? "⏸" : "▶"}
                     </span>
-                    <span className="text-[10px] font-mono text-terminal-green-dim/40">{s.device}</span>
+                    <span className={`text-[10px] font-mono ${c.textMuted2}`}>{s.device}</span>
                   </div>
-                  <div className="w-full h-0.5 bg-terminal-green/10 mt-1">
-                    <div className="h-full bg-terminal-green/60 transition-all" style={{ width: `${s.progress}%` }} />
+                  <div className={`w-full h-0.5 ${c.progressBg} mt-1`}>
+                    <div className={`h-full ${c.progressFill} transition-all`} style={{ width: `${s.progress}%` }} />
                   </div>
                 </div>
               </div>
@@ -461,33 +636,27 @@ function JellyfinSection() {
         </div>
       )}
 
-      {/* Recent Additions */}
       {data.recent.length > 0 && (
-        <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-          <SectionHeader title="Recently Added" icon="+" />
+        <div className={c.card}>
+          <SectionHeader title="Recently Added" icon="+" theme={theme} />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {data.recent.map((item) => (
-              <a
-                key={item.id}
-                href={`https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40 transition-all overflow-hidden"
-              >
+              <a key={item.id} href={`https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`} target="_blank" rel="noopener noreferrer"
+                className={`group overflow-hidden ${theme === "industrial" ? "bg-white border border-[#E7E5E4] rounded-lg hover:border-[#E8613C]/30 hover:shadow-sm" : "border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40"} transition-all`}>
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.imageUrl} alt="" className="w-full h-28 object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
                 ) : (
-                  <div className="w-full h-28 bg-terminal-gray flex items-center justify-center text-terminal-green-dim/30 text-xs font-mono">
+                  <div className={`w-full h-28 ${c.bgAlt} flex items-center justify-center ${c.textMuted2} text-xs font-mono`}>
                     {item.type === "Movie" ? "Film" : "TV"}
                   </div>
                 )}
                 <div className="p-1.5">
-                  <div className="text-[10px] font-mono text-terminal-green-dim group-hover:text-terminal-green truncate transition-colors">
+                  <div className={`text-[10px] font-mono ${c.textDim} group-hover:${c.textMain} truncate transition-colors`}>
                     {item.seriesName || item.name}
                   </div>
                   {item.seriesName && (
-                    <div className="text-[9px] font-mono text-terminal-green-dim/40 truncate">{item.name}</div>
+                    <div className={`text-[9px] font-mono ${c.textMuted2} truncate`}>{item.name}</div>
                   )}
                 </div>
               </a>
@@ -501,9 +670,10 @@ function JellyfinSection() {
 
 // ── AdGuard Section ─────────────────────────────────────────
 
-function AdGuardSection() {
+function AdGuardSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<AdGuardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const c = cx(theme);
 
   useEffect(() => {
     fetch("/dash/api/adguard")
@@ -513,46 +683,39 @@ function AdGuardSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="border border-terminal-green/20 bg-terminal-black-light p-4"><SectionHeader title="AdGuard Home" icon="!" /><div className="text-xs font-mono text-terminal-green-dim animate-pulse">Loading...</div></div>;
+  if (loading) return <div className={c.card}><SectionHeader title="AdGuard Home" icon="!" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data?.stats) return null;
 
   const { stats, running } = data;
   const blockRate = stats.totalQueries > 0 ? ((stats.blockedFiltering / stats.totalQueries) * 100).toFixed(1) : "0";
 
   return (
-    <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-      <SectionHeader
-        title="AdGuard Home"
-        icon="!"
-        extra={<span className={`text-[10px] font-mono ${running ? "text-terminal-green" : "text-terminal-red"}`}>{running ? "● RUNNING" : "● DOWN"}</span>}
-      />
+    <div className={c.card}>
+      <SectionHeader title="AdGuard Home" icon="!" theme={theme}
+        extra={<span className={`text-[10px] font-mono ${running ? c.green : c.red}`}>{running ? "● RUNNING" : "● DOWN"}</span>} />
       <div className="grid grid-cols-3 gap-2 mb-4">
-        <StatBox label="Queries" value={formatNumber(stats.totalQueries)} color="text-terminal-cyan" />
-        <StatBox label="Blocked" value={formatNumber(stats.blockedFiltering)} sub={`${blockRate}%`} color="text-terminal-red" />
-        <StatBox label="Avg Latency" value={`${(stats.avgProcessingTime * 1000).toFixed(1)}ms`} color="text-terminal-amber" />
+        <StatBox label="Queries" value={formatNumber(stats.totalQueries)} color={c.cyan} theme={theme} />
+        <StatBox label="Blocked" value={formatNumber(stats.blockedFiltering)} sub={`${blockRate}%`} color={c.red} theme={theme} />
+        <StatBox label="Avg Latency" value={`${(stats.avgProcessingTime * 1000).toFixed(1)}ms`} color={c.amber} theme={theme} />
       </div>
-
-      {/* Charts */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <div className="text-[9px] font-mono text-terminal-green-dim/50 uppercase mb-1">DNS Queries (24h)</div>
-          <MiniChart data={stats.dnsQueries} color="#00D4FF" height={50} />
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>DNS Queries (24h)</div>
+          <MiniChart data={stats.dnsQueries} color={c.chartColor1} height={50} />
         </div>
         <div>
-          <div className="text-[9px] font-mono text-terminal-green-dim/50 uppercase mb-1">Blocked (24h)</div>
-          <MiniChart data={stats.blockedSeries} color="#FF0033" height={50} />
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Blocked (24h)</div>
+          <MiniChart data={stats.blockedSeries} color={c.chartColor2} height={50} />
         </div>
       </div>
-
-      {/* Top Blocked */}
       {stats.topBlocked.length > 0 && (
         <div>
-          <div className="text-[9px] font-mono text-terminal-green-dim/50 uppercase mb-1">Top Blocked</div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>Top Blocked</div>
           <div className="space-y-0.5">
             {stats.topBlocked.map((d, i) => (
               <div key={i} className="flex items-center justify-between text-[10px] font-mono gap-2">
-                <span className="text-terminal-red truncate flex-1">{d.domain}</span>
-                <span className="text-terminal-green-dim/40 tabular-nums shrink-0">{d.count}</span>
+                <span className={`${c.red} truncate flex-1`}>{d.domain}</span>
+                <span className={`${c.textMuted2} tabular-nums shrink-0`}>{d.count}</span>
               </div>
             ))}
           </div>
@@ -564,9 +727,10 @@ function AdGuardSection() {
 
 // ── Seerr Section ───────────────────────────────────────────
 
-function SeerrSection() {
+function SeerrSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<SeerrData | null>(null);
   const [loading, setLoading] = useState(true);
+  const c = cx(theme);
 
   useEffect(() => {
     fetch("/dash/api/seerr")
@@ -576,51 +740,50 @@ function SeerrSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="border border-terminal-green/20 bg-terminal-black-light p-4"><SectionHeader title="Seerr" icon="?" /><div className="text-xs font-mono text-terminal-green-dim animate-pulse">Loading...</div></div>;
+  const statusColor = (status: string) => {
+    if (theme === "industrial") {
+      const map: Record<string, string> = {
+        pending: "text-[#D97706]", approved: "text-[#2563EB]", available: "text-[#16A34A]",
+        declined: "text-[#DC2626]", processing: "text-[#7C3AED]",
+      };
+      return map[status] || "text-[#78716C]";
+    }
+    return STATUS_COLORS[status] || "text-terminal-green-dim";
+  };
+
+  if (loading) return <div className={c.card}><SectionHeader title="Seerr" icon="?" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data) return null;
 
   return (
-    <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-      <SectionHeader title="Seerr Requests" icon="?" />
-
-      {/* Counts */}
+    <div className={c.card}>
+      <SectionHeader title="Seerr Requests" icon="?" theme={theme} />
       {data.counts && (
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <StatBox
-            label="Available"
-            value={`${data.counts.available}/${data.counts.total}`}
-            color="text-terminal-green"
-          />
-          <StatBox label="Pending" value={data.counts.pending.toString()} color="text-terminal-amber" />
-          <StatBox label="Approved" value={data.counts.approved.toString()} color="text-terminal-cyan" />
+          <StatBox label="Available" value={`${data.counts.available}/${data.counts.total}`} color={c.green} theme={theme} />
+          <StatBox label="Pending" value={data.counts.pending.toString()} color={c.amber} theme={theme} />
+          <StatBox label="Approved" value={data.counts.approved.toString()} color={c.cyan} theme={theme} />
         </div>
       )}
-
-      {/* Recent Requests */}
       {data.requests.length > 0 && (
         <div className="space-y-2">
           {data.requests.map((req) => (
             <div key={req.id} className="flex items-center gap-3 py-1.5">
               {req.posterUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={req.posterUrl} alt="" className="w-8 h-12 object-cover shrink-0 border border-terminal-gray-light" />
+                <img src={req.posterUrl} alt="" className={`w-8 h-12 object-cover shrink-0 ${theme === "industrial" ? "border border-[#E7E5E4] rounded" : "border border-terminal-gray-light"}`} />
               ) : (
-                <div className="w-8 h-12 bg-terminal-gray shrink-0 border border-terminal-gray-light flex items-center justify-center">
-                  <span className="text-[8px] font-mono text-terminal-green-dim/30">{req.type === "movie" ? "F" : "TV"}</span>
+                <div className={`w-8 h-12 shrink-0 flex items-center justify-center ${theme === "industrial" ? "bg-[#EEEBE6] border border-[#E7E5E4] rounded" : "bg-terminal-gray border border-terminal-gray-light"}`}>
+                  <span className={`text-[8px] font-mono ${c.textMuted2}`}>{req.type === "movie" ? "F" : "TV"}</span>
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-mono text-terminal-green-dim truncate">{req.title}</div>
+                <div className={`text-xs font-mono ${c.textDim} truncate`}>{req.title}</div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] font-mono font-bold uppercase ${STATUS_COLORS[req.status] || "text-terminal-green-dim"}`}>
-                    {req.status}
-                  </span>
-                  <span className="text-[10px] font-mono text-terminal-green-dim/40">{req.requestedBy}</span>
+                  <span className={`text-[10px] font-mono font-bold uppercase ${statusColor(req.status)}`}>{req.status}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2}`}>{req.requestedBy}</span>
                 </div>
               </div>
-              <span className="text-[10px] font-mono text-terminal-green-dim/30 shrink-0 tabular-nums">
-                {timeAgo(req.createdAt)}
-              </span>
+              <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0 tabular-nums`}>{timeAgo(req.createdAt)}</span>
             </div>
           ))}
         </div>
@@ -629,10 +792,201 @@ function SeerrSection() {
   );
 }
 
+// ── qBittorrent Section ─────────────────────────────────────
+
+function QBitSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<QbitData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/qbit")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {});
+
+    load().finally(() => setLoading(false));
+    const interval = setInterval(load, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="qBittorrent" icon="↓" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data) return null;
+
+  const hasActive = data.activeDownloads.length > 0;
+
+  return (
+    <div className={c.card}>
+      <SectionHeader title="qBittorrent" icon="↓" theme={theme}
+        extra={hasActive ? <span className={c.liveTag}>LIVE</span> : undefined} />
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        {data.counts && (
+          <>
+            <StatBox label="Total" value={data.counts.total.toString()} theme={theme} />
+            <StatBox label="Downloading" value={data.counts.downloading.toString()} color={c.cyan} theme={theme} />
+            <StatBox label="Seeding" value={data.counts.seeding.toString()} color={c.green} theme={theme} />
+            <StatBox label="Paused" value={data.counts.paused.toString()} color={c.textDim} theme={theme} />
+          </>
+        )}
+      </div>
+
+      {/* Transfer stats */}
+      {data.transfer && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <StatBox label="DL Speed" value={data.transfer.dlSpeed} color={c.cyan} theme={theme} />
+          <StatBox label="UL Speed" value={data.transfer.ulSpeed} color={c.amber} theme={theme} />
+          <StatBox label="Total DL" value={data.transfer.totalDownloaded} color={c.accent} theme={theme} />
+          <StatBox label="Total UL" value={data.transfer.totalUploaded} color={c.textDim} theme={theme} />
+        </div>
+      )}
+
+      {/* Active downloads */}
+      {hasActive && (
+        <div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
+          <div className="space-y-2">
+            {data.activeDownloads.map((dl, i) => (
+              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#EEEBE6] rounded-lg" : "bg-terminal-black border border-terminal-gray-light"}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
+                  <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
+                </div>
+                <div className={`w-full h-1 ${c.progressBg} rounded-full`}>
+                  <div className={`h-full ${c.progressFillAlt} rounded-full transition-all`} style={{ width: `${dl.progress}%` }} />
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{dl.dlspeed}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2}`}>{dl.size}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums`}>ETA {formatETA(dl.eta)}</span>
+                  {dl.category && <span className={`text-[10px] font-mono ${c.accent}`}>{dl.category}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SABnzbd Section ─────────────────────────────────────────
+
+function SABSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<SABData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/sabnzbd")
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(setData)
+      .catch(() => {});
+
+    load().finally(() => setLoading(false));
+    const interval = setInterval(load, 10_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return <div className={c.card}><SectionHeader title="SABnzbd" icon="↧" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
+  if (!data) return null;
+
+  const hasActive = data.queue.active.length > 0;
+
+  return (
+    <div className={c.card}>
+      <SectionHeader title="SABnzbd" icon="↧" theme={theme}
+        extra={hasActive ? <span className={c.liveTag}>LIVE</span> : undefined} />
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+        <StatBox label="Speed" value={data.speed} color={c.cyan} theme={theme} />
+        <StatBox label="Queue" value={data.queue.count.toString()} color={c.amber} theme={theme} />
+        <StatBox label="This Month" value={data.stats.monthDownloaded} color={c.accent} theme={theme} />
+        <StatBox label="All Time" value={data.stats.totalDownloaded} theme={theme} />
+      </div>
+
+      {/* Active downloads */}
+      {hasActive && (
+        <div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
+          <div className="space-y-2">
+            {data.queue.active.map((dl, i) => (
+              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#EEEBE6] rounded-lg" : "bg-terminal-black border border-terminal-gray-light"}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
+                  <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
+                </div>
+                <div className={`w-full h-1 ${c.progressBg} rounded-full`}>
+                  <div className={`h-full ${c.progressFillAlt} rounded-full transition-all`} style={{ width: `${dl.progress}%` }} />
+                </div>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className={`text-[10px] font-mono ${c.cyan} tabular-nums`}>{dl.speed}</span>
+                  <span className={`text-[10px] font-mono ${c.textMuted2}`}>{dl.size}</span>
+                  {dl.timeLeft && <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums`}>ETA {dl.timeLeft}</span>}
+                  <span className={`text-[10px] font-mono ${dl.status === "Downloading" ? c.green : c.textDim}`}>{dl.status}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent history */}
+      {data.history.recent.length > 0 && !hasActive && (
+        <div>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Recent ({data.history.totalCompleted} total)</div>
+          <div className="space-y-1">
+            {data.history.recent.map((h, i) => (
+              <div key={i} className="flex items-center gap-2 py-1">
+                <span className={`text-[10px] font-mono font-bold ${h.status === "Completed" ? c.green : c.red}`}>
+                  {h.status === "Completed" ? "✓" : "✗"}
+                </span>
+                <span className={`text-[11px] font-mono ${c.textDim} truncate flex-1`}>{h.name}</span>
+                <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0`}>{h.size}</span>
+                {h.completedAt && <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums shrink-0`}>{timeAgo(h.completedAt)}</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Theme Toggle ────────────────────────────────────────────
+
+function DashThemeToggle({ theme, setTheme }: { theme: DashTheme; setTheme: (t: DashTheme) => void }) {
+  const ind = theme === "industrial";
+  return (
+    <button
+      onClick={() => setTheme(ind ? "terminal" : "industrial")}
+      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+        ind
+          ? "bg-white border-[#E7E5E4] hover:border-[#E8613C]/30 shadow-sm"
+          : "bg-terminal-black-light border-terminal-gray-light hover:border-terminal-green/30"
+      }`}
+      title={`Switch to ${ind ? "Terminal" : "Industrial"} theme`}
+    >
+      <span className={`w-5 h-2.5 rounded-full relative ${ind ? "bg-[#D6D3D1]" : "bg-[#333]"}`}>
+        <span className={`absolute top-0.5 w-1.5 h-1.5 rounded-full transition-transform ${
+          ind ? "left-[12px] bg-[#E8613C]" : "left-0.5 bg-[#00FF41]"
+        }`} />
+      </span>
+      <span className={`text-[10px] font-mono uppercase tracking-wider ${ind ? "text-[#78716C]" : "text-[#888]"}`}>
+        {ind ? "Industrial" : "Terminal"}
+      </span>
+    </button>
+  );
+}
+
 // ── Startpage ───────────────────────────────────────────────
 
 export default function StartPage() {
   const [time, setTime] = useState("");
+  const [theme, setTheme] = useDashTheme();
+  const c = cx(theme);
 
   useEffect(() => {
     function tick() {
@@ -649,22 +1003,23 @@ export default function StartPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono">
+    <div className={c.page}>
       {/* Header */}
-      <header className="flex items-center justify-between mb-6 pb-4 border-b border-terminal-gray-light">
+      <header className={`flex items-center justify-between mb-6 pb-4 border-b ${c.border} ${theme === "industrial" ? "bg-transparent" : ""}`}>
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="fs0ciety" width={32} height={32} className="opacity-70" />
+          <img src="/logo.svg" alt="fs0ciety" width={32} height={32} className={theme === "industrial" ? "opacity-50" : "opacity-70"} />
           <div>
-            <h1 className="text-lg md:text-xl font-bold text-terminal-green">
-              fs0ciety<span className="text-terminal-green-dim">.start</span>
+            <h1 className={`text-lg md:text-xl font-bold ${c.title}`}>
+              fs0ciety<span className={c.titleDim}>.start</span>
             </h1>
-            <div className="text-[10px] text-terminal-green-dim/50 capitalize">{time}</div>
+            <div className={`text-[10px] ${c.textMuted} capitalize`}>{time}</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <a href="/" className="text-xs text-terminal-green-dim hover:text-terminal-green transition-colors border border-terminal-green/20 px-3 py-1">terminal</a>
-          <a href="/dashboard" className="text-xs text-terminal-cyan hover:text-terminal-green transition-colors border border-terminal-cyan/20 px-3 py-1">seedbox</a>
+          <DashThemeToggle theme={theme} setTheme={setTheme} />
+          <a href="/" className={c.headerLink}>terminal</a>
+          <a href="/dashboard" className={c.headerLinkActive}>seedbox</a>
         </div>
       </header>
 
@@ -672,33 +1027,35 @@ export default function StartPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 mb-6">
         {/* Left: Links */}
         <div className="lg:col-span-3 space-y-4">
-          <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-            <SectionHeader title="Self-Hosted" icon=">" />
+          <div className={c.card}>
+            <SectionHeader title="Self-Hosted" icon=">" theme={theme} />
             <div className="grid grid-cols-1 gap-1">
-              {PERSONAL_LINKS.map((link) => <LinkCard key={link.name} link={link} />)}
+              {PERSONAL_LINKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
             </div>
           </div>
-          <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-            <SectionHeader title="Bookmarks" icon="~" />
+          <div className={c.card}>
+            <SectionHeader title="Bookmarks" icon="~" theme={theme} />
             <div className="grid grid-cols-1 gap-1">
-              {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} />)}
+              {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
             </div>
           </div>
         </div>
 
         {/* Center: RSS */}
         <div className="lg:col-span-6 space-y-4">
-          <RSSFeed />
+          <RSSFeed theme={theme} />
 
           {/* Media Links */}
-          <div className="border border-terminal-green/20 bg-terminal-black-light p-4">
-            <SectionHeader title="Media Stack" icon="%" />
+          <div className={c.card}>
+            <SectionHeader title="Media Stack" icon="%" theme={theme} />
             <div className="grid grid-cols-4 sm:grid-cols-8 gap-1">
               {MEDIA_LINKS.map((link) => (
-                <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center gap-1.5 py-2 px-1 border border-terminal-gray-light bg-terminal-black hover:border-terminal-green/40 hover:bg-terminal-green/5 transition-all">
+                <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className={c.mediaIcon}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={link.icon} alt="" width={20} height={20} className="opacity-50 group-hover:opacity-100 transition-opacity" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                  <span className="text-[9px] font-mono text-terminal-green-dim group-hover:text-terminal-green transition-colors">{link.name}</span>
+                  <img src={link.icon} alt="" width={20} height={20}
+                    className="opacity-50 group-hover:opacity-100 transition-opacity"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <span className={c.mediaIconLabel}>{link.name}</span>
                 </a>
               ))}
             </div>
@@ -707,28 +1064,34 @@ export default function StartPage() {
 
         {/* Right: Calendar */}
         <div className="lg:col-span-3">
-          <Calendar />
+          <Calendar theme={theme} />
         </div>
+      </div>
+
+      {/* Downloads Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
+        <QBitSection theme={theme} />
+        <SABSection theme={theme} />
       </div>
 
       {/* Media Section */}
       <div className="space-y-6 mb-6">
-        <JellyfinSection />
+        <JellyfinSection theme={theme} />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <AdGuardSection />
-          <SeerrSection />
+          <AdGuardSection theme={theme} />
+          <SeerrSection theme={theme} />
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="pt-4 border-t border-terminal-gray-light">
-        <div className="flex items-center justify-between text-[10px] font-mono text-terminal-green-dim/30">
+      <footer className={`pt-4 border-t ${c.border}`}>
+        <div className={`flex items-center justify-between text-[10px] font-mono ${c.textMuted2}`}>
           <span>fs0ciety.org</span>
           <span>
-            <a href="https://fs0ciety.org/blog" className="hover:text-terminal-green transition-colors">blog</a>
+            <a href="https://fs0ciety.org/blog" className={`hover:${c.accent} transition-colors`}>blog</a>
             {" / "}
-            <a href="https://fs0ciety.org/blog/pgp" className="hover:text-terminal-green transition-colors">pgp</a>
+            <a href="https://fs0ciety.org/blog/pgp" className={`hover:${c.accent} transition-colors`}>pgp</a>
           </span>
         </div>
       </footer>

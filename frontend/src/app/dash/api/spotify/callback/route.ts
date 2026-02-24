@@ -8,7 +8,7 @@ const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "d4c3d6b72c8e4196aaa884fb8ec9
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || "564d9dd6b37b42229a372771c004176b";
 const REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI ||
-  "https://start.fs0ciety.org/dash/api/spotify/callback";
+  "https://dash.fs0ciety.org/dash/api/spotify/callback";
 const TOKEN_FILE = join(process.cwd(), ".spotify_refresh_token");
 
 export async function GET(request: NextRequest) {

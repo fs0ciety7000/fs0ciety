@@ -274,17 +274,17 @@ interface SpotifyData {
 }
 
 interface MetricsData {
-  upload: number | null;
-  download: number | null;
-  diskUsed: number | null;
-  diskFree: number | null;
-  diskTotal: number | null;
-  uploadFormatted: string | null;
-  downloadFormatted: string | null;
-  diskUsedFormatted: string | null;
-  diskFreeFormatted: string | null;
-  diskTotalFormatted: string | null;
-  usedPercent: number | null;
+  memTotal: number | null;
+  memUsed: number | null;
+  memCached: number | null;
+  memFree: number | null;
+  memPercent: number | null;
+  memTotalFormatted: string | null;
+  memUsedFormatted: string | null;
+  memCachedFormatted: string | null;
+  memFreeFormatted: string | null;
+  cpuCores: number | null;
+  cpuBusyPercent: number | null;
   error?: string;
 }
 
@@ -1582,37 +1582,40 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
     </div>
   );
 
-  const warn = data.usedPercent !== null && data.usedPercent > 85;
+  const memWarn = data.memPercent !== null && data.memPercent > 85;
 
   return (
     <div className={c.card}>
       {ind && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Zucchini" icon="⬡" theme={theme}
         extra={<a href="https://whatbox.ca/manage" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+
       <div className="grid grid-cols-2 gap-2 mb-3">
-        {data.uploadFormatted && (
-          <HudStat label="Uploadé" value={data.uploadFormatted} color={c.amber} theme={theme} />
+        {data.memUsedFormatted && (
+          <HudStat label="RAM used" value={data.memUsedFormatted} color={memWarn ? c.red : c.cyan} theme={theme} />
         )}
-        {data.downloadFormatted && (
-          <HudStat label="Téléchargé" value={data.downloadFormatted} color={c.cyan} theme={theme} />
+        {data.memTotalFormatted && (
+          <HudStat label="RAM total" value={data.memTotalFormatted} theme={theme} />
         )}
-        {data.diskFreeFormatted && (
-          <HudStat label="Disque libre" value={data.diskFreeFormatted} color={warn ? c.red : c.green} theme={theme} />
+        {data.memCachedFormatted && (
+          <HudStat label="RAM cached" value={data.memCachedFormatted} color={c.textMuted} theme={theme} />
         )}
-        {data.diskTotalFormatted && (
-          <HudStat label="Total" value={data.diskTotalFormatted} theme={theme} />
+        {data.cpuCores && (
+          <HudStat label="CPU cores" value={data.cpuCores.toString()} color={c.amber} theme={theme} />
         )}
       </div>
-      {data.usedPercent !== null && (
+
+      {data.memPercent !== null && (
         <>
+          <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>RAM</div>
           <div className={`w-full h-2 ${c.progressBg} rounded-full`}>
             <div
-              className={`h-full rounded-full transition-all ${warn ? (ind ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
-              style={{ width: `${data.usedPercent}%` }}
+              className={`h-full rounded-full transition-all ${memWarn ? (ind ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+              style={{ width: `${data.memPercent}%` }}
             />
           </div>
-          <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
-            {data.usedPercent}% utilisé{data.diskUsedFormatted ? ` — ${data.diskUsedFormatted}` : ""}
+          <div className={`text-[9px] font-mono ${memWarn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
+            {data.memPercent}% utilisé{data.memFreeFormatted ? ` — ${data.memFreeFormatted} libre` : ""}
           </div>
         </>
       )}

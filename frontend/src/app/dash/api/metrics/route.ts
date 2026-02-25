@@ -14,6 +14,21 @@ function formatBytes(b: number): string {
   return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
+interface WhatboxMemory {
+  mem_total?: number;
+  mem_used?: number;
+  mem_cached?: number;
+  swap_total?: number;
+  swap_used?: number;
+}
+
+interface WhatboxCpuCore {
+  user: string;
+  nice: string;
+  system: string;
+  idle: string;
+}
+
 export async function GET() {
   try {
     const headers: HeadersInit = { Accept: "application/json" };
@@ -33,33 +48,42 @@ export async function GET() {
 
     const data = await res.json();
 
-    // Flexible parser — try multiple known field names
-    const upload: number | null =
-      data.upload ?? data.upload_total ?? data.uploaded ?? data.up ?? null;
-    const download: number | null =
-      data.download ?? data.download_total ?? data.downloaded ?? data.down ?? null;
-    const diskUsed: number | null =
-      data.disk_quota_used ?? data.disk_used ?? data.used ?? null;
-    const diskTotal: number | null =
-      data.disk_quota ?? data.disk_total ?? data.total ?? null;
-    const diskFree: number | null =
-      data.disk_free ?? data.free ??
-      (diskTotal !== null && diskUsed !== null ? diskTotal - diskUsed : null);
+    // Memory
+    const mem: WhatboxMemory = data.memory ?? {};
+    const memTotal = mem.mem_total ?? null;
+    const memUsed = mem.mem_used ?? null;
+    const memCached = mem.mem_cached ?? null;
+    const memFree = memTotal !== null && memUsed !== null ? memTotal - memUsed : null;
+    const memPercent = memTotal && memUsed ? Math.round((memUsed / memTotal) * 100) : null;
+
+    // CPU — cumulative busy % since boot (not instantaneous)
+    const cpuCores = Array.isArray(data.cpu) ? (data.cpu as WhatboxCpuCore[]).length : null;
+    let cpuBusyPercent: number | null = null;
+    if (Array.isArray(data.cpu) && data.cpu.length > 0) {
+      let totalBusy = 0, totalAll = 0;
+      for (const core of data.cpu as WhatboxCpuCore[]) {
+        const user = parseInt(core.user) || 0;
+        const nice = parseInt(core.nice) || 0;
+        const system = parseInt(core.system) || 0;
+        const idle = parseInt(core.idle) || 0;
+        totalBusy += user + nice + system;
+        totalAll += user + nice + system + idle;
+      }
+      cpuBusyPercent = totalAll > 0 ? Math.round((totalBusy / totalAll) * 100) : null;
+    }
 
     return NextResponse.json({
-      upload,
-      download,
-      diskUsed,
-      diskFree,
-      diskTotal,
-      uploadFormatted: upload !== null ? formatBytes(upload) : null,
-      downloadFormatted: download !== null ? formatBytes(download) : null,
-      diskUsedFormatted: diskUsed !== null ? formatBytes(diskUsed) : null,
-      diskFreeFormatted: diskFree !== null ? formatBytes(diskFree) : null,
-      diskTotalFormatted: diskTotal !== null ? formatBytes(diskTotal) : null,
-      usedPercent:
-        diskTotal && diskUsed ? Math.round((diskUsed / diskTotal) * 100) : null,
-      _raw: data,
+      memTotal,
+      memUsed,
+      memCached,
+      memFree,
+      memPercent,
+      memTotalFormatted: memTotal !== null ? formatBytes(memTotal) : null,
+      memUsedFormatted: memUsed !== null ? formatBytes(memUsed) : null,
+      memCachedFormatted: memCached !== null ? formatBytes(memCached) : null,
+      memFreeFormatted: memFree !== null ? formatBytes(memFree) : null,
+      cpuCores,
+      cpuBusyPercent,
     });
   } catch {
     return NextResponse.json({ error: "unavailable" });

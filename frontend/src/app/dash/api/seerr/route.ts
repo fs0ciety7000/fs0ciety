@@ -146,3 +146,51 @@ export async function GET() {
     return NextResponse.json({ requests: [], counts: null }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  if (!SEERR_API_KEY) {
+    return NextResponse.json({ error: "SEERR_API_KEY not configured" }, { status: 503 });
+  }
+
+  try {
+    const body = await request.json();
+    const { mediaType, mediaId, seasons, is4k = false } = body as {
+      mediaType: string;
+      mediaId: number;
+      seasons?: number[];
+      is4k?: boolean;
+    };
+
+    if (!mediaType || !mediaId) {
+      return NextResponse.json({ error: "mediaType and mediaId are required" }, { status: 400 });
+    }
+
+    const payload: Record<string, unknown> = { mediaType, mediaId, is4k };
+    if (mediaType === "tv" && Array.isArray(seasons) && seasons.length > 0) {
+      payload.seasons = seasons;
+    }
+
+    const res = await fetch(`${SEERR_URL}/api/v1/request`, {
+      method: "POST",
+      headers: {
+        "X-Api-Key": SEERR_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { message?: string };
+      return NextResponse.json(
+        { error: err.message || `Seerr error ${res.status}` },
+        { status: res.status }
+      );
+    }
+
+    const result = await res.json() as { id?: number };
+    return NextResponse.json({ success: true, id: result.id });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}

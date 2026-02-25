@@ -322,6 +322,24 @@ interface ProwlarrData {
   };
 }
 
+interface SeerrSearchResult {
+  id: number;
+  tmdbId: number;
+  mediaType: "movie" | "tv";
+  title: string;
+  year: string | null;
+  posterPath: string | null;
+  overview: string | null;
+  mediaStatus: number; // 0=none, 2=pending, 3=processing, 4=partial, 5=available
+}
+
+interface SeerrDetailSeason {
+  seasonNumber: number;
+  name: string;
+  episodeCount: number;
+  airDate: string | null;
+}
+
 // ── Theme ───────────────────────────────────────────────────
 
 type DashTheme = "terminal" | "industrial";
@@ -1060,6 +1078,385 @@ function AdGuardSection({ theme, compact = false }: { theme: DashTheme; compact?
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// ── Media Request Section ────────────────────────────────────
+
+function MediaRequestSection({ theme }: { theme: DashTheme }) {
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "movie" | "tv">("all");
+  const [results, setResults] = useState<SeerrSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selected, setSelected] = useState<SeerrSearchResult | null>(null);
+  const [seasons, setSeasons] = useState<SeerrDetailSeason[]>([]);
+  const [requestedSeasons, setRequestedSeasons] = useState<number[]>([]);
+  const [selectedSeasons, setSelectedSeasons] = useState<number[]>([]);
+  const [detailStatus, setDetailStatus] = useState(0);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [is4k, setIs4k] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  // Debounced search
+  useEffect(() => {
+    if (!query.trim() || !open) { setResults([]); return; }
+    const timer = setTimeout(() => {
+      setSearching(true);
+      fetch(`/dash/api/seerr/search?q=${encodeURIComponent(query.trim())}`)
+        .then((r) => r.json())
+        .then((d) => {
+          const all: SeerrSearchResult[] = d.results || [];
+          setResults(typeFilter === "all" ? all : all.filter((r) => r.mediaType === typeFilter));
+        })
+        .catch(() => {})
+        .finally(() => setSearching(false));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query, typeFilter, open]);
+
+  // Load TV seasons on select
+  useEffect(() => {
+    if (!selected) { setSeasons([]); setSelectedSeasons([]); setRequestedSeasons([]); setDetailStatus(0); return; }
+    if (selected.mediaType === "movie") {
+      setDetailStatus(selected.mediaStatus);
+      setSeasons([]);
+      setSelectedSeasons([]);
+      return;
+    }
+    setLoadingDetail(true);
+    fetch(`/dash/api/seerr/detail?id=${selected.tmdbId}&type=tv`)
+      .then((r) => r.json())
+      .then((d) => {
+        const fetchedSeasons: SeerrDetailSeason[] = d.seasons || [];
+        const reqSet = new Set<number>(d.requestedSeasons || []);
+        setSeasons(fetchedSeasons);
+        setDetailStatus(d.mediaStatus ?? selected.mediaStatus);
+        setRequestedSeasons(d.requestedSeasons || []);
+        // Pre-select unrequested seasons
+        const unrequested = fetchedSeasons.filter((s) => !reqSet.has(s.seasonNumber)).map((s) => s.seasonNumber);
+        setSelectedSeasons(unrequested.length > 0 ? unrequested : fetchedSeasons.map((s) => s.seasonNumber));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingDetail(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.tmdbId]);
+
+  const toggleSeason = (num: number) => {
+    setSelectedSeasons((prev) => prev.includes(num) ? prev.filter((n) => n !== num) : [...prev, num]);
+  };
+
+  const submit = async () => {
+    if (!selected) return;
+    if (selected.mediaType === "tv" && selectedSeasons.length === 0) return;
+    setSubmitting(true);
+    setSubmitResult(null);
+    try {
+      const res = await fetch("/dash/api/seerr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mediaType: selected.mediaType,
+          mediaId: selected.tmdbId,
+          seasons: selected.mediaType === "tv" ? selectedSeasons : undefined,
+          is4k,
+        }),
+      });
+      const data = await res.json() as { error?: string };
+      if (res.ok) {
+        setSubmitResult({ ok: true, msg: "✓ Requête envoyée !" });
+        setTimeout(() => {
+          setSelected(null); setSubmitResult(null); setQuery(""); setResults([]);
+        }, 2500);
+      } else {
+        setSubmitResult({ ok: false, msg: data.error || "Erreur" });
+      }
+    } catch {
+      setSubmitResult({ ok: false, msg: "Erreur réseau" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const mediaStatusBadge = (status: number) => {
+    if (status === 5) return { label: "Disponible", cls: ind ? "text-[#34D399]" : "text-terminal-green" };
+    if (status === 4) return { label: "Partiel", cls: ind ? "text-[#A78BFA]" : "text-terminal-purple" };
+    if (status === 3) return { label: "En cours", cls: ind ? "text-[#22D3EE]" : "text-terminal-cyan" };
+    if (status === 2) return { label: "En attente", cls: ind ? "text-[#F5A623]" : "text-terminal-amber" };
+    return null;
+  };
+
+  const posterUrl = (path: string | null, size = "w154") =>
+    path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+
+  const canSubmit = !submitting && !!selected && (
+    selected.mediaType === "movie" || selectedSeasons.length > 0
+  );
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+
+      {/* Collapsible header */}
+      <button
+        onClick={() => { setOpen((o) => !o); if (open) { setSelected(null); setQuery(""); setResults([]); setSubmitResult(null); } }}
+        className="w-full text-left"
+      >
+        <SectionHeader
+          title="Request Media"
+          icon="+"
+          theme={theme}
+          extra={
+            <span className={`text-[10px] font-mono transition-colors ${open ? c.accent : c.textMuted}`}>
+              {open ? "▼ fermer" : "▶ ouvrir"}
+            </span>
+          }
+        />
+      </button>
+
+      {open && (
+        <div className="mt-3 space-y-3">
+          {/* Search bar + type filter */}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-1 shrink-0">
+              {(["all", "movie", "tv"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => { setTypeFilter(t); setSelected(null); }}
+                  className={`text-[10px] font-mono px-2 py-1 border transition-colors ${
+                    typeFilter === t
+                      ? ind ? "border-[#F5622A] text-[#F5622A] bg-[#F5622A]/10" : "border-terminal-green text-terminal-green bg-terminal-green/10"
+                      : ind ? "border-[#252830] text-[#9A948C] hover:text-[#E8E4DC]" : "border-terminal-gray-light text-terminal-green-dim hover:text-terminal-green"
+                  }`}
+                >
+                  {t === "all" ? "Tout" : t === "movie" ? "🎬 Film" : "📺 Série"}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setSelected(null); setSubmitResult(null); }}
+              onKeyDown={(e) => e.key === "Escape" && setQuery("")}
+              placeholder="Rechercher un film ou une série…"
+              className={`flex-1 text-xs font-mono px-3 py-1.5 border bg-transparent outline-none transition-colors ${
+                ind
+                  ? "border-[#252830] text-[#E8E4DC] placeholder-[#5A5550] focus:border-[#F5622A]/60"
+                  : "border-terminal-gray-light text-terminal-green placeholder-terminal-green-dim/40 focus:border-terminal-green/60"
+              }`}
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+            {searching && (
+              <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse shrink-0`}>…</span>
+            )}
+          </div>
+
+          {/* Results grid */}
+          {results.length > 0 && (
+            <div className="grid grid-cols-6 gap-2">
+              {results.map((result) => {
+                const badge = mediaStatusBadge(result.mediaStatus);
+                const isSelected = selected?.id === result.id;
+                const url = posterUrl(result.posterPath);
+                return (
+                  <button
+                    key={result.id}
+                    onClick={() => setSelected(isSelected ? null : result)}
+                    className={`relative group text-left transition-all ${
+                      isSelected
+                        ? ind ? "ring-1 ring-[#F5622A]" : "ring-1 ring-terminal-green"
+                        : ind ? "hover:ring-1 ring-[#F5622A]/40" : "hover:ring-1 ring-terminal-green/40"
+                    }`}
+                  >
+                    {url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={url} alt=""
+                        className="w-full aspect-[2/3] object-cover"
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    ) : (
+                      <div className={`w-full aspect-[2/3] flex items-center justify-center text-xl ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+                        {result.mediaType === "movie" ? "🎬" : "📺"}
+                      </div>
+                    )}
+                    {badge && (
+                      <span className={`absolute top-0.5 right-0.5 text-[8px] font-mono font-bold px-1 leading-tight ${
+                        ind ? "bg-[#0D0E11]/85" : "bg-terminal-black/85"
+                      } ${badge.cls}`}>
+                        {badge.label === "Disponible" ? "✓" : "●"}
+                      </span>
+                    )}
+                    <div className={`text-[9px] font-mono truncate mt-0.5 px-0.5 ${c.textDim}`}>
+                      {result.title}
+                    </div>
+                    {result.year && (
+                      <div className={`text-[8px] font-mono px-0.5 ${c.textMuted}`}>{result.year}</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {results.length === 0 && query.trim() && !searching && (
+            <div className={`text-[10px] font-mono ${c.textMuted} py-1 text-center`}>
+              Aucun résultat pour &laquo;{query}&raquo;
+            </div>
+          )}
+
+          {/* Detail / request panel */}
+          {selected && (
+            <div className={`border-t pt-3 space-y-3 ${c.border}`}>
+              <div className="flex gap-3">
+                {/* Poster */}
+                {posterUrl(selected.posterPath, "w92") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={posterUrl(selected.posterPath, "w92")!}
+                    alt=""
+                    className={`w-14 shrink-0 object-cover border ${ind ? "border-[#252830]" : "border-terminal-gray-light"}`}
+                  />
+                ) : (
+                  <div className={`w-14 shrink-0 flex items-center justify-center text-2xl ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+                    {selected.mediaType === "movie" ? "🎬" : "📺"}
+                  </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className={`text-sm font-mono font-bold leading-tight ${c.textMain} truncate`}>
+                    {selected.title}
+                  </div>
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 mt-0.5 mb-1.5">
+                    {selected.year && (
+                      <span className={`text-[10px] font-mono ${c.textMuted}`}>{selected.year}</span>
+                    )}
+                    <span className={`text-[10px] font-mono ${c.textMuted}`}>
+                      {selected.mediaType === "movie" ? "Film" : "Série TV"}
+                    </span>
+                    {(() => {
+                      const b = mediaStatusBadge(detailStatus);
+                      return b ? (
+                        <span className={`text-[10px] font-mono font-bold ${b.cls}`}>{b.label}</span>
+                      ) : null;
+                    })()}
+                  </div>
+                  {selected.overview && (
+                    <p className={`text-[10px] font-mono ${c.textDim} leading-relaxed line-clamp-2`}>
+                      {selected.overview}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* TV Seasons */}
+              {selected.mediaType === "tv" && (
+                <div>
+                  {loadingDetail ? (
+                    <div className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>
+                      Chargement des saisons…
+                    </div>
+                  ) : seasons.length > 0 ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-[10px] font-mono uppercase tracking-wider ${c.textMuted}`}>
+                          Saisons — {selectedSeasons.length}/{seasons.length} sélectionnées
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setSelectedSeasons(seasons.filter((s) => !requestedSeasons.includes(s.seasonNumber)).map((s) => s.seasonNumber))}
+                            className={`text-[9px] font-mono ${c.link} hover:underline`}
+                          >
+                            Tout
+                          </button>
+                          <button
+                            onClick={() => setSelectedSeasons([])}
+                            className={`text-[9px] font-mono ${c.textMuted} hover:underline`}
+                          >
+                            Aucun
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {seasons.map((s) => {
+                          const isReq = requestedSeasons.includes(s.seasonNumber);
+                          const isSel = selectedSeasons.includes(s.seasonNumber);
+                          return (
+                            <button
+                              key={s.seasonNumber}
+                              onClick={() => !isReq && toggleSeason(s.seasonNumber)}
+                              title={isReq ? "Déjà disponible / demandé" : `${s.name} — ${s.episodeCount} épisodes`}
+                              className={`text-[10px] font-mono px-2 py-1 border transition-colors ${
+                                isReq
+                                  ? ind ? "border-[#34D399]/25 text-[#34D399] cursor-default opacity-60" : "border-terminal-green/25 text-terminal-green cursor-default opacity-60"
+                                  : isSel
+                                  ? ind ? "border-[#F5622A] text-[#F5622A] bg-[#F5622A]/10" : "border-terminal-green text-terminal-green bg-terminal-green/10"
+                                  : ind ? "border-[#252830] text-[#9A948C] hover:border-[#383B47]" : "border-terminal-gray-light text-terminal-green-dim hover:border-terminal-green/40"
+                              }`}
+                            >
+                              {isReq ? "✓" : isSel ? "●" : "○"} S{s.seasonNumber}
+                              {s.episodeCount > 0 && (
+                                <span className={`ml-1 text-[8px] opacity-70`}>{s.episodeCount}ep</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
+              {/* Options + Submit */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <label className={`flex items-center gap-2 cursor-pointer select-none ${c.textDim}`}>
+                  <input
+                    type="checkbox"
+                    checked={is4k}
+                    onChange={(e) => setIs4k(e.target.checked)}
+                    className="w-3 h-3"
+                  />
+                  <span className="text-[10px] font-mono">4K</span>
+                </label>
+
+                <div className="flex items-center gap-2">
+                  {submitResult && (
+                    <span className={`text-[10px] font-mono font-bold ${submitResult.ok ? c.green : c.red}`}>
+                      {submitResult.msg}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => { setSelected(null); setSubmitResult(null); }}
+                    className={`text-[10px] font-mono px-2 py-1 border transition-colors ${
+                      ind ? "border-[#252830] text-[#9A948C] hover:text-[#E8E4DC]" : "border-terminal-gray-light text-terminal-green-dim hover:text-terminal-green"
+                    }`}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={submit}
+                    disabled={!canSubmit}
+                    className={`text-[10px] font-mono px-3 py-1 border font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                      ind
+                        ? "border-[#F5622A] text-[#F5622A] hover:bg-[#F5622A]/10 active:bg-[#F5622A]/20"
+                        : "border-terminal-green text-terminal-green hover:bg-terminal-green/10 active:bg-terminal-green/20"
+                    }`}
+                  >
+                    {submitting ? "…" : "REQUEST →"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1982,12 +2379,17 @@ export default function StartPage() {
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.07 }}>
+                <MediaRequestSection theme={theme} />
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.10 }}>
                 <NowPlayingSection theme={theme} />
               </motion.div>
 
               <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: 0.10 }}>
+                transition={{ duration: 0.2, delay: 0.13 }}>
                 <QBitSection theme={theme} />
                 <SABSection theme={theme} />
                 <SeerrSection theme={theme} />

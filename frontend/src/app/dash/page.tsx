@@ -1547,19 +1547,22 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
 
 function MetricsSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<MetricsData | null>(null);
+  const [disk, setDisk] = useState<{ freeSpace: string; totalSpace: string; usedPercent: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const c = cx(theme);
   const ind = theme === "industrial";
 
   useEffect(() => {
-    fetch("/dash/api/metrics")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-    const interval = setInterval(() => {
-      fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {});
-    }, 60_000);
+    const loadAll = () => Promise.all([
+      fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {}),
+      fetch("/dash/api/radarr").then((r) => r.json()).then((d: RadarrData) => {
+        const storageDisk = d?.diskspace?.find((s) => s.path === "/mnt/mpathae");
+        if (storageDisk) setDisk(storageDisk);
+      }).catch(() => {}),
+    ]);
+
+    loadAll().finally(() => setLoading(false));
+    const interval = setInterval(loadAll, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1579,6 +1582,7 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
       <div className={`text-[10px] font-mono ${c.textMuted} py-2`}>
         Stats indisponibles — vérifier WHATBOX_USER / WHATBOX_PASS.
       </div>
+      {disk && <DiskBar disk={disk} theme={theme} />}
     </div>
   );
 
@@ -1606,7 +1610,7 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
       </div>
 
       {data.memPercent !== null && (
-        <>
+        <div className="mb-3">
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-1`}>RAM</div>
           <div className={`w-full h-2 ${c.progressBg} rounded-full`}>
             <div
@@ -1617,8 +1621,33 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${memWarn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
             {data.memPercent}% utilisé{data.memFreeFormatted ? ` — ${data.memFreeFormatted} libre` : ""}
           </div>
-        </>
+        </div>
       )}
+
+      {disk && <DiskBar disk={disk} theme={theme} />}
+    </div>
+  );
+}
+
+function DiskBar({ disk, theme }: { disk: { freeSpace: string; totalSpace: string; usedPercent: number }; theme: DashTheme }) {
+  const c = cx(theme);
+  const ind = theme === "industrial";
+  const warn = disk.usedPercent > 85;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className={`text-[9px] font-mono ${c.textMuted} uppercase`}>Storage</span>
+        <span className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{disk.freeSpace} libre</span>
+      </div>
+      <div className={`w-full h-2 ${c.progressBg} rounded-full`}>
+        <div
+          className={`h-full rounded-full transition-all ${warn ? (ind ? "bg-[#F87171]" : "bg-terminal-red/60") : (ind ? "bg-[#F5622A]" : "bg-terminal-amber/60")}`}
+          style={{ width: `${disk.usedPercent}%` }}
+        />
+      </div>
+      <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
+        {disk.usedPercent}% utilisé — {disk.totalSpace} total
+      </div>
     </div>
   );
 }
@@ -2750,12 +2779,11 @@ export default function StartPage() {
                 <SeerrSection theme={theme} />
               </motion.div>
 
-              <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-3"
+              <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.17 }}>
                 <RadarrSection theme={theme} />
                 <SonarrSection theme={theme} />
-                <StorageSection theme={theme} />
                 <MetricsSection theme={theme} />
               </motion.div>
 

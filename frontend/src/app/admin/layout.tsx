@@ -19,11 +19,18 @@ export default function AdminLayout({
     } else {
       setReady(true);
     }
+    // Apply blog theme preference to admin pages too
+    const theme = localStorage.getItem("fs0ciety_blog_theme");
+    if (theme === "industrial") {
+      document.documentElement.setAttribute("data-theme", "industrial");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
   }, [router]);
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-terminal-black flex items-center justify-center">
+      <div className="admin-layout min-h-screen bg-terminal-black flex items-center justify-center">
         <div className="font-mono text-terminal-green-dim text-sm animate-pulse">
           Authenticating...
         </div>
@@ -32,7 +39,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-terminal-black">
+    <div className="admin-layout min-h-screen flex bg-terminal-black">
       <AdminSidebar />
       <main className="flex-1 p-8 overflow-auto">{children}</main>
     </div>

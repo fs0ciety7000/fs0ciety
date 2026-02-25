@@ -54,6 +54,10 @@ export interface PostMeta {
   excerpt: string;
   contentHash: string;
   views: number;
+  /** Series name parsed from MDX comment, e.g. <!-- series: Name | order: N --> */
+  series?: string;
+  /** Series part number, 1-based. */
+  seriesPart?: number;
 }
 
 /** Full blog post. */

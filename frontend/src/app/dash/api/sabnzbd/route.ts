@@ -32,6 +32,27 @@ function formatBytes(b: number): string {
   return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
+export async function POST(request: Request) {
+  if (!SAB_API_KEY) {
+    return NextResponse.json({ error: "SAB_API_KEY not configured" }, { status: 503 });
+  }
+  try {
+    const { action, nzo_id } = await request.json() as { action: string; nzo_id: string };
+    if (!action || !nzo_id) {
+      return NextResponse.json({ error: "action and nzo_id required" }, { status: 400 });
+    }
+
+    // SAB queue actions: mode=queue&name=<action>&value=<nzo_id>
+    const sabAction = action === "delete" ? "delete" : action === "pause" ? "pause" : action === "resume" ? "resume" : null;
+    if (!sabAction) return NextResponse.json({ error: "unknown action" }, { status: 400 });
+
+    const data = await sabFetch("queue", `&name=${sabAction}&value=${encodeURIComponent(nzo_id)}`);
+    return NextResponse.json({ ok: data !== null });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
 export async function GET() {
   if (!SAB_API_KEY) {
     return NextResponse.json({ error: "SAB_API_KEY not configured" }, { status: 503 });
@@ -46,6 +67,7 @@ export async function GET() {
 
     // Queue - active downloads
     const activeDownloads: Array<{
+      nzo_id: string;
       name: string;
       size: string;
       progress: number;
@@ -58,6 +80,7 @@ export async function GET() {
       const q = queueRaw.queue;
       for (const slot of q.slots || []) {
         activeDownloads.push({
+          nzo_id: slot.nzo_id || "",
           name: slot.filename || "Unknown",
           size: slot.size || "0 B",
           progress: Math.round(

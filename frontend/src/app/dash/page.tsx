@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 // ── Icon CDN ────────────────────────────────────────────────
@@ -151,6 +151,7 @@ interface QbitData {
     totalUploaded: string;
   } | null;
   activeDownloads: Array<{
+    hash: string;
     name: string;
     size: string;
     progress: number;
@@ -232,6 +233,7 @@ interface SABData {
   queue: {
     count: number;
     active: Array<{
+      nzo_id: string;
       name: string;
       size: string;
       progress: number;
@@ -269,6 +271,21 @@ interface SpotifyData {
   };
   error?: string;
   authUrl?: string;
+}
+
+interface MetricsData {
+  upload: number | null;
+  download: number | null;
+  diskUsed: number | null;
+  diskFree: number | null;
+  diskTotal: number | null;
+  uploadFormatted: string | null;
+  downloadFormatted: string | null;
+  diskUsedFormatted: string | null;
+  diskFreeFormatted: string | null;
+  diskTotalFormatted: string | null;
+  usedPercent: number | null;
+  error?: string;
 }
 
 interface NowPlayingItem {
@@ -1103,6 +1120,20 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
   const [is4k, setIs4k] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [trending, setTrending] = useState<SeerrSearchResult[]>([]);
+  const [loadingTrending, setLoadingTrending] = useState(false);
+
+  // Load trending once on first open
+  useEffect(() => {
+    if (!open || trending.length > 0) return;
+    setLoadingTrending(true);
+    fetch("/dash/api/seerr/trending")
+      .then((r) => r.json())
+      .then((d) => setTrending(d.results || []))
+      .catch(() => {})
+      .finally(() => setLoadingTrending(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Debounced search
   useEffect(() => {
@@ -1307,6 +1338,56 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
             </div>
           )}
 
+          {/* Trending grid when query is empty */}
+          {results.length === 0 && !query.trim() && (
+            <div>
+              <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider mb-2`}>
+                Tendances
+              </div>
+              {loadingTrending ? (
+                <div className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>Chargement…</div>
+              ) : trending.length > 0 ? (
+                <div className="grid grid-cols-10 gap-1.5">
+                  {(typeFilter === "all" ? trending : trending.filter((r) => r.mediaType === typeFilter)).map((result) => {
+                    const badge = mediaStatusBadge(result.mediaStatus);
+                    const isSelected = selected?.id === result.id;
+                    const url = posterUrl(result.posterPath);
+                    return (
+                      <button
+                        key={result.id}
+                        onClick={() => setSelected(isSelected ? null : result)}
+                        className={`relative group text-left transition-all ${
+                          isSelected
+                            ? ind ? "ring-1 ring-[#F5622A]" : "ring-1 ring-terminal-green"
+                            : ind ? "hover:ring-1 ring-[#F5622A]/40" : "hover:ring-1 ring-terminal-green/40"
+                        }`}
+                      >
+                        {url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={url} alt="" className="w-full aspect-[2/3] object-cover"
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                        ) : (
+                          <div className={`w-full aspect-[2/3] flex items-center justify-center text-base ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+                            {result.mediaType === "movie" ? "🎬" : "📺"}
+                          </div>
+                        )}
+                        {badge && (
+                          <span className={`absolute top-0.5 right-0.5 text-[8px] font-mono font-bold px-1 leading-tight ${
+                            ind ? "bg-[#0D0E11]/85" : "bg-terminal-black/85"
+                          } ${badge.cls}`}>
+                            {badge.label === "Disponible" ? "✓" : "●"}
+                          </span>
+                        )}
+                        <div className={`text-[9px] font-mono truncate mt-0.5 px-0.5 ${c.textDim}`}>{result.title}</div>
+                        {result.year && <div className={`text-[8px] font-mono px-0.5 ${c.textMuted}`}>{result.year}</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {results.length === 0 && query.trim() && !searching && (
             <div className={`text-[10px] font-mono ${c.textMuted} py-1 text-center`}>
               Aucun résultat pour &laquo;{query}&raquo;
@@ -1462,6 +1543,64 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
   );
 }
 
+// ── Metrics Section (Whatbox) ────────────────────────────────
+
+function MetricsSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<MetricsData | null>(null);
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    fetch("/dash/api/metrics")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() => {});
+    const interval = setInterval(() => {
+      fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {});
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!data || data.error) return null;
+
+  const warn = data.usedPercent !== null && data.usedPercent > 85;
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Zucchini" icon="⬡" theme={theme}
+        extra={<a href="https://whatbox.ca/manage" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {data.uploadFormatted && (
+          <HudStat label="Uploadé" value={data.uploadFormatted} color={c.amber} theme={theme} />
+        )}
+        {data.downloadFormatted && (
+          <HudStat label="Téléchargé" value={data.downloadFormatted} color={c.cyan} theme={theme} />
+        )}
+        {data.diskFreeFormatted && (
+          <HudStat label="Disque libre" value={data.diskFreeFormatted} color={warn ? c.red : c.green} theme={theme} />
+        )}
+        {data.diskTotalFormatted && (
+          <HudStat label="Total" value={data.diskTotalFormatted} theme={theme} />
+        )}
+      </div>
+      {data.usedPercent !== null && (
+        <>
+          <div className={`w-full h-2 ${c.progressBg} rounded-full`}>
+            <div
+              className={`h-full rounded-full transition-all ${warn ? (ind ? "bg-[#F87171]" : "bg-terminal-red/60") : c.progressFillAlt}`}
+              style={{ width: `${data.usedPercent}%` }}
+            />
+          </div>
+          <div className={`text-[9px] font-mono ${warn ? c.red : c.textMuted2} mt-1 text-right tabular-nums`}>
+            {data.usedPercent}% utilisé{data.diskUsedFormatted ? ` — ${data.diskUsedFormatted}` : ""}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Seerr Section ───────────────────────────────────────────
 
 function SeerrSection({ theme }: { theme: DashTheme }) {
@@ -1541,18 +1680,36 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
 function QBitSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<QbitData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
   const c = cx(theme);
+  const ind = theme === "industrial";
 
-  useEffect(() => {
-    const load = () => fetch("/dash/api/qbit")
+  const load = useCallback(() =>
+    fetch("/dash/api/qbit")
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setData)
-      .catch(() => {});
+      .catch(() => {}),
+  []);
 
+  useEffect(() => {
     load().finally(() => setLoading(false));
     const interval = setInterval(load, 10_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [load]);
+
+  const qbitAction = useCallback(async (action: string, hash: string) => {
+    setPending((p) => ({ ...p, [hash]: true }));
+    try {
+      await fetch("/dash/api/qbit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, hash }),
+      });
+      setTimeout(load, 600);
+    } finally {
+      setPending((p) => ({ ...p, [hash]: false }));
+    }
+  }, [load]);
 
   if (loading) return <div className={c.card}><SectionHeader title="qBittorrent" icon="↓" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data) return null;
@@ -1589,7 +1746,7 @@ function QBitSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
           <div className="space-y-2">
             {data.activeDownloads.map((dl, i) => (
-              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+              <div key={i} className={`p-2 ${ind ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
                   <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
@@ -1602,6 +1759,23 @@ function QBitSection({ theme }: { theme: DashTheme }) {
                   <span className={`text-[10px] font-mono ${c.textMuted2}`}>{dl.size}</span>
                   <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums`}>ETA {formatETA(dl.eta)}</span>
                   {dl.category && <span className={`text-[10px] font-mono ${c.accent}`}>{dl.category}</span>}
+                  <div className="ml-auto flex items-center gap-1 shrink-0">
+                    {dl.state === "PAUSE" ? (
+                      <button disabled={!!pending[dl.hash]} onClick={() => qbitAction("resume", dl.hash)}
+                        className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#34D399]/40 text-[#34D399] hover:bg-[#34D399]/10" : "border-terminal-green/40 text-terminal-green hover:bg-terminal-green/10"} disabled:opacity-40`}>
+                        ▶
+                      </button>
+                    ) : (
+                      <button disabled={!!pending[dl.hash]} onClick={() => qbitAction("pause", dl.hash)}
+                        className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#F5A623]/40 text-[#F5A623] hover:bg-[#F5A623]/10" : "border-terminal-amber/40 text-terminal-amber hover:bg-terminal-amber/10"} disabled:opacity-40`}>
+                        ‖
+                      </button>
+                    )}
+                    <button disabled={!!pending[dl.hash]} onClick={() => qbitAction("delete", dl.hash)}
+                      className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#F87171]/40 text-[#F87171] hover:bg-[#F87171]/10" : "border-terminal-red/40 text-terminal-red hover:bg-terminal-red/10"} disabled:opacity-40`}>
+                      ✕
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1643,18 +1817,36 @@ function QBitSection({ theme }: { theme: DashTheme }) {
 function SABSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<SABData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState<Record<string, boolean>>({});
   const c = cx(theme);
+  const ind = theme === "industrial";
 
-  useEffect(() => {
-    const load = () => fetch("/dash/api/sabnzbd")
+  const load = useCallback(() =>
+    fetch("/dash/api/sabnzbd")
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setData)
-      .catch(() => {});
+      .catch(() => {}),
+  []);
 
+  useEffect(() => {
     load().finally(() => setLoading(false));
     const interval = setInterval(load, 10_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [load]);
+
+  const sabAction = useCallback(async (action: string, nzo_id: string) => {
+    setPending((p) => ({ ...p, [nzo_id]: true }));
+    try {
+      await fetch("/dash/api/sabnzbd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, nzo_id }),
+      });
+      setTimeout(load, 600);
+    } finally {
+      setPending((p) => ({ ...p, [nzo_id]: false }));
+    }
+  }, [load]);
 
   if (loading) return <div className={c.card}><SectionHeader title="SABnzbd" icon="↧" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
   if (!data) return null;
@@ -1693,7 +1885,7 @@ function SABSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase mb-2`}>Active Downloads</div>
           <div className="space-y-2">
             {data.queue.active.slice(0, 5).map((dl, i) => (
-              <div key={i} className={`p-2 ${theme === "industrial" ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
+              <div key={i} className={`p-2 ${ind ? "bg-[#1C1D22] border border-[#252830]" : "bg-terminal-black border border-terminal-gray-light"}`}>
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-[11px] font-mono ${c.textMain} truncate flex-1 mr-2`}>{dl.name}</span>
                   <span className={`text-[10px] font-mono ${c.cyan} tabular-nums shrink-0`}>{dl.progress}%</span>
@@ -1706,6 +1898,25 @@ function SABSection({ theme }: { theme: DashTheme }) {
                   <span className={`text-[10px] font-mono ${c.textMuted2}`}>{dl.size}</span>
                   {dl.timeLeft && <span className={`text-[10px] font-mono ${c.textMuted2} tabular-nums`}>ETA {dl.timeLeft}</span>}
                   <span className={`text-[10px] font-mono ${dl.status === "Downloading" ? c.green : c.textDim}`}>{dl.status}</span>
+                  {dl.nzo_id && (
+                    <div className="ml-auto flex items-center gap-1 shrink-0">
+                      {dl.status === "Paused" ? (
+                        <button disabled={!!pending[dl.nzo_id]} onClick={() => sabAction("resume", dl.nzo_id)}
+                          className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#34D399]/40 text-[#34D399] hover:bg-[#34D399]/10" : "border-terminal-green/40 text-terminal-green hover:bg-terminal-green/10"} disabled:opacity-40`}>
+                          ▶
+                        </button>
+                      ) : (
+                        <button disabled={!!pending[dl.nzo_id]} onClick={() => sabAction("pause", dl.nzo_id)}
+                          className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#F5A623]/40 text-[#F5A623] hover:bg-[#F5A623]/10" : "border-terminal-amber/40 text-terminal-amber hover:bg-terminal-amber/10"} disabled:opacity-40`}>
+                          ‖
+                        </button>
+                      )}
+                      <button disabled={!!pending[dl.nzo_id]} onClick={() => sabAction("delete", dl.nzo_id)}
+                        className={`text-[9px] font-mono px-1.5 py-0.5 border transition-colors ${ind ? "border-[#F87171]/40 text-[#F87171] hover:bg-[#F87171]/10" : "border-terminal-red/40 text-terminal-red hover:bg-terminal-red/10"} disabled:opacity-40`}>
+                        ✕
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -2198,6 +2409,113 @@ function MediaModeToggle({ mode, setMode, theme }: { mode: MediaMode; setMode: (
   );
 }
 
+// ── Command Palette (Cmd+K) ──────────────────────────────────
+
+const ALL_LINKS: AppLink[] = [...PERSONAL_LINKS, ...MEDIA_LINKS, ...BOOKMARKS];
+
+function CommandPalette({ open, onClose, theme }: { open: boolean; onClose: () => void; theme: DashTheme }) {
+  const [query, setQuery] = useState("");
+  const [cursor, setCursor] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    if (open) { setQuery(""); setCursor(0); setTimeout(() => inputRef.current?.focus(), 30); }
+  }, [open]);
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return ALL_LINKS.slice(0, 12);
+    return ALL_LINKS.filter((l) => l.name.toLowerCase().includes(q)).slice(0, 12);
+  }, [query]);
+
+  useEffect(() => { setCursor(0); }, [filtered.length]);
+
+  const go = (link: AppLink) => { window.open(link.url, "_blank", "noopener"); onClose(); };
+
+  if (!open) return null;
+
+  const borderColor = ind ? "#252830" : "rgba(0,212,255,0.2)";
+  const bgColor = ind ? "#0D0E11" : "#0a0a0a";
+  const cardColor = ind ? "#141619" : "#0f0f0f";
+  const accentColor = ind ? "#F5622A" : "#00D4FF";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
+      style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg mx-4 font-mono overflow-hidden"
+        style={{ background: bgColor, border: `1px solid ${accentColor}`, boxShadow: `0 0 40px ${accentColor}20` }}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") { onClose(); return; }
+          if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(c + 1, filtered.length - 1)); }
+          if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
+          if (e.key === "Enter" && filtered[cursor]) { go(filtered[cursor]); }
+        }}
+      >
+        {/* Search input */}
+        <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${borderColor}` }}>
+          <span style={{ color: accentColor }} className="text-xs shrink-0">⌘</span>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher une app…"
+            className="flex-1 text-sm bg-transparent outline-none"
+            style={{ color: ind ? "#E8E4DC" : "#00D4FF", caretColor: accentColor }}
+          />
+          <span className="text-[10px] shrink-0" style={{ color: ind ? "#5A5550" : "rgba(0,212,255,0.35)" }}>ESC</span>
+        </div>
+
+        {/* Results */}
+        <div className="py-1 max-h-[300px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-4 py-3 text-xs" style={{ color: ind ? "#5A5550" : "rgba(0,212,255,0.4)" }}>
+              Aucun résultat pour &laquo;{query}&raquo;
+            </div>
+          ) : (
+            filtered.map((link, i) => (
+              <button
+                key={link.url}
+                onClick={() => go(link)}
+                onMouseEnter={() => setCursor(i)}
+                className="w-full flex items-center gap-3 px-4 py-2 text-left transition-colors"
+                style={{
+                  background: i === cursor ? (ind ? "#1C1D22" : "rgba(0,212,255,0.06)") : "transparent",
+                  borderLeft: i === cursor ? `2px solid ${accentColor}` : "2px solid transparent",
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={link.icon} alt="" width={14} height={14}
+                  className="shrink-0 opacity-60"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                <span className="text-xs truncate" style={{ color: i === cursor ? (ind ? "#E8E4DC" : "#00D4FF") : (ind ? "#9A948C" : "rgba(0,212,255,0.7)") }}>
+                  {link.name}
+                </span>
+                <span className="ml-auto text-[10px] shrink-0" style={{ color: ind ? "#383530" : "rgba(0,212,255,0.25)", background: cardColor, padding: "1px 5px" }}>
+                  ↵
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-3 px-4 py-2 text-[10px]" style={{ borderTop: `1px solid ${borderColor}`, color: ind ? "#5A5550" : "rgba(0,212,255,0.3)" }}>
+          <span>↑↓ naviguer</span>
+          <span>↵ ouvrir</span>
+          <span>esc fermer</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab system ───────────────────────────────────────────────
 
 type DashTab = "start" | "media";
@@ -2243,12 +2561,24 @@ export default function StartPage() {
   const [theme, setTheme] = useDashTheme();
   const [mediaMode, setMediaMode] = useMediaMode();
   const [tabState, setTabState] = useState<{ current: DashTab; prev: DashTab }>({ current: "start", prev: "start" });
+  const [cmdOpen, setCmdOpen] = useState(false);
   const tab = tabState.current;
   const tabDir = (["start", "media"] as DashTab[]).indexOf(tabState.current) - (["start", "media"] as DashTab[]).indexOf(tabState.prev);
   const handleTabChange = useCallback((t: DashTab) => { setTabState((s) => ({ current: t, prev: s.current })); }, []);
   const c = cx(theme);
   const serviceUrls = useMemo(() => PERSONAL_LINKS.map((l) => l.url), []);
   const serviceStatus = useServiceStatus(serviceUrls);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCmdOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     function tick() {
@@ -2269,6 +2599,7 @@ export default function StartPage() {
       backgroundImage: "linear-gradient(rgba(37,40,50,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(37,40,50,0.35) 1px, transparent 1px)",
       backgroundSize: "48px 48px",
     } : undefined}>
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} theme={theme} />
 
       {/* ── Header ── */}
       <header className={`flex items-center justify-between mb-4 pb-3 border-b ${c.border}`}>
@@ -2287,6 +2618,7 @@ export default function StartPage() {
         <div className="flex items-center gap-2">
           <TabBar active={tab} onSelect={handleTabChange} theme={theme} />
           <span className={`mx-1 ${c.textMuted2}`}>|</span>
+          <button onClick={() => setCmdOpen(true)} className={c.headerLink} title="Cmd+K">⌘K</button>
           <DashThemeToggle theme={theme} setTheme={setTheme} />
           <a href="/" className={c.headerLink}>terminal</a>
         </div>
@@ -2395,12 +2727,13 @@ export default function StartPage() {
                 <SeerrSection theme={theme} />
               </motion.div>
 
-              <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-3"
+              <motion.div className="grid grid-cols-1 md:grid-cols-4 gap-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.17 }}>
                 <RadarrSection theme={theme} />
                 <SonarrSection theme={theme} />
                 <StorageSection theme={theme} />
+                <MetricsSection theme={theme} />
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}

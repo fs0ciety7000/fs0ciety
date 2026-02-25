@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { Post, PostMeta } from "@/types";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
@@ -47,6 +47,7 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(true);
   const [seriesPosts, setSeriesPosts] = useState<PostMeta[]>([]);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // If no initial post (fallback), fetch client-side
   useEffect(() => {
@@ -104,6 +105,90 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
     buttons.forEach((btn) => btn.addEventListener("click", handler));
     return () => buttons.forEach((btn) => btn.removeEventListener("click", handler));
   }, [html]);
+
+  // Wire up spoiler click-reveal handlers
+  useEffect(() => {
+    if (!html || !contentRef.current) return;
+    const spoilers = contentRef.current.querySelectorAll<HTMLElement>(".spoiler");
+
+    function handleReveal(this: HTMLElement) {
+      this.setAttribute("data-revealed", "true");
+    }
+    function handleKeyReveal(this: HTMLElement, e: Event) {
+      const ke = e as KeyboardEvent;
+      if (ke.key === "Enter" || ke.key === " ") {
+        ke.preventDefault();
+        this.setAttribute("data-revealed", "true");
+      }
+    }
+
+    spoilers.forEach((el) => {
+      el.addEventListener("click", handleReveal);
+      el.addEventListener("keydown", handleKeyReveal);
+    });
+
+    return () => {
+      spoilers.forEach((el) => {
+        el.removeEventListener("click", handleReveal);
+        el.removeEventListener("keydown", handleKeyReveal);
+      });
+    };
+  }, [html]);
+
+  // ToC scroll-sync — highlight the ToC link for the topmost visible heading
+  useEffect(() => {
+    if (!html || !contentRef.current || !tocOpen) return;
+
+    const headings = Array.from(
+      contentRef.current.querySelectorAll<HTMLElement>("h1[id], h2[id], h3[id]")
+    );
+    if (headings.length === 0) return;
+
+    let activeId = "";
+
+    function clearActive() {
+      document.querySelectorAll<HTMLAnchorElement>(".spectr-toc a.toc-active").forEach((a) => {
+        a.classList.remove("toc-active");
+      });
+    }
+
+    function setActive(id: string) {
+      if (id === activeId) return;
+      activeId = id;
+      clearActive();
+      const link = document.querySelector<HTMLAnchorElement>(
+        `.spectr-toc a[href="#${CSS.escape(id)}"]`
+      );
+      if (link) link.classList.add("toc-active");
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Collect all currently intersecting headings, pick the topmost by DOM order
+        const visible: { id: string; top: number }[] = [];
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            visible.push({ id: entry.target.id, top: entry.boundingClientRect.top });
+          }
+        });
+        if (visible.length > 0) {
+          visible.sort((a, b) => a.top - b.top);
+          setActive(visible[0].id);
+        }
+      },
+      {
+        rootMargin: "0px 0px -60% 0px",
+        threshold: 0,
+      }
+    );
+
+    headings.forEach((h) => observer.observe(h));
+
+    return () => {
+      observer.disconnect();
+      clearActive();
+    };
+  }, [html, tocOpen]);
 
   if (loading) {
     return <CipherLoading text={`$ cat /var/log/thoughts/${slug}`} />;
@@ -291,7 +376,7 @@ export default function BlogPostClient({ initialPost, slug }: Props) {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.4 }}
       >
-        <div dangerouslySetInnerHTML={{ __html: html }} />
+        <div ref={contentRef} dangerouslySetInnerHTML={{ __html: html }} />
       </motion.div>
     </motion.article>
   );
@@ -368,6 +453,12 @@ function renderMarkdownWithToc(md: string): { html: string; toc: TocEntry[] } {
     toc.push({ level, text, id });
     return `<h${level} id="${id}">${text}</h${level}>`;
   });
+
+  // [spoiler]...[/spoiler] — blurred text revealed on click
+  processed = processed.replace(
+    /\[spoiler\]([\s\S]*?)\[\/spoiler\]/g,
+    '<span class="spoiler" data-spoiler="true" role="button" tabindex="0" title="Click to reveal spoiler">$1</span>'
+  );
 
   // [redact]...[/redact] — renders as a black bar with glitch-reveal on hover
   processed = processed.replace(

@@ -2171,3 +2171,47 @@ html {
 [data-theme="industrial"] .admin-layout aside > div:last-child button {
   color: var(--spectr-accent-danger) !important;
 }
+
+/* ── Spoiler tag ─────────────────────────────────────────── */
+
+.spoiler {
+  display: inline;
+  filter: blur(5px);
+  cursor: pointer;
+  user-select: none;
+  transition: filter 0.3s ease, background 0.3s ease;
+  background: currentColor;
+  border-radius: 2px;
+  padding: 0 0.1em;
+}
+
+.spoiler[data-revealed="true"] {
+  filter: none;
+  background: transparent;
+  user-select: text;
+  cursor: auto;
+}
+
+/* Industrial light theme: use a warm stone bar */
+[data-theme="industrial"] .spoiler {
+  background: var(--spectr-text-primary);
+}
+
+[data-theme="industrial"] .spoiler[data-revealed="true"] {
+  background: transparent;
+}
+
+/* ── ToC active state ────────────────────────────────────── */
+
+.spectr-toc a.toc-active {
+  color: var(--spectr-accent-primary) !important;
+  border-left-color: var(--spectr-accent-primary) !important;
+  background: var(--spectr-glow-primary) !important;
+  font-weight: 600;
+}
+
+[data-theme="industrial"] .spectr-toc a.toc-active {
+  color: var(--spectr-accent-primary) !important;
+  border-left-color: var(--spectr-accent-primary) !important;
+  background: var(--spectr-glow-primary) !important;
+}

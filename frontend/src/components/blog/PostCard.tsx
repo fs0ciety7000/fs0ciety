@@ -108,6 +108,24 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
           </p>
         )}
 
+        {/* Series badge */}
+        {post.series && (
+          <div className="mb-3">
+            <span
+              className="spectr-caption inline-flex items-center gap-1"
+              style={{ color: "var(--spectr-accent-tertiary)" }}
+            >
+              <span aria-hidden="true">&#9671;</span>
+              {post.series}
+              {post.seriesPart !== undefined && (
+                <span style={{ color: "var(--spectr-text-muted)" }}>
+                  &nbsp;&mdash; Part {post.seriesPart}
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
         {/* Tags + read indicator */}
         <div className="flex items-center justify-between">
           <div className="flex flex-wrap gap-1.5">
@@ -118,12 +136,19 @@ export function PostCard({ post, index = 0 }: PostCardProps) {
             ))}
           </div>
 
-          <span
-            className="spectr-label opacity-0 group-hover:opacity-60 transition-opacity"
-            style={{ color: "var(--spectr-accent-secondary)" }}
-          >
-            read &rarr;
-          </span>
+          <div className="flex items-center gap-3">
+            {typeof post.views === "number" && post.views > 0 && (
+              <span className="spectr-caption" style={{ color: "var(--spectr-text-muted)" }}>
+                {post.views.toLocaleString()} views
+              </span>
+            )}
+            <span
+              className="spectr-label opacity-0 group-hover:opacity-60 transition-opacity"
+              style={{ color: "var(--spectr-accent-secondary)" }}
+            >
+              read &rarr;
+            </span>
+          </div>
         </div>
       </Link>
     </motion.article>

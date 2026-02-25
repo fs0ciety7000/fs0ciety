@@ -73,6 +73,7 @@ async function qbitFetch(path: string) {
 }
 
 interface QbitTorrent {
+  hash: string;
   name: string;
   size: number;
   progress: number;
@@ -125,6 +126,56 @@ function formatBytes(b: number): string {
   return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
+async function qbitPost(path: string, body: string) {
+  const sid = await login();
+  const headers: HeadersInit = { "Content-Type": "application/x-www-form-urlencoded" };
+  if (sid) headers.Cookie = `SID=${sid}`;
+
+  const res = await fetch(`${QBIT_URL}${path}`, { method: "POST", headers, body });
+  if (!res.ok) {
+    cachedSID = null;
+    sidExpiry = 0;
+    const newSid = await login();
+    if (newSid) {
+      const retry = await fetch(`${QBIT_URL}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", Cookie: `SID=${newSid}` },
+        body,
+      });
+      return retry.ok;
+    }
+    return false;
+  }
+  return true;
+}
+
+export async function POST(request: Request) {
+  if (!QBIT_USER) {
+    return NextResponse.json({ error: "QBIT_USER not configured" }, { status: 503 });
+  }
+  try {
+    const { action, hash } = await request.json() as { action: string; hash: string };
+    if (!action || !hash) {
+      return NextResponse.json({ error: "action and hash required" }, { status: 400 });
+    }
+
+    let ok = false;
+    if (action === "pause") {
+      ok = await qbitPost("/api/v2/torrents/pause", `hashes=${encodeURIComponent(hash)}`);
+    } else if (action === "resume") {
+      ok = await qbitPost("/api/v2/torrents/resume", `hashes=${encodeURIComponent(hash)}`);
+    } else if (action === "delete") {
+      ok = await qbitPost("/api/v2/torrents/delete", `hashes=${encodeURIComponent(hash)}&deleteFiles=false`);
+    } else {
+      return NextResponse.json({ error: "unknown action" }, { status: 400 });
+    }
+
+    return NextResponse.json({ ok });
+  } catch {
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  }
+}
+
 export async function GET() {
   if (!QBIT_USER) {
     return NextResponse.json({ error: "QBIT_USER not configured" }, { status: 503 });
@@ -151,6 +202,7 @@ export async function GET() {
 
     // Active downloads with details
     const activeDownloads = downloading.map((t) => ({
+      hash: t.hash,
       name: t.name,
       size: formatBytes(t.total_size),
       progress: Math.round(t.progress * 100),

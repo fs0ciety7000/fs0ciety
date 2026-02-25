@@ -101,7 +101,7 @@ export async function GET() {
 
   try {
     const [requestsRes, countRes] = await Promise.allSettled([
-      fetch(`${SEERR_URL}/api/v1/request?take=10&skip=0&sort=added`, {
+      fetch(`${SEERR_URL}/api/v1/request?take=5&skip=0&sort=added`, {
         headers: seerrHeaders(),
       }),
       fetch(`${SEERR_URL}/api/v1/request/count`, { headers: seerrHeaders() }),

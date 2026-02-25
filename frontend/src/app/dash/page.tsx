@@ -1547,6 +1547,7 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
 
 function MetricsSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<MetricsData | null>(null);
+  const [loading, setLoading] = useState(true);
   const c = cx(theme);
   const ind = theme === "industrial";
 
@@ -1554,14 +1555,32 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
     fetch("/dash/api/metrics")
       .then((r) => r.json())
       .then(setData)
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
     const interval = setInterval(() => {
       fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {});
     }, 60_000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!data || data.error) return null;
+  if (loading) return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Zucchini" icon="⬡" theme={theme} />
+      <div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading…</div>
+    </div>
+  );
+
+  if (!data || data.error) return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader title="Zucchini" icon="⬡" theme={theme}
+        extra={<a href="https://whatbox.ca/manage" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+      <div className={`text-[10px] font-mono ${c.textMuted} py-2`}>
+        Stats indisponibles — vérifier WHATBOX_USER / WHATBOX_PASS.
+      </div>
+    </div>
+  );
 
   const warn = data.usedPercent !== null && data.usedPercent > 85;
 
@@ -2677,6 +2696,7 @@ export default function StartPage() {
                 transition={{ duration: 0.2, delay: 0.10 }}>
                 <WeatherSection theme={theme} />
                 <SpotifySection theme={theme} />
+                <MetricsSection theme={theme} />
                 <Calendar theme={theme} />
                 <AdGuardSection theme={theme} compact />
               </motion.div>

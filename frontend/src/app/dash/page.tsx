@@ -1261,7 +1261,7 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
 
           {/* Results grid */}
           {results.length > 0 && (
-            <div className="grid grid-cols-6 gap-2">
+            <div className="grid grid-cols-10 gap-1.5">
               {results.map((result) => {
                 const badge = mediaStatusBadge(result.mediaStatus);
                 const isSelected = selected?.id === result.id;
@@ -1280,11 +1280,11 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={url} alt=""
-                        className="w-full aspect-[2/3] object-cover"
+                        className="w-full h-20 object-cover object-top"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                       />
                     ) : (
-                      <div className={`w-full aspect-[2/3] flex items-center justify-center text-xl ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+                      <div className={`w-full h-20 flex items-center justify-center text-base ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
                         {result.mediaType === "movie" ? "🎬" : "📺"}
                       </div>
                     )}

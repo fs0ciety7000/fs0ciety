@@ -1280,11 +1280,11 @@ function MediaRequestSection({ theme }: { theme: DashTheme }) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={url} alt=""
-                        className="w-full h-20 object-cover object-top"
+                        className="w-full aspect-[2/3] object-cover"
                         onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                       />
                     ) : (
-                      <div className={`w-full h-20 flex items-center justify-center text-base ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
+                      <div className={`w-full aspect-[2/3] flex items-center justify-center text-base ${ind ? "bg-[#1C1D22]" : "bg-terminal-black"}`}>
                         {result.mediaType === "movie" ? "🎬" : "📺"}
                       </div>
                     )}

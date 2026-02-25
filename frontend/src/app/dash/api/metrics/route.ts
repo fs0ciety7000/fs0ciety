@@ -59,6 +59,7 @@ export async function GET() {
       diskTotalFormatted: diskTotal !== null ? formatBytes(diskTotal) : null,
       usedPercent:
         diskTotal && diskUsed ? Math.round((diskUsed / diskTotal) * 100) : null,
+      _raw: data,
     });
   } catch {
     return NextResponse.json({ error: "unavailable" });

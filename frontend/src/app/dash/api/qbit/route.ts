@@ -16,7 +16,7 @@ async function login(): Promise<string | null> {
   try {
     const res = await fetch(`${QBIT_URL}/api/v2/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Mozilla/5.0" },
       body: `username=${encodeURIComponent(QBIT_USER)}&password=${encodeURIComponent(QBIT_PASS)}`,
       redirect: "manual",
     });
@@ -52,7 +52,7 @@ async function login(): Promise<string | null> {
 
 async function qbitFetch(path: string) {
   const sid = await login();
-  const headers: HeadersInit = {};
+  const headers: HeadersInit = { "User-Agent": "Mozilla/5.0" };
   if (sid) headers.Cookie = `SID=${sid}`;
 
   const res = await fetch(`${QBIT_URL}${path}`, { headers });
@@ -63,7 +63,7 @@ async function qbitFetch(path: string) {
     const newSid = await login();
     if (newSid) {
       const retry = await fetch(`${QBIT_URL}${path}`, {
-        headers: { Cookie: `SID=${newSid}` },
+        headers: { "User-Agent": "Mozilla/5.0", Cookie: `SID=${newSid}` },
       });
       if (retry.ok) return retry.json();
     }

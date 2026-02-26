@@ -11,7 +11,7 @@ async function sabFetch(mode: string, extra = "") {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(url, { signal: controller.signal, cache: "no-store" });
+    const res = await fetch(url, { signal: controller.signal, cache: "no-store", headers: { "User-Agent": "Mozilla/5.0" } });
     clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();

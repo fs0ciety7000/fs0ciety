@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const SONARR_URL = process.env.SONARR_URL || "https://sonic.phantomhex.cc";
-const SONARR_API_KEY = process.env.SONARR_API_KEY || "80cc95ee620a40aaa97e0c91fff99c53";
+const SONARR_API_KEY = process.env.SONARR_API_KEY || "";
 
 function sonarrHeaders(): HeadersInit {
   return { "X-Api-Key": SONARR_API_KEY, Accept: "application/json" };

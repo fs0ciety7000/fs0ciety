@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 const PROWLARR_URL = process.env.PROWLARR_URL || "https://prow.phantomhex.cc";
-const PROWLARR_API_KEY = process.env.PROWLARR_API_KEY || "2ba0202cdd8c491fb2476d88d90670d0";
+const PROWLARR_API_KEY = process.env.PROWLARR_API_KEY || "";
 
 function headers(): HeadersInit {
   return { "X-Api-Key": PROWLARR_API_KEY, Accept: "application/json" };

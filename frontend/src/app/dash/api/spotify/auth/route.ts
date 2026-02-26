@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "d4c3d6b72c8e4196aaa884fb8ec9268b";
+const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || "";
 const REDIRECT_URI =
   process.env.SPOTIFY_REDIRECT_URI ||
   "https://dash.fs0ciety.org/dash/api/spotify/callback";

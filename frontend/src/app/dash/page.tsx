@@ -18,7 +18,7 @@ interface AppLink {
 const PERSONAL_LINKS: AppLink[] = [
   { name: "Booklore", url: "https://book.fs0ciety.org/dashboard", icon: ICON("booklore") },
   { name: "Convertx", url: "https://convert.fs0ciety.org", icon: ICON("convertx") },
-  { name: "Documentation", url: "https://docmost.fs0ciety.org", icon: ICON("docmost") },
+  // { name: "Documentation", url: "https://docmost.fs0ciety.org", icon: ICON("docmost") },
   { name: "Sign", url: "https://sign.fs0ciety.org", icon: ICON("docuseal") },
   { name: "IT Tools", url: "https://tools.fs0ciety.org", icon: ICON("it-tools") },
   { name: "Paperless", url: "https://paperless.fs0ciety.org", icon: ICON("paperless-ngx") },
@@ -2115,6 +2115,70 @@ function msToTime(ms: number): string {
   return `${m}:${sec.toString().padStart(2, "0")}`;
 }
 
+interface CfRoute { hostname: string; service: string; }
+interface CfData {
+  tunnelUp: boolean;
+  status: string;
+  name: string;
+  connectors: number;
+  routes: CfRoute[];
+  error?: string;
+}
+
+function CloudflareSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<CfData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/cloudflare")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className={c.card + " relative"}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>TUNNEL CLOUDFLARE</span>
+        {loading ? (
+          <span className={`text-xs font-mono ${c.textDim} animate-pulse`}>…</span>
+        ) : data && !data.error ? (
+          <span className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${data.tunnelUp ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+            <span className={`text-xs font-mono ${data.tunnelUp ? "text-green-400" : "text-red-400"}`}>
+              {data.tunnelUp ? `UP · ${data.connectors}c` : data.status.toUpperCase()}
+            </span>
+          </span>
+        ) : (
+          <span className="text-xs text-red-400">non configuré</span>
+        )}
+      </div>
+      {!loading && data && !data.error && data.routes.length > 0 && (
+        <div className="space-y-0.5">
+          {data.routes.map((r) => (
+            <a
+              key={r.hostname}
+              href={`https://${r.hostname}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center justify-between py-0.5 px-1 rounded hover:bg-white/5 transition-colors group`}
+            >
+              <span className={`text-xs font-mono ${c.textMain} group-hover:text-orange-400 transition-colors truncate max-w-[60%]`}>
+                {r.hostname.replace(/\.phantomhex\.cc$/, "").replace(/\.fs0ciety\.org$/, "")}
+              </span>
+              <span className={`text-xs font-mono ${c.textDim} truncate max-w-[38%] text-right`}>
+                {r.service.replace(/^https?:\/\//, "")}
+              </span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SpotifySection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<SpotifyData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2731,6 +2795,7 @@ export default function StartPage() {
                 <MetricsSection theme={theme} />
                 <Calendar theme={theme} />
                 <AdGuardSection theme={theme} compact />
+                <CloudflareSection theme={theme} />
               </motion.div>
             </div>
           )}

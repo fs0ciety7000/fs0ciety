@@ -43,7 +43,7 @@ const BOOKMARKS: AppLink[] = [
 const MEDIA_LINKS: AppLink[] = [
   { name: "Zucchini", url: "https://whatbox.ca/manage", icon: ICON("server") },
   { name: "Jellyfin", url: "https://jf.phantomhex.cc", icon: ICON("jellyfin") },
-  { name: "Prowlarr", url: "https://prowlarr.cinenode.org/", icon: ICON("prowlarr") },
+  { name: "Prowlarr", url: "https://prow.phantomhex.cc", icon: ICON("prowlarr") },
   { name: "Radarr", url: "https://pulse.phantomhex.cc", icon: ICON("radarr") },
   { name: "Sonarr", url: "https://sonic.phantomhex.cc", icon: ICON("sonarr") },
   { name: "Qbit", url: "https://flow.phantomhex.cc", icon: ICON("qbittorrent") },

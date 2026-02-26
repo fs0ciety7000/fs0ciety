@@ -2006,14 +2006,14 @@ function RadarrSection({ theme }: { theme: DashTheme }) {
 
   useEffect(() => {
     fetch("/dash/api/radarr")
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((r) => r.json())
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className={c.card}><SectionHeader title="Radarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data?.stats) return null;
+  if (!data?.stats) return <div className={c.card}><SectionHeader title="Radarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textMuted}`}>Cannot reach Radarr — check RADARR_API_KEY or network access.</div></div>;
 
   return (
     <div className={c.card}>
@@ -2039,14 +2039,14 @@ function SonarrSection({ theme }: { theme: DashTheme }) {
 
   useEffect(() => {
     fetch("/dash/api/sonarr")
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((r) => r.json())
       .then(setData)
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className={c.card}><SectionHeader title="Sonarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data?.stats) return null;
+  if (!data?.stats) return <div className={c.card}><SectionHeader title="Sonarr" icon="▶" theme={theme} /><div className={`text-xs font-mono ${c.textMuted}`}>Cannot reach Sonarr — check SONARR_API_KEY or network access.</div></div>;
 
   return (
     <div className={c.card}>
@@ -2088,7 +2088,7 @@ function StorageSection({ theme }: { theme: DashTheme }) {
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Storage" icon="▣" theme={theme}
-        extra={<span className={`text-[10px] font-mono ${c.textMuted}`}>cinenode.org</span>} />
+        extra={<span className={`text-[10px] font-mono ${c.textMuted}`}>phantomhex.cc</span>} />
       <div className="flex items-center justify-between mb-2">
         <span className={`text-[10px] font-mono ${c.textDim}`}>/storage</span>
         <span className={`text-[10px] font-mono ${warn ? c.red : c.textMuted2} tabular-nums`}>{storageDisk.freeSpace} free</span>
@@ -2433,7 +2433,7 @@ function ProwlarrSection({ theme }: { theme: DashTheme }) {
     <div className={c.card}>
       {ind && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Prowlarr" icon="⊞" theme={theme}
-        extra={<a href="https://prowlarr.cinenode.org/indexers/stats" target="_blank" rel="noopener noreferrer" className={c.headerLink}>stats →</a>} />
+        extra={<a href="https://prow.phantomhex.cc/indexers/stats" target="_blank" rel="noopener noreferrer" className={c.headerLink}>stats →</a>} />
       <div className="grid grid-cols-3 gap-2 mb-4">
         <HudStat label="Queries" value={formatNumber(data.totals.queries)} color={c.cyan} theme={theme} />
         <HudStat label="Grabs" value={formatNumber(data.totals.grabs)} color={c.green} theme={theme} />

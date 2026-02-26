@@ -69,11 +69,11 @@ async function qbitFetch(path: string) {
       const retry = await fetch(`${QBIT_URL}${path}`, {
         headers: { "User-Agent": "Mozilla/5.0", ...cfH(), Cookie: `SID=${newSid}` },
       });
-      if (retry.ok) return retry.json();
+      if (retry.ok) return retry.json().catch(() => null);
     }
     return null;
   }
-  return res.json();
+  return res.json().catch(() => null);
 }
 
 interface QbitTorrent {

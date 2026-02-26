@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const RADARR_URL = process.env.RADARR_URL || "https://pulse.phantomhex.cc/";
+const RADARR_URL = (process.env.RADARR_URL || "https://pulse.phantomhex.cc").replace(/\/$/, "");
 const RADARR_API_KEY = process.env.RADARR_API_KEY || "";
 const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
 const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";

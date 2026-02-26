@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const SAB_URL = process.env.SAB_URL || "https://sabnzbd.cinenode.org";
+const SAB_URL = process.env.SAB_URL || "https://vault.phantomhex.cc";
 const SAB_API_KEY = process.env.SAB_API_KEY || "";
 
 async function sabFetch(mode: string, extra = "") {

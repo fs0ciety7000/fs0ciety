@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const RADARR_URL = process.env.RADARR_URL || "https://radarr.cinenode.org";
+const RADARR_URL = process.env.RADARR_URL || "https://pulse.phantomhex.cc/";
 const RADARR_API_KEY = process.env.RADARR_API_KEY || "d504f9d499a44007a0835c41a904644a";
 
 function radarrHeaders(): HeadersInit {

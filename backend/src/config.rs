@@ -68,11 +68,11 @@ impl Config {
             plex_external_url: env::var("PLEX_EXTERNAL_URL")
                 .unwrap_or_else(|_| "https://app.plex.tv/desktop".into()),
             sonarr_external_url: env::var("SONARR_EXTERNAL_URL")
-                .unwrap_or_else(|_| "https://sonarr.niftybee.box.ca".into()),
+                .unwrap_or_else(|_| "https://sonic.phantomhex.cc/".into()),
             radarr_external_url: env::var("RADARR_EXTERNAL_URL")
-                .unwrap_or_else(|_| "https://radarr.niftybee.box.ca".into()),
+                .unwrap_or_else(|_| "https://pulse.phantomhex.cc".into()),
             qbittorrent_external_url: env::var("QBITTORRENT_EXTERNAL_URL")
-                .unwrap_or_else(|_| "https://qbittorrent.niftybee.box.ca".into()),
+                .unwrap_or_else(|_| "https://flow.phantomhex.cc/".into()),
         }
     }
 

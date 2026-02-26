@@ -42,13 +42,13 @@ const BOOKMARKS: AppLink[] = [
 
 const MEDIA_LINKS: AppLink[] = [
   { name: "Zucchini", url: "https://whatbox.ca/manage", icon: ICON("server") },
-  { name: "Jellyfin", url: "https://jellyfin.cinenode.org/web/", icon: ICON("jellyfin") },
+  { name: "Jellyfin", url: "https://jf.phantomhex.cc", icon: ICON("jellyfin") },
   { name: "Prowlarr", url: "https://prowlarr.cinenode.org/", icon: ICON("prowlarr") },
-  { name: "Radarr", url: "https://radarr.cinenode.org/", icon: ICON("radarr") },
-  { name: "Sonarr", url: "https://sonarr.cinenode.org/", icon: ICON("sonarr") },
-  { name: "Qbit", url: "https://qbittorrent.cinenode.org/", icon: ICON("qbittorrent") },
-  { name: "SAB", url: "https://sabnzbd.cinenode.org/", icon: ICON("sabnzbd") },
-  { name: "Seerr", url: "https://requests.cinenode.org/", icon: ICON("jellyseerr") },
+  { name: "Radarr", url: "https://pulse.phantomhex.cc", icon: ICON("radarr") },
+  { name: "Sonarr", url: "https://sonic.phantomhex.cc", icon: ICON("sonarr") },
+  { name: "Qbit", url: "https://flow.phantomhex.cc", icon: ICON("qbittorrent") },
+  { name: "SAB", url: "https://vault.phantomhex.cc", icon: ICON("sabnzbd") },
+  { name: "Seerr", url: "https://scout.phantomhex.cc", icon: ICON("jellyseerr") },
 ];
 
 // ── Types ───────────────────────────────────────────────────
@@ -914,7 +914,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
           <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-widest mb-2`}>Recent Films</div>
           <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 gap-1.5">
             {data.recentMovies.map((item) =>
-              posterCard(item.id, `https://jellyfin.cinenode.org/web/#!/details?id=${item.id}`, item.imageUrl, item.name, item.year?.toString())
+              posterCard(item.id, `https://jf.phantomhex.cc/web/#!/details?id=${item.id}`, item.imageUrl, item.name, item.year?.toString())
             )}
           </div>
         </div>
@@ -928,7 +928,7 @@ function JellyfinSection({ theme }: { theme: DashTheme }) {
             {data.recentEpisodes.map((item) =>
               posterCard(
                 item.seriesId || item.id,
-                `https://jellyfin.cinenode.org/web/#!/details?id=${item.seriesId || item.id}`,
+                `https://jf.phantomhex.cc/web/#!/details?id=${item.seriesId || item.id}`,
                 item.imageUrl,
                 item.seriesName || item.name,
                 item.name !== item.seriesName ? item.name : undefined
@@ -2019,7 +2019,7 @@ function RadarrSection({ theme }: { theme: DashTheme }) {
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Radarr" icon="▶" theme={theme}
-        extra={<a href="https://radarr.cinenode.org" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+        extra={<a href="https://pulse.phantomhex.cc" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
       <div className="grid grid-cols-2 gap-2">
         <HudStat label="Total Films" value={data.stats.total.toString()} color={c.amber} theme={theme} />
         <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.cyan} theme={theme} />
@@ -2052,7 +2052,7 @@ function SonarrSection({ theme }: { theme: DashTheme }) {
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <SectionHeader title="Sonarr" icon="▶" theme={theme}
-        extra={<a href="https://sonarr.cinenode.org" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
+        extra={<a href="https://sonic.phantomhex.cc" target="_blank" rel="noopener noreferrer" className={c.headerLink}>open →</a>} />
       <div className="grid grid-cols-2 gap-2">
         <HudStat label="Series" value={data.stats.total.toString()} color={c.cyan} theme={theme} />
         <HudStat label="Monitored" value={data.stats.monitored.toString()} color={c.amber} theme={theme} />

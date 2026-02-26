@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const SEERR_URL = process.env.SEERR_URL || "https://requests.cinenode.org";
+const SEERR_URL = process.env.SEERR_URL || "https://scout.phantomhex.cc";
 const SECRET = process.env.DASH_SESSION_SECRET || "fs0ciety-dash-secret-key-change-me";
 const COOKIE = "dash_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days

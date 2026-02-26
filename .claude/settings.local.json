@@ -5,7 +5,8 @@
       "Bash(npx tsc --noEmit)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(/usr/bin/env node_modules/.bin/tsc --noEmit)",
-      "Bash(distrobox enter dev-env -- bash -c \"cd /var/home/phantomhex/Documents/code/fs0ciety/frontend && npx tsc --noEmit 2>&1 | head -50\")"
+      "Bash(distrobox enter dev-env -- bash -c \"cd /var/home/phantomhex/Documents/code/fs0ciety/frontend && npx tsc --noEmit 2>&1 | head -50\")",
+      "Bash(distrobox enter dev-env -- which speedtest-cli speedtest)"
     ]
   }
 }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const QBIT_URL = process.env.QBIT_URL || "https://qbittorrent.cinenode.org";
+const QBIT_URL = process.env.QBIT_URL || "https://flow.phantomhex.cc";
 const QBIT_USER = process.env.QBIT_USER || "";
 const QBIT_PASS = process.env.QBIT_PASS || "";
 

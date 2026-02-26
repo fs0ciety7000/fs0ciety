@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 // ── Jellyfin ────────────────────────────────────────────────
-const JELLYFIN_URL = process.env.JELLYFIN_URL || "https://jellyfin.cinenode.org";
+const JELLYFIN_URL = process.env.JELLYFIN_URL || "https://jf.phantomhex.cc";
 const JELLYFIN_API_KEY = process.env.JELLYFIN_API_KEY || "";
 
 interface JellyfinSession {

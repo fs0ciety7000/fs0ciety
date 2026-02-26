@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-const SEERR_URL = process.env.SEERR_URL || "https://requests.cinenode.org";
+const SEERR_URL = process.env.SEERR_URL || "https://scout.phantomhex.cc";
 const SEERR_API_KEY = process.env.SEERR_API_KEY || "";
 
 interface RawSeason {

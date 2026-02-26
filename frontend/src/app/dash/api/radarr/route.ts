@@ -4,9 +4,15 @@ export const dynamic = "force-dynamic";
 
 const RADARR_URL = process.env.RADARR_URL || "https://pulse.phantomhex.cc/";
 const RADARR_API_KEY = process.env.RADARR_API_KEY || "";
+const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
+const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";
 
 function radarrHeaders(): HeadersInit {
-  return { "X-Api-Key": RADARR_API_KEY, Accept: "application/json" };
+  return {
+    "X-Api-Key": RADARR_API_KEY,
+    Accept: "application/json",
+    ...(CF_CLIENT_ID ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET } : {}),
+  };
 }
 
 interface RadarrMovie {

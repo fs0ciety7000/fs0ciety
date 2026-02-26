@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 const SAB_URL = process.env.SAB_URL || "https://vault.phantomhex.cc";
 const SAB_API_KEY = process.env.SAB_API_KEY || "";
+const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
+const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";
 
 async function sabFetch(mode: string, extra = "") {
   // Dedicated subdomain: API is at /api (not /sabnzbd/api)
@@ -11,7 +13,8 @@ async function sabFetch(mode: string, extra = "") {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    const res = await fetch(url, { signal: controller.signal, cache: "no-store", headers: { "User-Agent": "Mozilla/5.0" } });
+    const cfHeaders: Record<string, string> = CF_CLIENT_ID ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET } : {};
+    const res = await fetch(url, { signal: controller.signal, cache: "no-store", headers: { "User-Agent": "Mozilla/5.0", ...cfHeaders } });
     clearTimeout(timeout);
     if (!res.ok) return null;
     const data = await res.json();

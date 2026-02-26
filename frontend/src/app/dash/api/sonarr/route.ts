@@ -4,9 +4,15 @@ export const dynamic = "force-dynamic";
 
 const SONARR_URL = process.env.SONARR_URL || "https://sonic.phantomhex.cc";
 const SONARR_API_KEY = process.env.SONARR_API_KEY || "";
+const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
+const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";
 
 function sonarrHeaders(): HeadersInit {
-  return { "X-Api-Key": SONARR_API_KEY, Accept: "application/json" };
+  return {
+    "X-Api-Key": SONARR_API_KEY,
+    Accept: "application/json",
+    ...(CF_CLIENT_ID ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET } : {}),
+  };
 }
 
 interface SonarrSeries {

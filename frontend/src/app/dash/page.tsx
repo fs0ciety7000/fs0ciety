@@ -1737,7 +1737,7 @@ function QBitSection({ theme }: { theme: DashTheme }) {
 
   const load = useCallback(() =>
     fetch("/dash/api/qbit")
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+      .then((r) => r.json())
       .then(setData)
       .catch(() => {}),
   []);
@@ -1763,7 +1763,7 @@ function QBitSection({ theme }: { theme: DashTheme }) {
   }, [load]);
 
   if (loading) return <div className={c.card}><SectionHeader title="qBittorrent" icon="↓" theme={theme} /><div className={`text-xs font-mono ${c.textDim} animate-pulse`}>Loading...</div></div>;
-  if (!data) return null;
+  if (!data || data.counts === null) return <div className={c.card}><SectionHeader title="qBittorrent" icon="↓" theme={theme} /><div className={`text-xs font-mono ${c.textMuted}`}>Cannot reach qBittorrent — check QBIT_URL / QBIT_USER or network access.</div></div>;
 
   const hasActive = data.activeDownloads.length > 0;
 

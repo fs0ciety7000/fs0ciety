@@ -3346,10 +3346,9 @@ export default function StartPage() {
                 </div>
                 <ImmichSection theme={theme} />
                 <BeszelSection theme={theme} />
-                <AudiobookshelfSection theme={theme} />
               </motion.div>
 
-              {/* Center: RSS + AdGuard + Cloudflare */}
+              {/* Center: RSS + AdGuard + Cloudflare + Audiobookshelf + Tailscale */}
               <motion.div className="lg:col-span-6 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.05 }}>
@@ -3358,9 +3357,13 @@ export default function StartPage() {
                   <AdGuardSection theme={theme} compact />
                   <CloudflareSection theme={theme} />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <AudiobookshelfSection theme={theme} />
+                  <TailscaleSection theme={theme} />
+                </div>
               </motion.div>
 
-              {/* Right: Weather + Spotify + Metrics + Calendar + Uptime + Tailscale */}
+              {/* Right: Weather + Spotify + Metrics + Calendar + Uptime */}
               <motion.div className="lg:col-span-3 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.10 }}>
@@ -3369,7 +3372,6 @@ export default function StartPage() {
                 <MetricsSection theme={theme} />
                 <Calendar theme={theme} />
                 <UptimeSection theme={theme} />
-                <TailscaleSection theme={theme} />
               </motion.div>
             </div>
           )}

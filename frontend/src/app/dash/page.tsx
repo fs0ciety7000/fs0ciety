@@ -2286,6 +2286,7 @@ interface UptimeData {
 function UptimeSection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<UptimeData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const c = cx(theme);
 
   useEffect(() => {
@@ -2308,21 +2309,31 @@ function UptimeSection({ theme }: { theme: DashTheme }) {
   const monitors = data?.monitors ?? [];
   const upCount = monitors.filter((m) => m.status === 1).length;
   const total = monitors.length;
+  const allUp = upCount === total && total > 0;
 
   return (
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-      <div className="flex items-center justify-between mb-2">
+      <button
+        onClick={() => setExpanded((e) => !e)}
+        className="flex items-center justify-between w-full"
+      >
         <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>UPTIME KUMA</span>
-        <span className={`text-[10px] font-mono ${upCount === total && total > 0 ? c.green : c.red}`}>
-          {upCount}/{total} UP
-        </span>
-      </div>
-      {data?.error && !total && (
-        <div className={`text-[10px] font-mono ${c.textMuted}`}>{data.error}</div>
-      )}
-      {monitors.length > 0 && (
-        <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          {/* LED dots summary — one per monitor */}
+          <div className="flex items-center gap-0.5">
+            {monitors.map((m) => (
+              <span key={m.id} className={`w-1.5 h-1.5 rounded-full ${m.status === 1 ? "bg-green-400" : m.status === -1 ? "bg-[#5A5550]" : "bg-red-400"}`} />
+            ))}
+          </div>
+          <span className={`text-[10px] font-mono ${allUp ? c.green : c.red}`}>
+            {upCount}/{total}
+          </span>
+          <span className={`text-[10px] font-mono ${c.textMuted}`}>{expanded ? "▲" : "▼"}</span>
+        </div>
+      </button>
+      {expanded && monitors.length > 0 && (
+        <div className="space-y-0.5 mt-2 pt-2 border-t border-[#252830]">
           {monitors.map((m) => (
             <div key={m.id} className="flex items-center justify-between py-0.5">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -2542,10 +2553,133 @@ function TailscaleSection({ theme }: { theme: DashTheme }) {
               <span className="text-[10px] shrink-0">{OS_ICON[d.os] ?? "💻"}</span>
               <span className={`text-[11px] font-mono ${d.online ? c.textMain : c.textMuted} truncate`}>{d.name}</span>
             </div>
-            <span className={`text-[10px] font-mono ${c.textMuted} shrink-0 ml-2`}>{d.ip}</span>
+            {/* IP caviardée — révélée au hover */}
+            <span
+              className={`text-[10px] font-mono ${c.textMuted} shrink-0 ml-2 select-none transition-all duration-200`}
+              style={{ filter: "blur(4px)" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.filter = "blur(0)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.filter = "blur(4px)"; }}
+            >{d.ip}</span>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Audiobookshelf ───────────────────────────────────────────
+
+interface AbsBook {
+  id: string;
+  title: string;
+  author: string | null;
+  duration: string;
+  addedAt: number;
+  coverUrl: string;
+}
+
+interface AbsLibrary {
+  id: string;
+  name: string;
+  mediaType: string;
+  totalItems: number;
+  totalDuration: string;
+  totalSize: string;
+  recentItems: AbsBook[];
+}
+
+interface AbsData {
+  libraries: AbsLibrary[];
+  error?: string;
+}
+
+function AudiobookshelfSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<AbsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/audiobookshelf")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>AUDIOBOOKSHELF…</span>
+    </div>
+  );
+
+  if (!data || data.error || !data.libraries.length) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className={`text-[10px] font-mono ${c.textMuted}`}>AUDIOBOOKSHELF — {data?.error ?? "unavailable"}</div>
+    </div>
+  );
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>AUDIOBOOKSHELF</span>
+        <a href="https://audio.cinenode.org" target="_blank" rel="noopener noreferrer"
+          className={`text-[10px] font-mono ${c.link} opacity-60 hover:opacity-100 transition-opacity`}>↗</a>
+      </div>
+
+      {data.libraries.map((lib) => (
+        <div key={lib.id} className="mb-3 last:mb-0">
+          {/* Library header */}
+          <div className="flex items-center justify-between mb-1.5">
+            <span className={`text-[10px] font-mono ${c.accent} uppercase tracking-wider`}>{lib.name}</span>
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-mono ${c.textMain} font-bold`}>{lib.totalItems}</span>
+              {lib.totalDuration && (
+                <span className={`text-[10px] font-mono ${c.textMuted}`}>{lib.totalDuration}</span>
+              )}
+            </div>
+          </div>
+
+          {/* Recent books — horizontal scroll of covers */}
+          {lib.recentItems.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {lib.recentItems.map((book) => (
+                <div key={book.id} className="shrink-0 group relative" title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title}
+                    width={40}
+                    height={56}
+                    className={`w-10 h-14 object-cover border ${c.border} group-hover:border-[#F5622A]/60 transition-all`}
+                    onError={(e) => {
+                      const el = e.target as HTMLImageElement;
+                      el.style.display = "none";
+                      const fallback = el.nextElementSibling as HTMLElement | null;
+                      if (fallback) fallback.style.display = "flex";
+                    }}
+                  />
+                  {/* Fallback text box */}
+                  <div className={`hidden w-10 h-14 items-center justify-center ${c.bgAlt} border ${c.border} p-0.5`}>
+                    <span className={`text-[8px] font-mono ${c.textMuted} text-center leading-tight line-clamp-3`}>{book.title}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Last added */}
+          {lib.recentItems[0] && (
+            <div className="mt-1">
+              <span className={`text-[10px] font-mono ${c.textDim}`}>{lib.recentItems[0].title}</span>
+              {lib.recentItems[0].author && (
+                <span className={`text-[10px] font-mono ${c.textMuted}`}> — {lib.recentItems[0].author}</span>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -3150,6 +3284,7 @@ export default function StartPage() {
                 </div>
                 <ImmichSection theme={theme} />
                 <BeszelSection theme={theme} />
+                <AudiobookshelfSection theme={theme} />
               </motion.div>
 
               {/* Center: RSS + AdGuard + Cloudflare */}

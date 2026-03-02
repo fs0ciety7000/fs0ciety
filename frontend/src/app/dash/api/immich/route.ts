@@ -6,10 +6,7 @@ const IMMICH_URL = (process.env.IMMICH_URL || "https://photos.fs0ciety.org").rep
 const IMMICH_API_KEY = process.env.IMMICH_API_KEY || "";
 
 function immichHeaders(): HeadersInit {
-  return {
-    "x-api-key": IMMICH_API_KEY,
-    Accept: "application/json",
-  };
+  return { "x-api-key": IMMICH_API_KEY, Accept: "application/json" };
 }
 
 function formatBytes(b: number): string {
@@ -28,50 +25,39 @@ export async function GET() {
   try {
     const [statsRes, storageRes] = await Promise.allSettled([
       fetch(`${IMMICH_URL}/api/server/statistics`, {
-        headers: immichHeaders(),
-        signal: AbortSignal.timeout(8000),
+        headers: immichHeaders(), signal: AbortSignal.timeout(8000),
       }),
       fetch(`${IMMICH_URL}/api/server/storage`, {
-        headers: immichHeaders(),
-        signal: AbortSignal.timeout(8000),
+        headers: immichHeaders(), signal: AbortSignal.timeout(8000),
       }),
     ]);
 
-    let stats: {
-      photos: number;
-      videos: number;
-      usage: string;
-    } | null = null;
-
+    let stats: { photos: number; videos: number; usage: string } | null = null;
     if (statsRes.status === "fulfilled" && statsRes.value.ok) {
       const data = await statsRes.value.json();
-      // data.usage is raw bytes (number)
       stats = {
         photos: data.photos ?? 0,
         videos: data.videos ?? 0,
-        usage: formatBytes(data.usage ?? 0),
+        // usage is raw bytes in the statistics endpoint
+        usage: formatBytes(typeof data.usage === "number" ? data.usage : 0),
       };
     }
 
-    let storage: {
-      diskAvailable: string;
-      diskSize: string;
-      diskUsedPercent: number;
-    } | null = null;
-
+    let storage: { diskAvailable: string; diskSize: string; diskUsedPercent: number } | null = null;
     if (storageRes.status === "fulfilled" && storageRes.value.ok) {
       const data = await storageRes.value.json();
-      // Immich /api/server/storage returns pre-formatted strings for diskAvailable/diskSize
-      // and raw bytes in diskAvailableRaw/diskSizeRaw
-      const available = typeof data.diskAvailable === "string"
-        ? data.diskAvailable
-        : formatBytes(data.diskAvailableRaw ?? data.diskAvailable ?? 0);
-      const total = typeof data.diskSize === "string"
-        ? data.diskSize
-        : formatBytes(data.diskSizeRaw ?? data.diskSize ?? 0);
+      // Always prefer raw byte fields for consistent formatting
+      // diskAvailableRaw / diskSizeRaw are in bytes; diskAvailable/diskSize are pre-formatted strings
+      const availableBytes = data.diskAvailableRaw ?? data.diskAvailable_raw ?? null;
+      const totalBytes = data.diskSizeRaw ?? data.diskSize_raw ?? null;
+
       storage = {
-        diskAvailable: available,
-        diskSize: total,
+        diskAvailable: availableBytes != null
+          ? formatBytes(availableBytes)
+          : (typeof data.diskAvailable === "string" ? data.diskAvailable : "—"),
+        diskSize: totalBytes != null
+          ? formatBytes(totalBytes)
+          : (typeof data.diskSize === "string" ? data.diskSize : "—"),
         diskUsedPercent: Math.round(data.diskUsagePercentage ?? 0),
       };
     }

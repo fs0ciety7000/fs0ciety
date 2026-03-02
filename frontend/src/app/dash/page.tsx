@@ -19,7 +19,7 @@ const PERSONAL_LINKS: AppLink[] = [
   { name: "Forgejo", url: "https://git.fs0ciety.org", icon: ICON("gitea") },
   { name: "Grimoire", url: "https://link.fs0ciety.org", icon: ICON("grimoire") },
   { name: "Stirling", url: "https://pdf.fs0ciety.org", icon: ICON("stirling-pdf") },
-  { name: "Img", url: "https://img.fs0ciety.org", icon: ICON("immich") },
+  { name: "Img", url: "https://img.fs0ciety.org", icon: ICON("mazanoke") },
   { name: "Immich", url: "https://photos.fs0ciety.org", icon: ICON("immich") },
   { name: "Audiobookshelf", url: "https://audio.cinenode.org", icon: ICON("audiobookshelf") },
   { name: "Uptime Kuma", url: "https://status.fs0ciety.org", icon: ICON("uptime-kuma") },
@@ -290,6 +290,10 @@ interface MetricsData {
   memFreeFormatted: string | null;
   cpuCores: number | null;
   cpuBusyPercent: number | null;
+  // Disk from Whatbox stats (available if the API returns it)
+  diskFree: string | null;
+  diskTotal: string | null;
+  diskUsedPercent: number | null;
   error?: string;
 }
 
@@ -1558,16 +1562,14 @@ function MetricsSection({ theme }: { theme: DashTheme }) {
   const ind = theme === "industrial";
 
   useEffect(() => {
-    const loadAll = () => Promise.all([
-      fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {}),
-      fetch("/dash/api/radarr").then((r) => r.json()).then((d: RadarrData) => {
-        const storageDisk = d?.diskspace?.find((s) => s.path === "/mnt/mpathae");
-        if (storageDisk) setDisk(storageDisk);
-      }).catch(() => {}),
-    ]);
+    const loadMetrics = () => fetch("/dash/api/metrics").then((r) => r.json()).then(setData).catch(() => {});
+    const loadRadarr = () => fetch("/dash/api/radarr").then((r) => r.json()).then((d: RadarrData) => {
+      const storageDisk = d?.diskspace?.find((s) => s.path === "/mnt/mpathae");
+      if (storageDisk) setDisk(storageDisk);
+    }).catch(() => {});
 
-    loadAll().finally(() => setLoading(false));
-    const interval = setInterval(loadAll, 60_000);
+    Promise.all([loadMetrics(), loadRadarr()]).finally(() => setLoading(false));
+    const interval = setInterval(() => { loadMetrics(); loadRadarr(); }, 60_000);
     return () => clearInterval(interval);
   }, []);
 
@@ -2324,8 +2326,8 @@ function UptimeSection({ theme }: { theme: DashTheme }) {
           {monitors.map((m) => (
             <div key={m.id} className="flex items-center justify-between py-0.5">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.status === 1 ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
-                <span className={`text-[11px] font-mono ${c.textMain} truncate`}>{m.name}</span>
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.status === 1 ? "bg-green-400 animate-pulse" : m.status === -1 ? "bg-[#5A5550]" : "bg-red-400"}`} />
+                <span className={`text-[11px] font-mono ${m.status === -1 ? c.textMuted : c.textMain} truncate`}>{m.name}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {m.uptime != null && (

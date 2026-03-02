@@ -29,6 +29,15 @@ interface WhatboxCpuCore {
   idle: string;
 }
 
+interface WhatboxDisk {
+  total?: number;
+  used?: number;
+  free?: number;
+  // alternative field names
+  size?: number;
+  available?: number;
+}
+
 export async function GET() {
   try {
     const headers: HeadersInit = { Accept: "application/json" };
@@ -72,6 +81,27 @@ export async function GET() {
       cpuBusyPercent = totalAll > 0 ? Math.round((totalBusy / totalAll) * 100) : null;
     }
 
+    // Disk — try multiple possible keys from Whatbox stats
+    let diskFree: number | null = null;
+    let diskTotal: number | null = null;
+    let diskUsedPercent: number | null = null;
+
+    const diskSrc: WhatboxDisk = data.disk ?? data.storage ?? data.filesystem ?? {};
+    const rawFree = diskSrc.free ?? diskSrc.available ?? null;
+    const rawTotal = diskSrc.total ?? diskSrc.size ?? null;
+    const rawUsed = diskSrc.used ?? null;
+
+    if (rawTotal && rawTotal > 0) {
+      diskTotal = rawTotal;
+      if (rawFree != null) {
+        diskFree = rawFree;
+        diskUsedPercent = Math.round(((rawTotal - rawFree) / rawTotal) * 100);
+      } else if (rawUsed != null) {
+        diskFree = rawTotal - rawUsed;
+        diskUsedPercent = Math.round((rawUsed / rawTotal) * 100);
+      }
+    }
+
     return NextResponse.json({
       memTotal,
       memUsed,
@@ -84,6 +114,10 @@ export async function GET() {
       memFreeFormatted: memFree !== null ? formatBytes(memFree) : null,
       cpuCores,
       cpuBusyPercent,
+      // Disk from Whatbox stats (null if not provided by API)
+      diskFree: diskFree !== null ? formatBytes(diskFree) : null,
+      diskTotal: diskTotal !== null ? formatBytes(diskTotal) : null,
+      diskUsedPercent,
     });
   } catch {
     return NextResponse.json({ error: "unavailable" });

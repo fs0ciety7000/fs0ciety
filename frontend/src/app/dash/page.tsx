@@ -23,7 +23,7 @@ const PERSONAL_LINKS: AppLink[] = [
   { name: "Immich", url: "https://photos.fs0ciety.org", icon: ICON("immich") },
   { name: "Audiobookshelf", url: "https://audio.cinenode.org", icon: ICON("audiobookshelf") },
   { name: "Uptime Kuma", url: "https://status.fs0ciety.org", icon: ICON("uptime-kuma") },
-  { name: "Convertx", url: "https://convert.fs0ciety.org", icon: ICON("convertx") },
+  { name: "Convertx", url: "https://convert.fs0ciety.org", icon: "/icons/convertx.webp" },
   { name: "Sign", url: "https://sign.fs0ciety.org", icon: ICON("docuseal") },
   { name: "IT Tools", url: "https://tools.fs0ciety.org", icon: ICON("it-tools") },
   { name: "Paperless", url: "https://paperless.fs0ciety.org", icon: ICON("paperless-ngx") },

@@ -42,7 +42,7 @@ const BOOKMARKS: AppLink[] = [
   { name: "Google Photos", url: "https://photos.google.com", icon: ICON("google-photos") },
   { name: "Reddit", url: "https://reddit.com", icon: ICON("reddit") },
   { name: "X", url: "https://x.com", icon: ICON("x") },
-  { name: "Startmail", url: "https://mail.startmail.com", icon: ICON("startmail") },
+  { name: "Startmail", url: "https://mail.startmail.com", icon: "/icons/startmail.svg" },
 ];
 
 const MEDIA_LINKS: AppLink[] = [
@@ -675,18 +675,33 @@ function MiniChart({ data, color = "#00FF41", height = 40 }: { data: number[]; c
 
 // ── RSS Feed ────────────────────────────────────────────────
 
+const RSS_LIMIT_KEY = "fs0ciety_rss_limit";
+const RSS_DEFAULT_LIMIT = 15;
+
 function RSSFeed({ theme }: { theme: DashTheme }) {
   const [items, setItems] = useState<RSSItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [limit, setLimitState] = useState(RSS_DEFAULT_LIMIT);
+  const [collapsed, setCollapsed] = useState(false);
   const c = cx(theme);
 
   useEffect(() => {
+    const saved = parseInt(localStorage.getItem(RSS_LIMIT_KEY) || "", 10);
+    if (!isNaN(saved) && saved >= 5) setLimitState(saved);
     fetch("/dash/api/rss")
       .then((r) => r.json())
       .then((data) => setItems(data.items || []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const setLimit = (v: number) => {
+    setLimitState(v);
+    localStorage.setItem(RSS_LIMIT_KEY, String(v));
+  };
+
+  const maxItems = Math.max(items.length, RSS_DEFAULT_LIMIT);
+  const visible = items.slice(0, limit);
 
   const sourceColor = (src: string) => {
     if (theme === "industrial") {
@@ -699,30 +714,77 @@ function RSSFeed({ theme }: { theme: DashTheme }) {
     return SOURCE_COLORS[src] || "text-terminal-green-dim";
   };
 
+  const ind = theme === "industrial";
+
   return (
     <div className={c.card}>
-      <SectionHeader title="RSS Feeds" icon="$" theme={theme} />
-      {loading ? (
-        <div className={`text-xs font-mono ${c.textDim} animate-pulse py-4`}>Fetching feeds...</div>
-      ) : items.length === 0 ? (
-        <div className={`text-xs font-mono ${c.textMuted} py-4`}>No feed items available.</div>
-      ) : (
-        <div className="space-y-0.5 max-h-[calc(100vh-260px)] overflow-y-auto">
-          {items.map((item, i) => (
-            <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
-              className={`group flex items-start gap-2 py-1.5 px-1 ${theme === "industrial" ? "hover:bg-[#1C1D22]" : "hover:bg-terminal-green/5"} transition-colors`}>
-              <span className={`text-[10px] font-mono shrink-0 w-16 uppercase font-bold ${sourceColor(item.source)}`}>
-                {item.source}
-              </span>
-              <span className={`text-xs font-mono ${c.textDim} group-hover:${c.textMain} transition-colors flex-1 min-w-0 line-clamp-2`}>
-                {item.title}
-              </span>
-              {item.pubDate && (
-                <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0 tabular-nums`}>{timeAgo(item.pubDate)}</span>
+      {/* Header: title + slider + collapse toggle */}
+      <div className={`flex items-center gap-3 mb-3 pb-2 ${c.sectionBorder}`}>
+        {!ind && <span className={c.sectionIcon}>$</span>}
+        <h2 className={ind
+          ? "font-display text-sm font-bold uppercase tracking-[0.22em] text-[#E8E4DC] shrink-0"
+          : c.sectionTitle}>RSS Feeds</h2>
+        {ind && <div className="flex-1 h-px bg-[#252830] mx-2" />}
+        {/* Slider — only shown when not collapsed and items loaded */}
+        {!loading && items.length > 0 && !collapsed && (
+          <div className="flex items-center gap-2 shrink-0">
+            <input
+              type="range"
+              min={5}
+              max={maxItems}
+              step={5}
+              value={limit}
+              onChange={(e) => setLimit(parseInt(e.target.value))}
+              className="w-20 h-1 accent-[#F5622A] cursor-pointer"
+              title={`${limit} articles`}
+            />
+            <span className={`text-[10px] font-mono ${c.textMuted} tabular-nums w-6 text-right`}>{limit}</span>
+          </div>
+        )}
+        <button
+          onClick={() => setCollapsed((v) => !v)}
+          className={`text-[10px] font-mono ${c.textMuted} hover:${ind ? "text-[#F5622A]" : "text-terminal-green"} transition-colors shrink-0 ml-auto`}
+          title={collapsed ? "Déplier" : "Replier"}
+        >
+          {collapsed ? `▼ ${items.length}` : "▲"}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <>
+          {loading ? (
+            <div className={`text-xs font-mono ${c.textDim} animate-pulse py-4`}>Fetching feeds…</div>
+          ) : items.length === 0 ? (
+            <div className={`text-xs font-mono ${c.textMuted} py-4`}>No feed items available.</div>
+          ) : (
+            <>
+              <div className="space-y-0.5">
+                {visible.map((item, i) => (
+                  <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
+                    className={`group flex items-start gap-2 py-1.5 px-1 ${ind ? "hover:bg-[#1C1D22]" : "hover:bg-terminal-green/5"} transition-colors`}>
+                    <span className={`text-[10px] font-mono shrink-0 w-16 uppercase font-bold ${sourceColor(item.source)}`}>
+                      {item.source}
+                    </span>
+                    <span className={`text-xs font-mono ${c.textDim} flex-1 min-w-0 line-clamp-1`}>
+                      {item.title}
+                    </span>
+                    {item.pubDate && (
+                      <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0 tabular-nums`}>{timeAgo(item.pubDate)}</span>
+                    )}
+                  </a>
+                ))}
+              </div>
+              {items.length > limit && (
+                <button
+                  onClick={() => setLimit(Math.min(limit + 10, items.length))}
+                  className={`mt-2 w-full text-[10px] font-mono ${c.textMuted} hover:${ind ? "text-[#F5622A]" : "text-terminal-green"} transition-colors py-1 border-t ${c.border}`}
+                >
+                  + {items.length - limit} autres
+                </button>
               )}
-            </a>
-          ))}
-        </div>
+            </>
+          )}
+        </>
       )}
     </div>
   );

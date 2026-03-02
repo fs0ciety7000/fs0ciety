@@ -16,14 +16,18 @@ interface AppLink {
 }
 
 const PERSONAL_LINKS: AppLink[] = [
-  { name: "Booklore", url: "https://book.fs0ciety.org/dashboard", icon: ICON("booklore") },
+  { name: "Forgejo", url: "https://git.fs0ciety.org", icon: ICON("gitea") },
+  { name: "Grimoire", url: "https://link.fs0ciety.org", icon: ICON("grimoire") },
+  { name: "Stirling", url: "https://pdf.fs0ciety.org", icon: ICON("stirling-pdf") },
+  { name: "Img", url: "https://img.fs0ciety.org", icon: ICON("immich") },
+  { name: "Immich", url: "https://photos.fs0ciety.org", icon: ICON("immich") },
+  { name: "Audiobookshelf", url: "https://audio.cinenode.org", icon: ICON("audiobookshelf") },
+  { name: "Uptime Kuma", url: "https://status.fs0ciety.org", icon: ICON("uptime-kuma") },
   { name: "Convertx", url: "https://convert.fs0ciety.org", icon: ICON("convertx") },
-  // { name: "Documentation", url: "https://docmost.fs0ciety.org", icon: ICON("docmost") },
   { name: "Sign", url: "https://sign.fs0ciety.org", icon: ICON("docuseal") },
   { name: "IT Tools", url: "https://tools.fs0ciety.org", icon: ICON("it-tools") },
   { name: "Paperless", url: "https://paperless.fs0ciety.org", icon: ICON("paperless-ngx") },
   { name: "Pairdrop", url: "https://drop.fs0ciety.org", icon: ICON("pairdrop") },
-  { name: "Backup", url: "https://backup.fs0ciety.org", icon: ICON("duplicati") },
   { name: "SSH", url: "https://ssh.fs0ciety.org", icon: ICON("sshwifty") },
   { name: "Mail Admin", url: "https://mail.fs0ciety.org/", icon: ICON("stalwart") },
   { name: "AdGuard Home", url: "http://100.74.40.4:3000", icon: ICON("adguard-home") },
@@ -38,6 +42,7 @@ const BOOKMARKS: AppLink[] = [
   { name: "Google Photos", url: "https://photos.google.com", icon: ICON("google-photos") },
   { name: "Reddit", url: "https://reddit.com", icon: ICON("reddit") },
   { name: "X", url: "https://x.com", icon: ICON("x") },
+  { name: "Startmail", url: "https://mail.startmail.com", icon: ICON("startmail") },
 ];
 
 const MEDIA_LINKS: AppLink[] = [
@@ -2179,6 +2184,285 @@ function CloudflareSection({ theme }: { theme: DashTheme }) {
   );
 }
 
+// ── Immich ──────────────────────────────────────────────────
+
+interface ImmichData {
+  stats: { photos: number; videos: number; usage: string } | null;
+  storage: { diskAvailable: string; diskSize: string; diskUsedPercent: number } | null;
+  error?: string;
+}
+
+function ImmichSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<ImmichData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    fetch("/dash/api/immich")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>IMMICH…</span>
+    </div>
+  );
+
+  if (!data || data.error || (!data.stats && !data.storage)) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className={`text-[10px] font-mono ${c.textMuted}`}>IMMICH — {data?.error ?? "unavailable"}</div>
+    </div>
+  );
+
+  const usedPercent = data.storage?.diskUsedPercent ?? 0;
+  const fillColor = usedPercent > 90 ? c.red : usedPercent > 70 ? c.amber : c.green;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>IMMICH</span>
+        <a href="https://photos.fs0ciety.org" target="_blank" rel="noopener noreferrer"
+          className={`text-[10px] font-mono ${c.link} opacity-60 hover:opacity-100 transition-opacity`}>↗</a>
+      </div>
+      {data.stats && (
+        <div className="grid grid-cols-3 gap-1 mb-2">
+          <div className={c.statBox}>
+            <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider mb-0.5`}>Photos</div>
+            <div className={`text-sm font-bold font-mono tabular-nums ${c.textMain}`}>{data.stats.photos.toLocaleString("fr-FR")}</div>
+          </div>
+          <div className={c.statBox}>
+            <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider mb-0.5`}>Vidéos</div>
+            <div className={`text-sm font-bold font-mono tabular-nums ${c.textMain}`}>{data.stats.videos.toLocaleString("fr-FR")}</div>
+          </div>
+          <div className={c.statBox}>
+            <div className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider mb-0.5`}>Taille</div>
+            <div className={`text-sm font-bold font-mono tabular-nums ${c.accent}`}>{data.stats.usage}</div>
+          </div>
+        </div>
+      )}
+      {data.storage && (
+        <div>
+          <div className="flex justify-between mb-1">
+            <span className={`text-[10px] font-mono ${c.textDim}`}>Disque</span>
+            <span className={`text-[10px] font-mono ${fillColor}`}>{usedPercent}%</span>
+          </div>
+          <div className={`h-1 w-full ${c.progressBg} overflow-hidden`}>
+            <div className={`h-full transition-all ${theme === "industrial"
+              ? (usedPercent > 90 ? "bg-[#F87171]" : usedPercent > 70 ? "bg-[#F5A623]" : "bg-[#34D399]")
+              : (usedPercent > 90 ? "bg-red-400" : usedPercent > 70 ? "bg-yellow-400" : "bg-green-400")}`}
+              style={{ width: `${usedPercent}%` }} />
+          </div>
+          <div className={`text-[9px] font-mono ${c.textMuted} mt-1`}>
+            {data.storage.diskAvailable} libre / {data.storage.diskSize}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Uptime Kuma ──────────────────────────────────────────────
+
+interface UptimeMonitor {
+  id: number;
+  name: string;
+  status: number; // 0 = down, 1 = up
+  uptime: number | null;
+  ping: number | null;
+}
+
+interface UptimeData {
+  monitors: UptimeMonitor[];
+  error?: string;
+}
+
+function UptimeSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<UptimeData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/uptime")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>UPTIME KUMA…</span>
+    </div>
+  );
+
+  const monitors = data?.monitors ?? [];
+  const upCount = monitors.filter((m) => m.status === 1).length;
+  const total = monitors.length;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>UPTIME KUMA</span>
+        <span className={`text-[10px] font-mono ${upCount === total && total > 0 ? c.green : c.red}`}>
+          {upCount}/{total} UP
+        </span>
+      </div>
+      {data?.error && !total && (
+        <div className={`text-[10px] font-mono ${c.textMuted}`}>{data.error}</div>
+      )}
+      {monitors.length > 0 && (
+        <div className="space-y-0.5">
+          {monitors.map((m) => (
+            <div key={m.id} className="flex items-center justify-between py-0.5">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${m.status === 1 ? "bg-green-400 animate-pulse" : "bg-red-400"}`} />
+                <span className={`text-[11px] font-mono ${c.textMain} truncate`}>{m.name}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {m.uptime != null && (
+                  <span className={`text-[10px] font-mono ${m.uptime >= 99 ? c.green : m.uptime >= 90 ? c.amber : c.red}`}>
+                    {m.uptime.toFixed(1)}%
+                  </span>
+                )}
+                {m.ping != null && (
+                  <span className={`text-[10px] font-mono ${c.textMuted}`}>{m.ping}ms</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Beszel ───────────────────────────────────────────────────
+
+interface BeszelSystem {
+  id: string;
+  name: string;
+  status: string;
+  host: string;
+  cpu: number | null;
+  mem: number | null;
+  memTotal: number | null;
+  memPercent: number | null;
+  disk: number | null;
+  diskTotal: number | null;
+  diskPercent: number | null;
+  netRecv: string | null;
+  netSent: string | null;
+  uptime: string | null;
+}
+
+interface BeszelData {
+  systems: BeszelSystem[];
+  error?: string;
+}
+
+function MiniBar({ percent, theme, danger }: { percent: number | null; theme: DashTheme; danger?: boolean }) {
+  if (percent == null) return null;
+  const over = percent > (danger ? 90 : 85);
+  const c = cx(theme);
+  return (
+    <div className="flex items-center gap-1">
+      <div className={`w-12 h-1.5 ${c.progressBg} overflow-hidden`}>
+        <div className={`h-full ${theme === "industrial"
+          ? (over ? "bg-[#F87171]" : "bg-[#F5622A]")
+          : (over ? "bg-red-400" : "bg-terminal-green/60")}`}
+          style={{ width: `${Math.min(percent, 100)}%` }} />
+      </div>
+      <span className={`text-[10px] font-mono ${over ? c.red : c.textDim} tabular-nums w-8`}>{percent}%</span>
+    </div>
+  );
+}
+
+function BeszelSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<BeszelData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/beszel")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+    load();
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>BESZEL…</span>
+    </div>
+  );
+
+  if (!data || data.error) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className={`text-[10px] font-mono ${c.textMuted}`}>BESZEL — {data?.error ?? "unavailable"}</div>
+    </div>
+  );
+
+  const systems = data.systems;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>BESZEL</span>
+        <a href="https://beszel.fs0ciety.org" target="_blank" rel="noopener noreferrer"
+          className={`text-[10px] font-mono ${c.link} opacity-60 hover:opacity-100 transition-opacity`}>↗</a>
+      </div>
+      {systems.length === 0 ? (
+        <div className={`text-[10px] font-mono ${c.textMuted}`}>No systems found</div>
+      ) : (
+        <div className="space-y-2">
+          {systems.map((s) => (
+            <div key={s.id} className={`${c.bgAlt} border ${c.border} p-2`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.status === "up" ? "bg-green-400 animate-pulse" : s.status === "paused" ? "bg-yellow-400" : "bg-red-400"}`} />
+                  <span className={`text-xs font-bold font-mono ${c.textMain}`}>{s.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {s.uptime && <span className={`text-[10px] font-mono ${c.textMuted}`}>{s.uptime}</span>}
+                  {s.netRecv && <span className={`text-[10px] font-mono ${c.cyan}`}>↓{s.netRecv}</span>}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+                <div>
+                  <div className={`text-[9px] font-mono ${c.textMuted} mb-0.5`}>CPU</div>
+                  <MiniBar percent={s.cpu} theme={theme} danger />
+                </div>
+                <div>
+                  <div className={`text-[9px] font-mono ${c.textMuted} mb-0.5`}>RAM</div>
+                  <MiniBar percent={s.memPercent} theme={theme} danger />
+                </div>
+                <div>
+                  <div className={`text-[9px] font-mono ${c.textMuted} mb-0.5`}>Disque</div>
+                  <MiniBar percent={s.diskPercent} theme={theme} danger />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SpotifySection({ theme }: { theme: DashTheme }) {
   const [data, setData] = useState<SpotifyData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2777,6 +3061,8 @@ export default function StartPage() {
                     {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
                   </div>
                 </div>
+                <ImmichSection theme={theme} />
+                <BeszelSection theme={theme} />
               </motion.div>
 
               {/* Center: RSS */}
@@ -2796,6 +3082,7 @@ export default function StartPage() {
                 <Calendar theme={theme} />
                 <AdGuardSection theme={theme} compact />
                 <CloudflareSection theme={theme} />
+                <UptimeSection theme={theme} />
               </motion.div>
             </div>
           )}

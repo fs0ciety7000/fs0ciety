@@ -6,22 +6,24 @@ const BESZEL_URL = (process.env.BESZEL_URL || "https://beszel.fs0ciety.org").rep
 const BESZEL_USER = process.env.BESZEL_USER || "";
 const BESZEL_PASS = process.env.BESZEL_PASS || "";
 
-interface BeszelSystem {
+// Beszel stores info using abbreviated field names in PocketBase
+interface BeszelRawInfo {
+  cpu?: number;  // CPU percent
+  m?: number;    // mem used (GiB)
+  mp?: number;   // mem percent (pre-calculated)
+  mt?: number;   // mem total (GiB)
+  d?: Array<{ p: string; u: number; t: number }>; // disk: path, used GiB, total GiB
+  b?: number;    // net recv bytes/s
+  bs?: number;   // net sent bytes/s
+  up?: number;   // uptime seconds
+}
+
+interface BeszelRecord {
   id: string;
   name: string;
   status: string;
   host: string;
-  port: number;
-  info?: {
-    cpu: number;       // CPU usage %
-    mem: number;       // RAM used GB
-    mem_total: number; // RAM total GB
-    disk: number;      // Disk used GB
-    disk_total: number;// Disk total GB
-    b_recv: number;    // bytes received/s
-    b_sent: number;    // bytes sent/s
-    uptime?: number;   // seconds
-  };
+  info?: BeszelRawInfo;
 }
 
 async function getToken(): Promise<string | null> {
@@ -40,11 +42,11 @@ async function getToken(): Promise<string | null> {
   }
 }
 
-function formatBytes(b: number): string {
+function formatNetBytes(b: number): string {
   if (b <= 0) return "0 B";
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(b) / Math.log(k));
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.min(Math.floor(Math.log(b) / Math.log(k)), sizes.length - 1);
   return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
@@ -71,10 +73,7 @@ export async function GET() {
     const res = await fetch(
       `${BESZEL_URL}/api/collections/systems/records?perPage=50&sort=name`,
       {
-        headers: {
-          Authorization: token,
-          Accept: "application/json",
-        },
+        headers: { Authorization: token, Accept: "application/json" },
         signal: AbortSignal.timeout(8000),
       }
     );
@@ -84,30 +83,47 @@ export async function GET() {
     }
 
     const data = await res.json();
-    const systems: BeszelSystem[] = data.items ?? [];
+    const systems: BeszelRecord[] = data.items ?? [];
 
-    const result = systems.map((s) => ({
-      id: s.id,
-      name: s.name,
-      status: s.status, // "up" | "down" | "paused"
-      host: s.host,
-      cpu: s.info?.cpu != null ? Math.round(s.info.cpu * 10) / 10 : null,
-      mem: s.info?.mem != null ? s.info.mem : null,
-      memTotal: s.info?.mem_total != null ? s.info.mem_total : null,
-      memPercent:
-        s.info?.mem != null && s.info?.mem_total
-          ? Math.round((s.info.mem / s.info.mem_total) * 100)
-          : null,
-      disk: s.info?.disk != null ? s.info.disk : null,
-      diskTotal: s.info?.disk_total != null ? s.info.disk_total : null,
-      diskPercent:
-        s.info?.disk != null && s.info?.disk_total
-          ? Math.round((s.info.disk / s.info.disk_total) * 100)
-          : null,
-      netRecv: s.info?.b_recv != null ? formatBytes(s.info.b_recv) + "/s" : null,
-      netSent: s.info?.b_sent != null ? formatBytes(s.info.b_sent) + "/s" : null,
-      uptime: s.info?.uptime != null ? formatUptime(s.info.uptime) : null,
-    }));
+    const result = systems.map((s) => {
+      const info = s.info;
+      const cpu = info?.cpu != null ? Math.round(info.cpu * 10) / 10 : null;
+
+      // Memory: use pre-calculated percent (mp) or derive from m/mt
+      const memPercent = info?.mp != null
+        ? Math.round(info.mp)
+        : (info?.m != null && info?.mt && info.mt > 0)
+          ? Math.round((info.m / info.mt) * 100)
+          : null;
+
+      // Disk: use first entry in d array
+      const mainDisk = info?.d?.[0];
+      const diskPercent = mainDisk && mainDisk.t > 0
+        ? Math.round((mainDisk.u / mainDisk.t) * 100)
+        : null;
+      const diskUsed = mainDisk ? `${mainDisk.u.toFixed(1)} GiB` : null;
+      const diskTotal = mainDisk ? `${mainDisk.t.toFixed(1)} GiB` : null;
+
+      const memUsed = info?.m != null ? `${info.m.toFixed(1)} GiB` : null;
+      const memTotal = info?.mt != null ? `${info.mt.toFixed(1)} GiB` : null;
+
+      return {
+        id: s.id,
+        name: s.name,
+        status: s.status,
+        cpu,
+        memPercent,
+        memUsed,
+        memTotal,
+        diskPercent,
+        diskUsed,
+        diskTotal,
+        diskPath: mainDisk?.p ?? null,
+        netRecv: info?.b != null ? formatNetBytes(info.b) + "/s" : null,
+        netSent: info?.bs != null ? formatNetBytes(info.bs) + "/s" : null,
+        uptime: info?.up != null ? formatUptime(info.up) : null,
+      };
+    });
 
     return NextResponse.json({ systems: result });
   } catch {

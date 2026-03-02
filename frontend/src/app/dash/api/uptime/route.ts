@@ -4,18 +4,13 @@ export const dynamic = "force-dynamic";
 
 const UPTIME_URL = (process.env.UPTIME_URL || "https://status.fs0ciety.org").replace(/\/$/, "");
 const UPTIME_API_KEY = process.env.UPTIME_API_KEY || "";
+// Status page slug — set UPTIME_STATUS_PAGE env var if yours isn't "default"
+const STATUS_PAGE = process.env.UPTIME_STATUS_PAGE || "default";
 
-interface Monitor {
+interface RawMonitor {
   id: number;
   name: string;
-  active: boolean;
-  heartbeat?: {
-    status: number; // 0 = down, 1 = up
-    msg?: string;
-    time?: string;
-    ping?: number;
-  };
-  uptime?: number; // percentage
+  active: number | boolean;
 }
 
 export async function GET() {
@@ -24,75 +19,81 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(`${UPTIME_URL}/api/status-page/heartbeat/default`, {
-      headers: {
-        Authorization: `ApiKey ${UPTIME_API_KEY}`,
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!res.ok) {
-      // Try alternative endpoint (public status page)
-      const pubRes = await fetch(`${UPTIME_URL}/api/status-page/default`, {
+    // Fetch monitor list (auth) + status page heartbeat (public) in parallel
+    const [monitorsRes, heartbeatRes] = await Promise.allSettled([
+      fetch(`${UPTIME_URL}/api/monitor`, {
+        headers: { Authorization: `ApiKey ${UPTIME_API_KEY}`, Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
+      }),
+      fetch(`${UPTIME_URL}/api/status-page/heartbeat/${STATUS_PAGE}`, {
         headers: { Accept: "application/json" },
         signal: AbortSignal.timeout(8000),
-      });
-      if (!pubRes.ok) {
-        return NextResponse.json({ monitors: [], error: "unavailable" }, { status: 200 });
-      }
-      const pubData = await pubRes.json().catch(() => null);
-      if (!pubData) return NextResponse.json({ monitors: [], error: "unavailable" }, { status: 200 });
+      }),
+    ]);
 
-      // Public status page returns monitor list without heartbeats
-      const monitors = (pubData.publicGroupList ?? []).flatMap((g: { monitorList?: Monitor[] }) =>
-        (g.monitorList ?? []).map((m: Monitor) => ({
-          id: m.id,
-          name: m.name,
-          status: 1,
-          uptime: null,
-          ping: null,
-        }))
-      );
-      return NextResponse.json({ monitors });
-    }
+    // Monitor names from authenticated API
+    const monitorMap: Record<number, string> = {};
+    let allMonitorIds: number[] = [];
 
-    const data = await res.json().catch(() => null);
-    if (!data) return NextResponse.json({ monitors: [], error: "unavailable" }, { status: 200 });
-
-    // Heartbeat endpoint returns { heartbeatList: { [id]: [...] }, uptimeList: { [id]_24: number } }
-    const heartbeatList: Record<string, Array<{ status: number; ping?: number; time?: string }>> =
-      data.heartbeatList ?? {};
-    const uptimeList: Record<string, number> = data.uptimeList ?? {};
-
-    // We also need monitor metadata — try monitors endpoint
-    const monitorsRes = await fetch(`${UPTIME_URL}/api/monitor`, {
-      headers: {
-        Authorization: `ApiKey ${UPTIME_API_KEY}`,
-        Accept: "application/json",
-      },
-      signal: AbortSignal.timeout(8000),
-    }).catch(() => null);
-
-    const monitorsData = monitorsRes?.ok ? await monitorsRes.json().catch(() => null) : null;
-    const monitorMap: Record<string, string> = {};
-    if (monitorsData?.monitors) {
-      for (const m of monitorsData.monitors) {
+    if (monitorsRes.status === "fulfilled" && monitorsRes.value.ok) {
+      const data = await monitorsRes.value.json().catch(() => null);
+      const monitors: RawMonitor[] = data?.monitors ?? [];
+      for (const m of monitors) {
         monitorMap[m.id] = m.name;
+        allMonitorIds.push(m.id);
       }
     }
 
-    const monitors = Object.entries(heartbeatList).map(([id, beats]) => {
-      const latest = beats[beats.length - 1];
-      const uptimeKey = `${id}_24`;
-      return {
-        id: parseInt(id),
+    // Heartbeat data from public status page
+    let heartbeatList: Record<string, Array<{ status: number; ping?: number }>> = {};
+    let uptimeList: Record<string, number> = {};
+
+    if (heartbeatRes.status === "fulfilled" && heartbeatRes.value.ok) {
+      const data = await heartbeatRes.value.json().catch(() => null);
+      heartbeatList = data?.heartbeatList ?? {};
+      uptimeList = data?.uptimeList ?? {};
+    }
+
+    // Build result: prefer heartbeat data for monitors on the status page,
+    // then include remaining monitors from the API (status unknown)
+    const seenIds = new Set<number>();
+    const monitors: Array<{
+      id: number;
+      name: string;
+      status: number;
+      uptime: number | null;
+      ping: number | null;
+    }> = [];
+
+    // Monitors with heartbeat data (on status page)
+    for (const [idStr, beats] of Object.entries(heartbeatList)) {
+      const id = parseInt(idStr);
+      seenIds.add(id);
+      const latest = Array.isArray(beats) ? beats[beats.length - 1] : null;
+      const uptimeKey = `${idStr}_24`;
+      monitors.push({
+        id,
         name: monitorMap[id] ?? `Monitor ${id}`,
         status: latest?.status ?? 0,
-        uptime: uptimeList[uptimeKey] != null ? Math.round(uptimeList[uptimeKey] * 10) / 10 : null,
+        uptime: uptimeList[uptimeKey] != null
+          ? Math.round(uptimeList[uptimeKey] * 10) / 10
+          : null,
         ping: latest?.ping ?? null,
-      };
-    });
+      });
+    }
+
+    // Remaining monitors from API (not on status page) — show with status -1 (unknown)
+    for (const id of allMonitorIds) {
+      if (!seenIds.has(id)) {
+        monitors.push({
+          id,
+          name: monitorMap[id] ?? `Monitor ${id}`,
+          status: -1,
+          uptime: null,
+          ping: null,
+        });
+      }
+    }
 
     return NextResponse.json({ monitors });
   } catch {

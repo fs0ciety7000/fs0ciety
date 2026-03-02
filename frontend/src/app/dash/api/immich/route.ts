@@ -45,6 +45,7 @@ export async function GET() {
 
     if (statsRes.status === "fulfilled" && statsRes.value.ok) {
       const data = await statsRes.value.json();
+      // data.usage is raw bytes (number)
       stats = {
         photos: data.photos ?? 0,
         videos: data.videos ?? 0,
@@ -60,10 +61,18 @@ export async function GET() {
 
     if (storageRes.status === "fulfilled" && storageRes.value.ok) {
       const data = await storageRes.value.json();
+      // Immich /api/server/storage returns pre-formatted strings for diskAvailable/diskSize
+      // and raw bytes in diskAvailableRaw/diskSizeRaw
+      const available = typeof data.diskAvailable === "string"
+        ? data.diskAvailable
+        : formatBytes(data.diskAvailableRaw ?? data.diskAvailable ?? 0);
+      const total = typeof data.diskSize === "string"
+        ? data.diskSize
+        : formatBytes(data.diskSizeRaw ?? data.diskSize ?? 0);
       storage = {
-        diskAvailable: formatBytes(data.diskAvailable ?? 0),
-        diskSize: formatBytes(data.diskSize ?? 0),
-        diskUsedPercent: data.diskUsagePercentage ?? 0,
+        diskAvailable: available,
+        diskSize: total,
+        diskUsedPercent: Math.round(data.diskUsagePercentage ?? 0),
       };
     }
 

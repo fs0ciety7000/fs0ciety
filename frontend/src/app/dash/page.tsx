@@ -2351,14 +2351,14 @@ interface BeszelSystem {
   id: string;
   name: string;
   status: string;
-  host: string;
   cpu: number | null;
-  mem: number | null;
-  memTotal: number | null;
   memPercent: number | null;
-  disk: number | null;
-  diskTotal: number | null;
+  memUsed: string | null;
+  memTotal: string | null;
   diskPercent: number | null;
+  diskUsed: string | null;
+  diskTotal: string | null;
+  diskPath: string | null;
   netRecv: string | null;
   netSent: string | null;
   uptime: string | null;
@@ -2459,6 +2459,91 @@ function BeszelSection({ theme }: { theme: DashTheme }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Tailscale ────────────────────────────────────────────────
+
+interface TailscaleDevice {
+  id: string;
+  name: string;
+  hostname: string;
+  os: string;
+  ip: string;
+  online: boolean;
+  lastSeen: string;
+  user: string;
+  tags: string[];
+  updateAvailable: boolean;
+}
+
+interface TailscaleData {
+  devices: TailscaleDevice[];
+  error?: string;
+}
+
+const OS_ICON: Record<string, string> = {
+  linux: "🐧",
+  windows: "🪟",
+  macOS: "🍎",
+  iOS: "📱",
+  android: "🤖",
+  tvOS: "📺",
+};
+
+function TailscaleSection({ theme }: { theme: DashTheme }) {
+  const [data, setData] = useState<TailscaleData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+
+  useEffect(() => {
+    const load = () => fetch("/dash/api/tailscale")
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false); })
+      .catch(() => setLoading(false));
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <span className={`text-[10px] font-mono ${c.textMuted} animate-pulse`}>TAILSCALE…</span>
+    </div>
+  );
+
+  if (!data || data.error || !data.devices.length) return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className={`text-[10px] font-mono ${c.textMuted}`}>TAILSCALE — {data?.error ?? "aucun device"}</div>
+    </div>
+  );
+
+  const onlineCount = data.devices.filter((d) => d.online).length;
+
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <div className="flex items-center justify-between mb-2">
+        <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>TAILSCALE</span>
+        <span className={`text-[10px] font-mono ${onlineCount === data.devices.length ? c.green : c.amber}`}>
+          {onlineCount}/{data.devices.length} connectés
+        </span>
+      </div>
+      <div className="space-y-0.5">
+        {data.devices.map((d) => (
+          <div key={d.id} className="flex items-center justify-between py-0.5">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${d.online ? "bg-green-400 animate-pulse" : "bg-[#5A5550]"}`} />
+              <span className="text-[10px] shrink-0">{OS_ICON[d.os] ?? "💻"}</span>
+              <span className={`text-[11px] font-mono ${d.online ? c.textMain : c.textMuted} truncate`}>{d.name}</span>
+            </div>
+            <span className={`text-[10px] font-mono ${c.textMuted} shrink-0 ml-2`}>{d.ip}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -3065,14 +3150,18 @@ export default function StartPage() {
                 <BeszelSection theme={theme} />
               </motion.div>
 
-              {/* Center: RSS */}
-              <motion.div className="lg:col-span-6"
+              {/* Center: RSS + AdGuard + Cloudflare */}
+              <motion.div className="lg:col-span-6 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.05 }}>
                 <RSSFeed theme={theme} />
+                <div className="grid grid-cols-2 gap-3">
+                  <AdGuardSection theme={theme} compact />
+                  <CloudflareSection theme={theme} />
+                </div>
               </motion.div>
 
-              {/* Right: Weather + Spotify + Calendar + AdGuard compact */}
+              {/* Right: Weather + Spotify + Metrics + Calendar + Uptime + Tailscale */}
               <motion.div className="lg:col-span-3 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.10 }}>
@@ -3080,9 +3169,8 @@ export default function StartPage() {
                 <SpotifySection theme={theme} />
                 <MetricsSection theme={theme} />
                 <Calendar theme={theme} />
-                <AdGuardSection theme={theme} compact />
-                <CloudflareSection theme={theme} />
                 <UptimeSection theme={theme} />
+                <TailscaleSection theme={theme} />
               </motion.div>
             </div>
           )}

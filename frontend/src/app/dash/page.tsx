@@ -2252,7 +2252,7 @@ function CloudflareSection({ theme }: { theme: DashTheme }) {
 
 interface ImmichData {
   stats: { photos: number; videos: number; usage: string } | null;
-  storage: { diskAvailable: string; diskSize: string; diskUsedPercent: number } | null;
+  storage: { diskAvailable: string; diskUsed: string; diskSize: string; diskUsedPercent: number } | null;
   error?: string;
 }
 
@@ -2321,8 +2321,10 @@ function ImmichSection({ theme }: { theme: DashTheme }) {
               : (usedPercent > 90 ? "bg-red-400" : usedPercent > 70 ? "bg-yellow-400" : "bg-green-400")}`}
               style={{ width: `${usedPercent}%` }} />
           </div>
-          <div className={`text-[9px] font-mono ${c.textMuted} mt-1`}>
-            {data.storage.diskAvailable} libre / {data.storage.diskSize}
+          <div className={`text-[9px] font-mono ${c.textMuted} mt-1 flex gap-1.5`}>
+            <span className={c.textDim}>{data.storage.diskUsed} pris</span>
+            <span className="opacity-40">·</span>
+            <span>{data.storage.diskAvailable} libre / {data.storage.diskSize}</span>
           </div>
         </div>
       )}

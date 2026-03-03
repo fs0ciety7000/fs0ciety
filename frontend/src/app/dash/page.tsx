@@ -26,7 +26,7 @@ const PERSONAL_LINKS: AppLink[] = [
   { name: "Convertx", url: "https://convert.fs0ciety.org", icon: "/icons/convertx.webp" },
   { name: "Sign", url: "https://sign.fs0ciety.org", icon: ICON("docuseal") },
   { name: "IT Tools", url: "https://tools.fs0ciety.org", icon: ICON("it-tools") },
-  { name: "Paperless", url: "https://paperless.fs0ciety.org", icon: ICON("paperless-ngx") },
+  { name: "Paperless", url: "https://paper.fs0ciety.org", icon: ICON("paperless-ngx") },
   { name: "Pairdrop", url: "https://drop.fs0ciety.org", icon: ICON("pairdrop") },
   { name: "SSH", url: "https://ssh.fs0ciety.org", icon: ICON("sshwifty") },
   { name: "Mail Admin", url: "https://mail.fs0ciety.org/", icon: ICON("stalwart") },

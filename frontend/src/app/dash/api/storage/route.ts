@@ -12,9 +12,8 @@ const RADARR_URL = (process.env.RADARR_URL || "https://pulse.phantomhex.cc").rep
 const RADARR_API_KEY = process.env.RADARR_API_KEY || "";
 const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
 const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";
-const cfH = () => CF_CLIENT_ID
-  ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET }
-  : {};
+const cfH = (): Record<string, string> =>
+  CF_CLIENT_ID ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET } : {};
 
 // ── HBD — qBittorrent (free_space_on_disk) ───────────────────
 const HBD_QBIT_URL = (process.env.HBD_QBIT_URL || "https://40.ein.itsby.design/qbittorrent").replace(/\/$/, "");

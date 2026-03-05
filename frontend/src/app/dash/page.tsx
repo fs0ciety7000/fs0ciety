@@ -3467,6 +3467,7 @@ export default function StartPage() {
                 </div>
                 <ImmichSection theme={theme} />
                 <BeszelSection theme={theme} />
+                <DiskStorageSection theme={theme} />
               </motion.div>
 
               {/* Center: RSS + AdGuard + Cloudflare + Audiobookshelf + Tailscale */}

@@ -7,7 +7,13 @@
       "Bash(/usr/bin/env node_modules/.bin/tsc --noEmit)",
       "Bash(distrobox enter dev-env -- bash -c \"cd /var/home/phantomhex/Documents/code/fs0ciety/frontend && npx tsc --noEmit 2>&1 | head -50\")",
       "Bash(distrobox enter dev-env -- which speedtest-cli speedtest)",
-      "WebFetch(domain:beszel.dev)"
+      "WebFetch(domain:beszel.dev)",
+      "Bash(distrobox enter dev-env -- bash -c \"cd /var/home/phantomhex/Documents/code/fs0ciety/frontend && npm run build 2>&1 | tail -40\")",
+      "Read(//usr/bin/**)",
+      "Read(//var/home/phantomhex/.local/bin/**)",
+      "Read(//usr/local/bin/**)",
+      "Bash(ls /usr/bin/distrobox*)",
+      "Read(//usr/**)"
     ]
   }
 }

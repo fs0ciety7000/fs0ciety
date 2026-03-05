@@ -10,7 +10,7 @@ const WHATBOX_PASS = process.env.WHATBOX_PASS || "";
 // ── HBD — qBittorrent (free_space_on_disk) ───────────────────
 const HBD_QBIT_URL = (process.env.HBD_QBIT_URL || "https://40.ein.itsby.design/qbittorrent").replace(/\/$/, "");
 const HBD_QBIT_USER = process.env.HBD_QBIT_USER || "phantomhex";
-const HBD_QBIT_PASS = process.env.HBD_QBIT_PASS || "";
+const HBD_QBIT_PASS = process.env.HBD_QBIT_PASS || "Enzo2011@master";
 
 // ── HBD — Sonarr (diskspace → total) ─────────────────────────
 const HBD_SONARR_URL = (process.env.HBD_SONARR_URL || "https://40.ein.itsby.design/sonarr").replace(/\/$/, "");
@@ -18,6 +18,11 @@ const HBD_SONARR_KEY = process.env.HBD_SONARR_KEY || "9c09432cbff04058ba537135b1
 
 let hbdSID: string | null = null;
 let hbdSIDExpiry = 0;
+
+// Basic Auth header for the reverse proxy in front of HBD qBit
+function hbdBasicAuth(): string {
+  return "Basic " + Buffer.from(`${HBD_QBIT_USER}:${HBD_QBIT_PASS}`).toString("base64");
+}
 
 function formatBytes(b: number): string {
   if (b <= 0) return "0 B";
@@ -27,12 +32,22 @@ function formatBytes(b: number): string {
   return `${(b / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
+function toNum(v: unknown): number | null {
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (typeof v === "string") { const n = Number(v); return isFinite(n) ? n : null; }
+  return null;
+}
+
 async function hbdLogin(): Promise<string | null> {
   if (hbdSID && Date.now() < hbdSIDExpiry) return hbdSID;
   try {
     const res = await fetch(`${HBD_QBIT_URL}/api/v2/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Mozilla/5.0" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Mozilla/5.0",
+        Authorization: hbdBasicAuth(),
+      },
       body: `username=${encodeURIComponent(HBD_QBIT_USER)}&password=${encodeURIComponent(HBD_QBIT_PASS)}`,
       redirect: "manual",
       signal: AbortSignal.timeout(8000),
@@ -52,18 +67,20 @@ async function hbdLogin(): Promise<string | null> {
 }
 
 async function getHBDQbitFree(): Promise<number | null> {
-  if (!HBD_QBIT_PASS) return null;
   const sid = await hbdLogin();
   if (!sid) return null;
   try {
     const res = await fetch(`${HBD_QBIT_URL}/api/v2/sync/maindata`, {
-      headers: { "User-Agent": "Mozilla/5.0", Cookie: `SID=${sid}` },
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Authorization: hbdBasicAuth(),
+        Cookie: `SID=${sid}`,
+      },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const free = data?.server_state?.free_space_on_disk;
-    return typeof free === "number" ? free : null;
+    return toNum(data?.server_state?.free_space_on_disk);
   } catch { return null; }
 }
 
@@ -74,11 +91,11 @@ async function getHBDSonarrDisk(): Promise<{ free: number | null; total: number 
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { free: null, total: null };
-    const data = await res.json() as Array<{ freeSpace: number; totalSpace: number }>;
+    const data = await res.json() as Array<{ freeSpace: unknown; totalSpace: unknown }>;
     if (!Array.isArray(data) || data.length === 0) return { free: null, total: null };
-    // Pick the partition with the most total space
-    const main = data.reduce((max, d) => d.totalSpace > max.totalSpace ? d : max, data[0]);
-    return { free: main.freeSpace ?? null, total: main.totalSpace ?? null };
+    const main = data.reduce((max, d) =>
+      (toNum(d.totalSpace) ?? 0) > (toNum(max.totalSpace) ?? 0) ? d : max, data[0]);
+    return { free: toNum(main.freeSpace), total: toNum(main.totalSpace) };
   } catch { return { free: null, total: null }; }
 }
 
@@ -93,12 +110,9 @@ async function getWhatboxDisk(): Promise<{ free: number | null; total: number | 
     if (!res.ok) return { free: null, total: null };
     const data = await res.json();
     const src = data.disk ?? data.storage ?? data.filesystem ?? {};
-    const free = src.free ?? src.available ?? null;
-    const total = src.total ?? src.size ?? null;
-    return {
-      free: typeof free === "number" ? free : null,
-      total: typeof total === "number" ? total : null,
-    };
+    const free = toNum(src.free ?? src.available ?? null);
+    const total = toNum(src.total ?? src.size ?? null);
+    return { free, total };
   } catch { return { free: null, total: null }; }
 }
 
@@ -117,8 +131,7 @@ export async function GET() {
   const hbdQbitFree = hbdQbitResult.status === "fulfilled" ? hbdQbitResult.value : null;
   const hbdSonarr = hbdSonarrResult.status === "fulfilled" ? hbdSonarrResult.value : { free: null, total: null };
 
-  // qBit free_space_on_disk is partition-accurate for the downloads path;
-  // fall back to Sonarr free if qBit auth fails
+  // qBit free_space_on_disk is partition-accurate; fall back to Sonarr free if qBit fails
   const hbdFree = hbdQbitFree ?? hbdSonarr.free;
   const hbdTotal = hbdSonarr.total;
 

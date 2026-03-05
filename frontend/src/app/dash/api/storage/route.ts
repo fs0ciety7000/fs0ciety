@@ -18,6 +18,10 @@ const WHATBOX_URL = "https://zucchini.whatbox.ca/labs/stats?json=1";
 const WHATBOX_USER = process.env.WHATBOX_USER || "";
 const WHATBOX_PASS = process.env.WHATBOX_PASS || "";
 
+// ── fs0ciety — Sonarr (diskspace → total, behind CF) ────────
+const FS_SONARR_URL = (process.env.SONARR_URL || "https://sonic.phantomhex.cc").replace(/\/$/, "");
+const FS_SONARR_KEY = process.env.SONARR_API_KEY || "";
+
 // ── HBD — qBittorrent (free_space_on_disk, behind Basic Auth) ─
 const HBD_QBIT_URL = (process.env.HBD_QBIT_URL || "https://40.ein.itsby.design/qbittorrent").replace(/\/$/, "");
 const HBD_QBIT_USER = process.env.HBD_QBIT_USER || "phantomhex";
@@ -126,6 +130,22 @@ async function getWhatboxTotal(): Promise<number | null> {
   } catch { return null; }
 }
 
+
+async function getFsSonarrTotal(): Promise<number | null> {
+  if (!FS_SONARR_KEY) return null;
+  try {
+    const res = await fetch(`${FS_SONARR_URL}/api/v3/diskspace`, {
+      headers: { "X-Api-Key": FS_SONARR_KEY, "User-Agent": "Mozilla/5.0", ...cfH() },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as Array<{ freeSpace: unknown; totalSpace: unknown }>;
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const main = data.reduce((max, d) => (toNum(d.totalSpace) ?? 0) > (toNum(max.totalSpace) ?? 0) ? d : max, data[0]);
+    return toNum(main.totalSpace);
+  } catch { return null; }
+}
+
 // ── HBD qBit login ────────────────────────────────────────────
 async function hbdLogin(): Promise<string | null> {
   if (hbdSID && Date.now() < hbdSIDExpiry) return hbdSID;
@@ -181,20 +201,29 @@ function usedPercent(free: number | null, total: number | null): number | null {
 }
 
 export async function GET() {
-  const [fsFreeResult, fsTotalResult, hbdFreeResult, hbdSonarrResult] = await Promise.allSettled([
+  const [fsFreeResult, fsTotalResult, fsSonarrTotalResult, hbdFreeResult, hbdSonarrResult] = await Promise.allSettled([
     getFsQbitFree(),
     getWhatboxTotal(),
+    getFsSonarrTotal(),
     getHBDQbitFree(),
     getHBDSonarrDisk(),
   ]);
 
   const fsFree = fsFreeResult.status === "fulfilled" ? fsFreeResult.value : null;
-  const fsTotal = fsTotalResult.status === "fulfilled" ? fsTotalResult.value : null;
+  const fsWhatboxTotal = fsTotalResult.status === "fulfilled" ? fsTotalResult.value : null;
+  const fsSonarrTotal = fsSonarrTotalResult.status === "fulfilled" ? fsSonarrTotalResult.value : null;
+  const fsTotal = fsWhatboxTotal ?? fsSonarrTotal;
   const hbdQbitFree = hbdFreeResult.status === "fulfilled" ? hbdFreeResult.value : null;
   const hbdSonarr = hbdSonarrResult.status === "fulfilled" ? hbdSonarrResult.value : { free: null, total: null };
 
   const hbdFree = hbdQbitFree ?? hbdSonarr.free;
   const hbdTotal = hbdSonarr.total;
+
+  // Aggregate across all servers
+  const allFrees = [fsFree, hbdFree].filter((v): v is number => v !== null);
+  const allTotals = [fsTotal, hbdTotal].filter((v): v is number => v !== null);
+  const aggFree = allFrees.length > 0 ? allFrees.reduce((a, b) => a + b, 0) : null;
+  const aggTotal = allTotals.length > 0 ? allTotals.reduce((a, b) => a + b, 0) : null;
 
   return NextResponse.json({
     servers: [
@@ -211,5 +240,10 @@ export async function GET() {
         usedPercent: usedPercent(hbdFree, hbdTotal),
       },
     ],
+    aggregate: {
+      free: aggFree != null ? formatBytes(aggFree) : null,
+      total: aggTotal != null ? formatBytes(aggTotal) : null,
+      usedPercent: usedPercent(aggFree, aggTotal),
+    },
   });
 }

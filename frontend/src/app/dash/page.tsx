@@ -2982,8 +2982,48 @@ interface StorageServer {
   usedPercent: number | null;
 }
 
+interface StorageAggregate {
+  free: string | null;
+  total: string | null;
+  usedPercent: number | null;
+}
+
+function ServerBar({ s, theme, c }: { s: StorageServer; theme: DashTheme; c: ReturnType<typeof cx> }) {
+  const pct = s.usedPercent ?? 0;
+  const barColor = theme === "industrial"
+    ? (pct > 90 ? "bg-[#F87171]" : pct > 75 ? "bg-[#F5A623]" : "bg-[#34D399]")
+    : (pct > 90 ? "bg-red-400" : pct > 75 ? "bg-yellow-400" : "bg-green-400");
+  const pctColor = pct > 90 ? c.red : pct > 75 ? c.amber : c.green;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <span className={`text-[11px] font-mono font-bold ${c.textMain}`}>{s.name}</span>
+        {s.usedPercent != null && (
+          <span className={`text-[10px] font-mono tabular-nums ${pctColor}`}>{pct}%</span>
+        )}
+      </div>
+      <div className={`h-1.5 w-full ${c.progressBg} overflow-hidden rounded-sm mb-2`}>
+        {s.usedPercent != null
+          ? <div className={`h-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
+          : <div className="h-full w-full opacity-20 bg-current" />}
+      </div>
+      <div className="space-y-0.5">
+        <div className="flex justify-between">
+          <span className={`text-[9px] font-mono ${c.textMuted} uppercase`}>libre</span>
+          <span className={`text-[11px] font-mono font-bold tabular-nums ${c.green}`}>{s.free ?? "—"}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className={`text-[9px] font-mono ${c.textMuted} uppercase`}>total</span>
+          <span className={`text-[11px] font-mono tabular-nums ${c.textDim}`}>{s.total ?? "—"}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DiskStorageSection({ theme }: { theme: DashTheme }) {
   const [servers, setServers] = useState<StorageServer[]>([]);
+  const [aggregate, setAggregate] = useState<StorageAggregate | null>(null);
   const [loading, setLoading] = useState(true);
   const c = cx(theme);
 
@@ -2991,7 +3031,7 @@ function DiskStorageSection({ theme }: { theme: DashTheme }) {
     const load = () =>
       fetch("/dash/api/storage")
         .then((r) => r.json())
-        .then((d) => { setServers(d.servers ?? []); setLoading(false); })
+        .then((d) => { setServers(d.servers ?? []); setAggregate(d.aggregate ?? null); setLoading(false); })
         .catch(() => setLoading(false));
     load();
     const t = setInterval(load, 60_000);
@@ -3005,53 +3045,48 @@ function DiskStorageSection({ theme }: { theme: DashTheme }) {
     </div>
   );
 
+  const aggPct = aggregate?.usedPercent ?? 0;
+  const aggBarColor = theme === "industrial"
+    ? (aggPct > 90 ? "bg-[#F87171]" : aggPct > 75 ? "bg-[#F5A623]" : "bg-[#F5622A]")
+    : (aggPct > 90 ? "bg-red-400" : aggPct > 75 ? "bg-yellow-400" : "bg-orange-400");
+
   return (
     <div className={c.card}>
       {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
       <div className="flex items-center justify-between mb-3">
         <span className={`text-[10px] font-mono ${c.textMuted} uppercase tracking-wider`}>STOCKAGE</span>
-        <span className={`text-[9px] font-mono ${c.textMuted} opacity-50`}>DISQUE</span>
+        {aggregate?.total && (
+          <span className={`text-[10px] font-mono ${c.accent} font-bold tabular-nums`}>
+            {aggregate.total} total
+          </span>
+        )}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {servers.map((s) => {
-          const pct = s.usedPercent ?? 0;
-          const barColor = theme === "industrial"
-            ? (pct > 90 ? "bg-[#F87171]" : pct > 75 ? "bg-[#F5A623]" : "bg-[#34D399]")
-            : (pct > 90 ? "bg-red-400" : pct > 75 ? "bg-yellow-400" : "bg-green-400");
-          const pctColor = pct > 90 ? c.red : pct > 75 ? c.amber : c.green;
-          return (
-            <div key={s.name}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-[11px] font-mono font-bold ${c.textMain}`}>{s.name}</span>
-                {s.usedPercent != null && (
-                  <span className={`text-[10px] font-mono tabular-nums ${pctColor}`}>{pct}%</span>
-                )}
-              </div>
-              <div className={`h-1.5 w-full ${c.progressBg} overflow-hidden rounded-sm mb-2`}>
-                {s.usedPercent != null ? (
-                  <div className={`h-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
-                ) : (
-                  <div className="h-full w-full opacity-20 bg-current" />
-                )}
-              </div>
-              <div className="space-y-0.5">
-                <div className="flex justify-between">
-                  <span className={`text-[9px] font-mono ${c.textMuted} uppercase`}>libre</span>
-                  <span className={`text-[11px] font-mono font-bold tabular-nums ${c.green}`}>
-                    {s.free ?? "—"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={`text-[9px] font-mono ${c.textMuted} uppercase`}>total</span>
-                  <span className={`text-[11px] font-mono tabular-nums ${c.textDim}`}>
-                    {s.total ?? "—"}
-                  </span>
-                </div>
-              </div>
+      <div className="grid grid-cols-2 gap-4 mb-3">
+        {servers.map((s) => <ServerBar key={s.name} s={s} theme={theme} c={c} />)}
+      </div>
+      {aggregate && (aggregate.free || aggregate.total) && (
+        <div className={`pt-2 border-t ${c.border}`}>
+          <div className="flex items-center justify-between mb-1">
+            <span className={`text-[9px] font-mono ${c.textMuted} uppercase tracking-wider`}>TOTAL COMBINÉ</span>
+            {aggregate.usedPercent != null && (
+              <span className={`text-[9px] font-mono tabular-nums ${c.textDim}`}>{aggPct}% utilisé</span>
+            )}
+          </div>
+          {aggregate.usedPercent != null && (
+            <div className={`h-1 w-full ${c.progressBg} overflow-hidden rounded-sm mb-1.5`}>
+              <div className={`h-full transition-all ${aggBarColor}`} style={{ width: `${aggPct}%` }} />
             </div>
-          );
-        })}
-      </div>
+          )}
+          <div className="flex justify-between">
+            <span className={`text-[11px] font-mono font-bold tabular-nums ${c.green}`}>
+              {aggregate.free ?? "—"} libre
+            </span>
+            <span className={`text-[11px] font-mono tabular-nums ${c.textDim}`}>
+              / {aggregate.total ?? "—"}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,7 +13,8 @@
       "Read(//var/home/phantomhex/.local/bin/**)",
       "Read(//usr/local/bin/**)",
       "Bash(ls /usr/bin/distrobox*)",
-      "Read(//usr/**)"
+      "Read(//usr/**)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }

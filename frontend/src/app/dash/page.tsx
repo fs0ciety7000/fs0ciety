@@ -47,6 +47,7 @@ const BOOKMARKS: AppLink[] = [
 
 const MEDIA_LINKS: AppLink[] = [
   { name: "Zucchini", url: "https://whatbox.ca/manage", icon: ICON("server") },
+  { name: "HBD", url: "https://40.ein.itsby.design/", icon: ICON("server") },
   { name: "Jellyfin", url: "https://jf.phantomhex.cc", icon: ICON("jellyfin") },
   { name: "Prowlarr", url: "https://prow.phantomhex.cc", icon: ICON("prowlarr") },
   { name: "Radarr", url: "https://pulse.phantomhex.cc", icon: ICON("radarr") },

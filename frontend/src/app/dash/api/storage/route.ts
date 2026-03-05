@@ -7,6 +7,15 @@ const WHATBOX_URL = "https://zucchini.whatbox.ca/labs/stats?json=1";
 const WHATBOX_USER = process.env.WHATBOX_USER || "";
 const WHATBOX_PASS = process.env.WHATBOX_PASS || "";
 
+// ── fs0ciety — Radarr diskspace (fallback if Whatbox has no disk fields) ──
+const RADARR_URL = (process.env.RADARR_URL || "https://pulse.phantomhex.cc").replace(/\/$/, "");
+const RADARR_API_KEY = process.env.RADARR_API_KEY || "";
+const CF_CLIENT_ID = process.env.CF_ACCESS_CLIENT_ID || "";
+const CF_CLIENT_SECRET = process.env.CF_ACCESS_CLIENT_SECRET || "";
+const cfH = () => CF_CLIENT_ID
+  ? { "CF-Access-Client-Id": CF_CLIENT_ID, "CF-Access-Client-Secret": CF_CLIENT_SECRET }
+  : {};
+
 // ── HBD — qBittorrent (free_space_on_disk) ───────────────────
 const HBD_QBIT_URL = (process.env.HBD_QBIT_URL || "https://40.ein.itsby.design/qbittorrent").replace(/\/$/, "");
 const HBD_QBIT_USER = process.env.HBD_QBIT_USER || "phantomhex";
@@ -19,7 +28,7 @@ const HBD_SONARR_KEY = process.env.HBD_SONARR_KEY || "9c09432cbff04058ba537135b1
 let hbdSID: string | null = null;
 let hbdSIDExpiry = 0;
 
-// Basic Auth header for the reverse proxy in front of HBD qBit
+// Basic Auth for the reverse proxy in front of HBD services
 function hbdBasicAuth(): string {
   return "Basic " + Buffer.from(`${HBD_QBIT_USER}:${HBD_QBIT_PASS}`).toString("base64");
 }
@@ -87,7 +96,11 @@ async function getHBDQbitFree(): Promise<number | null> {
 async function getHBDSonarrDisk(): Promise<{ free: number | null; total: number | null }> {
   try {
     const res = await fetch(`${HBD_SONARR_URL}/api/v3/diskspace`, {
-      headers: { "X-Api-Key": HBD_SONARR_KEY, Accept: "application/json" },
+      headers: {
+        "X-Api-Key": HBD_SONARR_KEY,
+        Authorization: hbdBasicAuth(),
+        Accept: "application/json",
+      },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { free: null, total: null };
@@ -116,22 +129,44 @@ async function getWhatboxDisk(): Promise<{ free: number | null; total: number | 
   } catch { return { free: null, total: null }; }
 }
 
+async function getRadarrDisk(): Promise<{ free: number | null; total: number | null }> {
+  if (!RADARR_API_KEY) return { free: null, total: null };
+  try {
+    const res = await fetch(`${RADARR_URL}/api/v3/diskspace`, {
+      headers: { "X-Api-Key": RADARR_API_KEY, "User-Agent": "Mozilla/5.0", ...cfH() },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return { free: null, total: null };
+    const data = await res.json() as Array<{ freeSpace: unknown; totalSpace: unknown }>;
+    if (!Array.isArray(data) || data.length === 0) return { free: null, total: null };
+    const main = data.reduce((max, d) =>
+      (toNum(d.totalSpace) ?? 0) > (toNum(max.totalSpace) ?? 0) ? d : max, data[0]);
+    return { free: toNum(main.freeSpace), total: toNum(main.totalSpace) };
+  } catch { return { free: null, total: null }; }
+}
+
 function usedPercent(free: number | null, total: number | null): number | null {
   return total && free != null ? Math.round(((total - free) / total) * 100) : null;
 }
 
 export async function GET() {
-  const [whatboxResult, hbdQbitResult, hbdSonarrResult] = await Promise.allSettled([
+  const [whatboxResult, radarrResult, hbdQbitResult, hbdSonarrResult] = await Promise.allSettled([
     getWhatboxDisk(),
+    getRadarrDisk(),
     getHBDQbitFree(),
     getHBDSonarrDisk(),
   ]);
 
   const wb = whatboxResult.status === "fulfilled" ? whatboxResult.value : { free: null, total: null };
+  const radarr = radarrResult.status === "fulfilled" ? radarrResult.value : { free: null, total: null };
   const hbdQbitFree = hbdQbitResult.status === "fulfilled" ? hbdQbitResult.value : null;
   const hbdSonarr = hbdSonarrResult.status === "fulfilled" ? hbdSonarrResult.value : { free: null, total: null };
 
-  // qBit free_space_on_disk is partition-accurate; fall back to Sonarr free if qBit fails
+  // fs0ciety: prefer Whatbox, fall back to Radarr diskspace
+  const fsFree = wb.free ?? radarr.free;
+  const fsTotal = wb.total ?? radarr.total;
+
+  // HBD: qBit free is most accurate; Sonarr gives total
   const hbdFree = hbdQbitFree ?? hbdSonarr.free;
   const hbdTotal = hbdSonarr.total;
 
@@ -139,9 +174,9 @@ export async function GET() {
     servers: [
       {
         name: "fs0ciety",
-        free: wb.free != null ? formatBytes(wb.free) : null,
-        total: wb.total != null ? formatBytes(wb.total) : null,
-        usedPercent: usedPercent(wb.free, wb.total),
+        free: fsFree != null ? formatBytes(fsFree) : null,
+        total: fsTotal != null ? formatBytes(fsTotal) : null,
+        usedPercent: usedPercent(fsFree, fsTotal),
       },
       {
         name: "HBD",

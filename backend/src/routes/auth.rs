@@ -59,9 +59,17 @@ pub async fn login(
     let ua = extract_ua(&headers);
 
     // Look up user in SurrealDB.
-    let result: Vec<User> = state.db
-        .query("SELECT * FROM users WHERE username = $username LIMIT 1")
-        .bind(("username", username.clone()))
+    et login = req.username.trim().to_lowercase();
+
+let result: Vec<User> = state.db
+    .query(
+        "SELECT *
+         FROM users
+         WHERE string::lowercase(username) = $login
+            OR string::lowercase(email) = $login
+         LIMIT 1"
+    )
+    .bind(("login", login))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)

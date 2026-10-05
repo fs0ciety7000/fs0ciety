@@ -8,6 +8,7 @@ const ALLOWED_FEEDS = [
   "https://www.wired.com/feed/rss",
   "https://techcrunch.com/feed/",
   "https://fs0ciety.org/blog/rss",
+  "https://devblog.fs0ciety.org/rss.xml",
 ];
 
 interface RSSItem {

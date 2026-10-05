@@ -58,6 +58,7 @@ function sourceName(url: string): string {
   if (url.includes("wired")) return "Wired";
   if (url.includes("techcrunch")) return "TechCrunch";
   if (url.includes("fs0ciety")) return "fs0ciety";
+  if (url.includes("devblog")) return "Devblog Cosmic Empires";
   return new URL(url).hostname;
 }
 

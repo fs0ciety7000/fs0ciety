@@ -82,6 +82,10 @@ export function BlogFooter() {
               <span style={{ color: "var(--spectr-accent-primary)", opacity: 0.5 }}>#</span>
               rss
             </a>
+            <a href="mailto:contact@fs0ciety.org" className="spectr-footer-link">
+              <span style={{ color: "var(--spectr-accent-primary)", opacity: 0.5 }}>@</span>
+              contact
+            </a>
             <a
               href="https://defcon.social/@phant0mhex"
               target="_blank"

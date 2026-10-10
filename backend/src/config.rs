@@ -20,7 +20,11 @@ pub struct Config {
     pub qbittorrent_url: String,
     pub qbittorrent_user: String,
     pub qbittorrent_pass: String,
-    pub resend_api_key: String,
+    pub smtp_host: String,
+    pub smtp_port: u16,
+    pub smtp_user: String,
+    pub smtp_password: String,
+    pub smtp_from: String,
     pub public_url: String,
     pub admin_api_key: String,
     // External (browser-accessible) URLs for dashboard quick links.
@@ -61,7 +65,18 @@ impl Config {
                 .unwrap_or_else(|_| "admin".into()),
             qbittorrent_pass: env::var("QBITTORRENT_PASS")
                 .unwrap_or_else(|_| "adminadmin".into()),
-            resend_api_key: env::var("RESEND_API_KEY").unwrap_or_default(),
+            smtp_host: env::var("SMTP_HOST").unwrap_or_default(),
+            smtp_port: env::var("SMTP_PORT")
+                .ok()
+                .filter(|v| !v.is_empty())
+                .map(|v| v.parse().expect("SMTP_PORT must be a valid u16"))
+                .unwrap_or(587),
+            smtp_user: env::var("SMTP_USER").unwrap_or_default(),
+            smtp_password: env::var("SMTP_PASSWORD").unwrap_or_default(),
+            smtp_from: env::var("SMTP_FROM")
+                .ok()
+                .filter(|v| !v.is_empty())
+                .unwrap_or_else(|| "fs0ciety <noreply@fs0ciety.org>".into()),
             public_url: env::var("PUBLIC_URL")
                 .unwrap_or_else(|_| "https://fs0ciety.org".into()),
             admin_api_key: env::var("ADMIN_API_KEY").unwrap_or_default(),

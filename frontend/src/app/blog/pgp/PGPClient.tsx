@@ -59,6 +59,7 @@ nAjDCsEdfrm+EsFrzPS2I0MxDLw+eg==
 
 const KEY_FINGERPRINT = "6145 0220 51E0 CB3E";
 const KEY_UID = "phant0mhex <phant0mhex@proton.me>";
+const CONTACT_EMAIL = "contact@fs0ciety.org";
 
 export default function PGPPage() {
   const [copied, setCopied] = useState(false);
@@ -239,7 +240,7 @@ export default function PGPPage() {
                 <span className="text-terminal-cyan">-&gt;</span>
                 <span>
                   Encrypt messages with the PGP key above before sending to{" "}
-                  <span className="text-terminal-cyan">{KEY_UID.split("<")[1]?.replace(">", "")}</span>
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-terminal-cyan hover:underline">{CONTACT_EMAIL}</a>
                 </span>
               </li>
               <li className="flex items-start gap-2">

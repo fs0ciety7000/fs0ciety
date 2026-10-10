@@ -1,6 +1,7 @@
 mod config;
 mod db;
 mod error;
+mod mail;
 mod middleware;
 mod models;
 mod proxy;

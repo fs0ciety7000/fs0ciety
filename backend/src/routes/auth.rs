@@ -59,17 +59,17 @@ pub async fn login(
     let ua = extract_ua(&headers);
 
     // Look up user in SurrealDB.
-    et login = req.username.trim().to_lowercase();
+    let login = req.username.trim().to_lowercase();
 
-let result: Vec<User> = state.db
-    .query(
-        "SELECT *
-         FROM users
-         WHERE string::lowercase(username) = $login
-            OR string::lowercase(email) = $login
-         LIMIT 1"
-    )
-    .bind(("login", login))
+    let result: Vec<User> = state.db
+        .query(
+            "SELECT *
+             FROM users
+             WHERE string::lowercase(username) = $login
+                OR string::lowercase(email) = $login
+             LIMIT 1"
+        )
+        .bind(("login", login))
         .await
         .map_err(|e| AppError::Database(e.to_string()))?
         .take(0)
@@ -203,7 +203,7 @@ pub async fn change_password(
     })))
 }
 
-/// POST /api/auth/forgot-password — generate a reset token and send email via Resend.
+/// POST /api/auth/forgot-password — generate a reset token and send email via SMTP.
 #[utoipa::path(
     post,
     path = "/api/auth/forgot-password",
@@ -252,47 +252,39 @@ pub async fn forgot_password(
             .await
             .map_err(|e| AppError::Database(e.to_string()))?;
 
-        // Send email via Resend API.
+        // Send email via SMTP.
         let reset_url = format!("{}/reset-password?token={}", state.config.public_url, token);
-        let resend_key = &state.config.resend_api_key;
 
-        if !resend_key.is_empty() {
-            let client = reqwest::Client::new();
-            let res = client
-                .post("https://api.resend.com/emails")
-                .header("Authorization", format!("Bearer {}", resend_key))
-                .json(&json!({
-                    "from": "fs0ciety <noreply@fs0ciety.org>",
-                    "to": [email],
-                    "subject": "fs0ciety — Password Reset",
-                    "html": format!(
-                        "<div style=\"font-family:monospace;background:#0a0a0a;color:#00ff41;padding:40px;\">\
-                         <h2 style=\"color:#00ff41;\">fs0ciety // Password Reset</h2>\
-                         <p>A password reset was requested for user <strong>{}</strong>.</p>\
-                         <p>Click the link below to reset your password (expires in 1 hour):</p>\
-                         <p><a href=\"{}\" style=\"color:#00d4ff;\">{}</a></p>\
-                         <p style=\"color:#666;\">If you did not request this, ignore this email.</p>\
-                         </div>",
-                        user.username, reset_url, reset_url
-                    ),
-                }))
-                .send()
-                .await;
+        if crate::mail::is_configured(&state.config) {
+            let text = format!(
+                "fs0ciety // Password Reset\n\n\
+                 A password reset was requested for user {}.\n\
+                 Open the link below to reset your password (expires in 1 hour):\n\n\
+                 {}\n\n\
+                 If you did not request this, ignore this email.\n",
+                user.username, reset_url
+            );
+            let html = format!(
+                "<div style=\"font-family:monospace;background:#0a0a0a;color:#00ff41;padding:40px;\">\
+                 <h2 style=\"color:#00ff41;\">fs0ciety // Password Reset</h2>\
+                 <p>A password reset was requested for user <strong>{}</strong>.</p>\
+                 <p>Click the link below to reset your password (expires in 1 hour):</p>\
+                 <p><a href=\"{}\" style=\"color:#00d4ff;\">{}</a></p>\
+                 <p style=\"color:#666;\">If you did not request this, ignore this email.</p>\
+                 </div>",
+                user.username, reset_url, reset_url
+            );
 
-            match res {
-                Ok(r) if r.status().is_success() => {
+            match crate::mail::send(&state.config, &email, "fs0ciety — Password Reset", text, html).await {
+                Ok(()) => {
                     info!("Password reset email sent to {} for user '{}'", email, user.username);
                 }
-                Ok(r) => {
-                    let body = r.text().await.unwrap_or_default();
-                    warn!("Resend API error: {}", body);
-                }
                 Err(e) => {
-                    warn!("Resend request failed: {}", e);
+                    warn!("Password reset email failed: {}", e);
                 }
             }
         } else {
-            warn!("RESEND_API_KEY not configured, skipping email send. Reset token: {}", token);
+            warn!("SMTP_HOST not configured, skipping password reset email for user '{}'", user.username);
         }
     }
 

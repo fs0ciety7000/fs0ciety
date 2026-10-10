@@ -257,7 +257,11 @@ If you use [Coolify](https://coolify.io/) (self-hosted PaaS):
 | `SURREAL_USER` | `root` | SurrealDB username |
 | `ADMIN_API_KEY` | — | API key for admin endpoints & CI publishing |
 | `PUBLIC_URL` | `https://fs0ciety.org` | Public URL (for emails, links) |
-| `RESEND_API_KEY` | — | [Resend](https://resend.com/) key for password reset emails |
+| `SMTP_HOST` | — | SMTP server for password reset emails (empty = disabled), e.g. `mail.fs0ciety.org` |
+| `SMTP_PORT` | `587` | `465` = implicit TLS, any other port = STARTTLS |
+| `SMTP_USER` | — | SMTP login (leave empty for unauthenticated relay) |
+| `SMTP_PASSWORD` | — | SMTP password |
+| `SMTP_FROM` | `fs0ciety <noreply@fs0ciety.org>` | Sender address (From) |
 
 ### Frontend
 

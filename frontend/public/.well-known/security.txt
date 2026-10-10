@@ -1,7 +1,7 @@
 # fs0ciety.org security policy
 # https://securitytxt.org/
 
-Contact: mailto:phant0mhex@proton.me
+Contact: mailto:contact@fs0ciety.org
 Encryption: https://blog.fs0ciety.org/blog/pgp
 Preferred-Languages: en
 Canonical: https://fs0ciety.org/.well-known/security.txt

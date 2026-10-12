@@ -29,8 +29,8 @@ const PERSONAL_LINKS: AppLink[] = [
   { name: "Paperless", url: "https://paper.fs0ciety.org", icon: ICON("paperless-ngx") },
   { name: "Pairdrop", url: "https://drop.fs0ciety.org", icon: ICON("pairdrop") },
   { name: "SSH", url: "https://ssh.fs0ciety.org", icon: ICON("sshwifty") },
-  { name: "Mail Admin", url: "https://mail.fs0ciety.org/", icon: ICON("stalwart") },
-  { name: "AdGuard Home", url: "http://100.74.40.4:3000", icon: ICON("adguard-home") },
+  { name: "Mail Admin", url: "https://mailadmin.fs0ciety.org/", icon: ICON("stalwart") },
+  { name: "AdGuard Home", url: "https://adguard.fs0ciety.org", icon: ICON("adguard-home") },
   { name: "PrivateBin", url: "https://paste.fs0ciety.org/", icon: ICON("privatebin") },
 ];
 
@@ -56,6 +56,64 @@ const MEDIA_LINKS: AppLink[] = [
   { name: "SAB", url: "https://vault.phantomhex.cc", icon: ICON("sabnzbd") },
   { name: "Seerr", url: "https://scout.phantomhex.cc", icon: ICON("jellyseerr") },
 ];
+
+// ── Hub links (fs0ciety-hub launcher = source of truth) ─────
+// Links are managed in the hub (add / edit / remove / groups / favorites); the built-in lists above are only
+// the fallback when the hub feed is unreachable.
+
+type HubStatus = "up" | "degraded" | "down" | "unknown" | "paused";
+interface HubLink extends AppLink {
+  up?: boolean;
+}
+interface HubGroup {
+  id: string;
+  label: string;
+  links: HubLink[];
+}
+interface HubFeed {
+  manageUrl: string;
+  groups: HubGroup[];
+}
+interface HubFeedItem {
+  name: string;
+  url: string;
+  icon: string | null;
+  status: HubStatus;
+}
+
+/** Hub icon: image URL as-is; lucide names have no image here → selfh.st icon guessed from the name. */
+const hubIcon = (icon: string | null, name: string) =>
+  icon && /^https?:\/\//.test(icon)
+    ? icon
+    : ICON(name.toLowerCase().replace(/\s*[(—·].*$/, "").trim().replace(/[^a-z0-9]+/g, "-"));
+
+const hubUp = (s: HubStatus): boolean | undefined => (s === "up" || s === "degraded" ? true : s === "down" ? false : undefined);
+
+function useHubLinks(): HubFeed | null {
+  const [feed, setFeed] = useState<HubFeed | null>(null);
+  useEffect(() => {
+    const load = () => {
+      fetch("/dash/api/links")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: { manageUrl: string; groups: { id: string; label: string; items: HubFeedItem[] }[] } | null) => {
+          if (!d?.groups) return;
+          setFeed({
+            manageUrl: d.manageUrl,
+            groups: d.groups.map((g) => ({
+              id: g.id,
+              label: g.label,
+              links: g.items.map((i) => ({ name: i.name, url: i.url, icon: hubIcon(i.icon, i.name), up: hubUp(i.status) })),
+            })),
+          });
+        })
+        .catch(() => {});
+    };
+    load();
+    const interval = setInterval(load, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+  return feed;
+}
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -611,6 +669,36 @@ function LinkCard({ link, theme, up }: { link: AppLink; theme: DashTheme; up?: b
       <span className={c.linkText}>{link.name}</span>
       <StatusLed up={up} theme={theme} />
     </a>
+  );
+}
+
+const HUB_GROUP_PREVIEW = 12;
+
+function HubGroupCard({ group, theme }: { group: HubGroup; theme: DashTheme }) {
+  const c = cx(theme);
+  const [open, setOpen] = useState(false);
+  const shown = open ? group.links : group.links.slice(0, HUB_GROUP_PREVIEW);
+  const more = group.links.length - HUB_GROUP_PREVIEW;
+  return (
+    <div className={c.card}>
+      {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+      <SectionHeader
+        title={group.label}
+        icon=">"
+        theme={theme}
+        extra={<span className={`text-[10px] font-mono ${c.textMuted}`}>{group.links.length}</span>}
+      />
+      <div className="grid grid-cols-2 gap-0.5">
+        {shown.map((link) => (
+          <LinkCard key={link.url} link={link} theme={theme} up={link.up} />
+        ))}
+      </div>
+      {more > 0 && (
+        <button onClick={() => setOpen((o) => !o)} className={`mt-2 text-[10px] font-mono ${c.textMuted} hover:underline`}>
+          {open ? "réduire" : `+${more} liens`}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -3216,7 +3304,7 @@ function MediaModeToggle({ mode, setMode, theme }: { mode: MediaMode; setMode: (
 
 const ALL_LINKS: AppLink[] = [...PERSONAL_LINKS, ...MEDIA_LINKS, ...BOOKMARKS];
 
-function CommandPalette({ open, onClose, theme }: { open: boolean; onClose: () => void; theme: DashTheme }) {
+function CommandPalette({ open, onClose, theme, extra = [] }: { open: boolean; onClose: () => void; theme: DashTheme; extra?: AppLink[] }) {
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -3226,11 +3314,16 @@ function CommandPalette({ open, onClose, theme }: { open: boolean; onClose: () =
     if (open) { setQuery(""); setCursor(0); setTimeout(() => inputRef.current?.focus(), 30); }
   }, [open]);
 
+  const links = useMemo(() => {
+    const seen = new Set<string>();
+    return [...extra, ...ALL_LINKS].filter((l) => !seen.has(l.url) && seen.add(l.url));
+  }, [extra]);
+
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
-    if (!q) return ALL_LINKS.slice(0, 12);
-    return ALL_LINKS.filter((l) => l.name.toLowerCase().includes(q)).slice(0, 12);
-  }, [query]);
+    if (!q) return links.slice(0, 12);
+    return links.filter((l) => l.name.toLowerCase().includes(q)).slice(0, 12);
+  }, [query, links]);
 
   useEffect(() => { setCursor(0); }, [filtered.length]);
 
@@ -3371,6 +3464,8 @@ export default function StartPage() {
   const c = cx(theme);
   const serviceUrls = useMemo(() => PERSONAL_LINKS.map((l) => l.url), []);
   const serviceStatus = useServiceStatus(serviceUrls);
+  const hub = useHubLinks();
+  const hubLinks = useMemo(() => hub?.groups.flatMap((g) => g.links) ?? [], [hub]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -3402,7 +3497,7 @@ export default function StartPage() {
       backgroundImage: "linear-gradient(rgba(37,40,50,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(37,40,50,0.35) 1px, transparent 1px)",
       backgroundSize: "48px 48px",
     } : undefined}>
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} theme={theme} />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} theme={theme} extra={hubLinks} />
 
       {/* ── Header ── */}
       <header className={`flex items-center justify-between mb-4 pb-3 border-b ${c.border}`}>
@@ -3423,6 +3518,11 @@ export default function StartPage() {
           <span className={`mx-1 ${c.textMuted2}`}>|</span>
           <button onClick={() => setCmdOpen(true)} className={c.headerLink} title="Cmd+K">⌘K</button>
           <DashThemeToggle theme={theme} setTheme={setTheme} />
+          {hub && (
+            <a href={hub.manageUrl} target="_blank" rel="noopener noreferrer" className={c.headerLink} title="Ajouter / modifier / retirer les liens (fs0ciety-hub)">
+              liens
+            </a>
+          )}
           <a href="/" className={c.headerLink}>terminal</a>
         </div>
       </header>
@@ -3449,15 +3549,19 @@ export default function StartPage() {
               <motion.div className="lg:col-span-3 space-y-3"
                 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0 }}>
-                <div className={c.card}>
-                  {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
-                  <SectionHeader title="Self-Hosted" icon=">" theme={theme} />
-                  <div className="grid grid-cols-2 gap-0.5">
-                    {PERSONAL_LINKS.map((link) => (
-                      <LinkCard key={link.name} link={link} theme={theme} up={serviceStatus[link.url]} />
-                    ))}
+                {hub ? (
+                  hub.groups.map((g) => <HubGroupCard key={g.id} group={g} theme={theme} />)
+                ) : (
+                  <div className={c.card}>
+                    {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
+                    <SectionHeader title="Self-Hosted" icon=">" theme={theme} />
+                    <div className="grid grid-cols-2 gap-0.5">
+                      {PERSONAL_LINKS.map((link) => (
+                        <LinkCard key={link.name} link={link} theme={theme} up={serviceStatus[link.url]} />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className={c.card}>
                   {theme === "industrial" && <CornerBrackets color="#F5622A" size={10} />}
                   <SectionHeader title="Bookmarks" icon="~" theme={theme} />

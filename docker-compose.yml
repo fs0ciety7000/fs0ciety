@@ -22,6 +22,11 @@ services:
     environment:
       - NEXT_PUBLIC_DOMAIN=${DOMAIN:-fs0ciety.org}
       - INTERNAL_API_URL=http://backend:3001
+      # Liens du dash = flux du hub (services.fs0ciety.org/api/feed/launcher)
+      - HUB_FEED_URL=${HUB_FEED_URL:-https://services.fs0ciety.org/api/feed/launcher}
+      - HUB_FEED_TOKEN=${HUB_FEED_TOKEN:-}
+      - HUB_CF_ACCESS_CLIENT_ID=${HUB_CF_ACCESS_CLIENT_ID:-}
+      - HUB_CF_ACCESS_CLIENT_SECRET=${HUB_CF_ACCESS_CLIENT_SECRET:-}
     expose:
       - "3000"
     depends_on:

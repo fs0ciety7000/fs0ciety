@@ -7,7 +7,7 @@ export default function DashLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState<"terminal" | "industrial" | "observatory">("industrial");
+  const [theme, setTheme] = useState<"terminal" | "industrial" | "observatory">("observatory");
 
   useEffect(() => {
     try {

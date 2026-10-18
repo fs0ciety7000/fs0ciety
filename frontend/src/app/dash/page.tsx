@@ -431,7 +431,7 @@ type DashTheme = "industrial" | "terminal" | "observatory";
 const DASH_THEME_KEY = "fs0ciety_dash_theme_v2";
 
 function useDashTheme(): [DashTheme, (t: DashTheme) => void] {
-  const [theme, setThemeState] = useState<DashTheme>("industrial");
+  const [theme, setThemeState] = useState<DashTheme>("observatory");
 
   useEffect(() => {
     const saved = localStorage.getItem(DASH_THEME_KEY) as DashTheme | null;

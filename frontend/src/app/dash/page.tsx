@@ -427,7 +427,7 @@ interface SeerrDetailSeason {
 
 // ── Theme ───────────────────────────────────────────────────
 
-type DashTheme = "terminal" | "industrial";
+type DashTheme = "industrial" | "terminal" | "observatory";
 const DASH_THEME_KEY = "fs0ciety_dash_theme_v2";
 
 function useDashTheme(): [DashTheme, (t: DashTheme) => void] {
@@ -435,7 +435,7 @@ function useDashTheme(): [DashTheme, (t: DashTheme) => void] {
 
   useEffect(() => {
     const saved = localStorage.getItem(DASH_THEME_KEY) as DashTheme | null;
-    if (saved === "industrial" || saved === "terminal") setThemeState(saved);
+    if (saved === "industrial" || saved === "terminal" || saved === "observatory") setThemeState(saved);
   }, []);
 
   const setTheme = (t: DashTheme) => {
@@ -530,7 +530,9 @@ function cx(theme: DashTheme) {
     // ── Swiss industrial print: paper, carbon ink, signal red ──
     page: ind
       ? "min-h-screen bg-[#F4F2EA] text-[#111111] p-4 md:p-6 lg:p-8 font-sans dash-industrial"
-      : "min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono dash-foundry",
+      : theme === "terminal"
+        ? "min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono dash-foundry"
+        : "min-h-screen bg-terminal-black p-4 md:p-6 lg:p-8 font-mono dash-observatory",
     card: ind
       ? "relative bg-[#ECE9E0] border border-[#111111] p-4 overflow-hidden"
       : "border border-terminal-green/20 bg-terminal-black-light p-4",
@@ -545,7 +547,7 @@ function cx(theme: DashTheme) {
     textMuted2: ind ? "text-[#77736C]" : "text-terminal-green-dim/30",
     accent: ind ? "text-[#E51D2A]" : "text-terminal-amber",
     link: ind ? "text-[#111111]" : "text-terminal-cyan",
-    green: ind ? "text-[#111111]" : "text-[#87AAA5]",
+    green: ind ? "text-[#111111]" : theme === "observatory" ? "text-[#A6C7E2]" : "text-[#87AAA5]",
     red: ind ? "text-[#E51D2A]" : "text-terminal-red",
     amber: ind ? "text-[#E51D2A]" : "text-terminal-amber",
     cyan: ind ? "text-[#111111]" : "text-terminal-cyan",
@@ -630,18 +632,20 @@ function useServiceStatus(urls: string[]) {
 
 function StatusLed({ up, theme }: { up?: boolean; theme: DashTheme }) {
   const ind = theme === "industrial";
+  const led = theme === "observatory" ? "#A6C7E2" : "#87AAA5";
+  const offline = theme === "observatory" ? "#E18478" : "#F25B38";
   if (up === undefined) {
     return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ind ? "bg-[#77736C]" : "bg-[#74776E]"}`} />;
   }
   if (up) {
     return (
       <span className="relative shrink-0 flex w-1.5 h-1.5">
-        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${ind ? "bg-[#111111]" : "bg-[#87AAA5]"}`} />
-        <span className={`relative inline-flex rounded-full w-1.5 h-1.5 ${ind ? "bg-[#111111]" : "bg-[#87AAA5]"}`} />
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ backgroundColor: ind ? "#111111" : led }} />
+        <span className="relative inline-flex rounded-full w-1.5 h-1.5" style={{ backgroundColor: ind ? "#111111" : led }} />
       </span>
     );
   }
-  return <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${ind ? "bg-[#E51D2A]" : "bg-[#F25B38]"}`} />;
+  return <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: ind ? "#E51D2A" : offline }} />;
 }
 
 function CornerBrackets({ color = "#E51D2A", size = 8 }: { color?: string; size?: number }) {
@@ -3245,26 +3249,42 @@ function ProwlarrSection({ theme }: { theme: DashTheme }) {
 // ── Theme Toggle ────────────────────────────────────────────
 
 function DashThemeToggle({ theme, setTheme }: { theme: DashTheme; setTheme: (t: DashTheme) => void }) {
-  const ind = theme === "industrial";
+  const frame = theme === "industrial"
+    ? "bg-[#ECE9E0] border-[#BBB8AF]"
+    : theme === "observatory"
+      ? "bg-[#172130] border-[#344253]"
+      : "bg-[#1C1E1B] border-[#3C403A]";
+  const inactive = theme === "industrial"
+    ? "text-[#68645D] hover:text-[#111111]"
+    : theme === "observatory"
+      ? "text-[#A8B7C9] hover:text-[#F0F4F8]"
+      : "text-[#A19F93] hover:text-[#F0EDE4]";
+  const themes: { value: DashTheme; label: string }[] = [
+    { value: "industrial", label: "SWISS" },
+    { value: "terminal", label: "KINETIC" },
+    { value: "observatory", label: "NIGHT" },
+  ];
+  const selectedClass: Record<DashTheme, string> = {
+    industrial: "bg-[#E51D2A] text-white",
+    terminal: "bg-[#F25B38] text-[#141514]",
+    observatory: "bg-[#A6C7E2] text-[#101722]",
+  };
   return (
-    <button
-      onClick={() => setTheme(ind ? "terminal" : "industrial")}
-      className={`flex items-center gap-2 px-3 py-1.5 border transition-all ${
-        ind
-          ? "bg-[#ECE9E0] border-[#BBB8AF] hover:border-[#E51D2A]/40"
-          : "bg-[#1C1E1B] border-[#3C403A] hover:border-[#F25B38]"
-      }`}
-      title={`Switch to ${ind ? "Kinetic Foundry" : "Swiss Control"} theme`}
-    >
-      <span className={`w-5 h-2.5 rounded-full relative ${ind ? "bg-[#BBB8AF]" : "bg-[#3C403A]"}`}>
-        <span className={`absolute top-0.5 w-1.5 h-1.5 rounded-full transition-transform ${
-          ind ? "left-[12px] bg-[#E51D2A]" : "left-0.5 bg-[#F25B38]"
-        }`} />
-      </span>
-      <span className={`text-[10px] font-mono uppercase tracking-wider ${ind ? "text-[#3D3B36]" : "text-[#A19F93]"}`}>
-        {ind ? "Swiss Control" : "Kinetic Foundry"}
-      </span>
-    </button>
+    <div role="group" aria-label="Dashboard theme" className={`flex items-center gap-0.5 p-0.5 border ${frame}`}>
+      {themes.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => setTheme(option.value)}
+          aria-label={`${option.value === "industrial" ? "Swiss Control" : option.value === "terminal" ? "Kinetic Foundry" : "Night Observatory"} theme`}
+          aria-pressed={theme === option.value}
+          title={option.value === "industrial" ? "Swiss Control" : option.value === "terminal" ? "Kinetic Foundry" : "Night Observatory"}
+          className={`px-2 py-1 text-[9px] font-mono font-bold tracking-[0.08em] transition-colors ${theme === option.value ? selectedClass[option.value] : inactive}`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -3499,7 +3519,7 @@ export default function StartPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="fs0ciety" width={28} height={28} className={theme === "industrial" ? "opacity-50" : "opacity-70"} />
           <div>
-            <h1 className={theme === "industrial"
+          <h1 className={theme === "industrial"
               ? "font-display text-xl font-black uppercase tracking-[0.18em] text-[#111111]"
               : `text-base font-bold ${c.title}`}>
               fs0ciety<span className={theme === "industrial" ? "text-[#E51D2A]" : c.titleDim}>.start</span>
@@ -3530,8 +3550,8 @@ export default function StartPage() {
             </div>
           )}
           <div className="dash-swiss-masthead-title">
-            <span>{theme === "industrial" ? "PERSONAL INFRASTRUCTURE / CONTROL SURFACE" : "KINETIC FOUNDRY / LIVE TELEMETRY"}</span>
-            <h2>{theme === "industrial" ? "SYSTEM STATUS" : "ACTIVE SYSTEMS"}<span>.</span></h2>
+            <span>{theme === "industrial" ? "PERSONAL INFRASTRUCTURE / CONTROL SURFACE" : theme === "terminal" ? "KINETIC FOUNDRY / LIVE TELEMETRY" : "NIGHT OBSERVATORY / INFRASTRUCTURE MONITOR"}</span>
+            <h2>{theme === "industrial" ? "SYSTEM STATUS" : theme === "terminal" ? "ACTIVE SYSTEMS" : "NIGHT WATCH"}<span>.</span></h2>
           </div>
           <div className="dash-swiss-masthead-readout">
             <span>OPERATING SERVICES</span>

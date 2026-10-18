@@ -44,6 +44,41 @@ const BOOKMARKS: AppLink[] = [
   { name: "X", url: "https://x.com", icon: ICON("x") },
   { name: "Startmail", url: "https://mail.startmail.com", icon: "/icons/startmail.svg" },
 ];
+const CUSTOM_BOOKMARKS_KEY = "fs0ciety_dash_custom_bookmarks_v1";
+
+function useCustomBookmarks() {
+  const [bookmarks, setBookmarks] = useState<AppLink[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CUSTOM_BOOKMARKS_KEY) || "[]");
+      if (Array.isArray(saved)) {
+        setBookmarks(saved.filter((item): item is AppLink =>
+          item && typeof item.name === "string" && typeof item.url === "string" &&
+          /^https?:$/.test(new URL(item.url).protocol)
+        ).map((item) => ({ name: item.name.slice(0, 48), url: item.url, icon: "" })));
+      }
+    } catch { /* ignore malformed local bookmarks */ }
+  }, []);
+
+  const save = (next: AppLink[]) => {
+    setBookmarks(next);
+    localStorage.setItem(CUSTOM_BOOKMARKS_KEY, JSON.stringify(next));
+  };
+
+  const add = (name: string, rawUrl: string) => {
+    if (!name.trim()) throw new Error("Ajoute un nom pour ce bookmark.");
+    const value = rawUrl.trim();
+    const url = new URL(/^[a-z][a-z\d+.-]*:/i.test(value) ? value : `https://${value}`);
+    if (!/^https?:$/.test(url.protocol) || url.username || url.password) throw new Error("Utilise une adresse HTTP ou HTTPS valide.");
+    if ([...BOOKMARKS, ...bookmarks].some((link) => link.url === url.toString())) throw new Error("Ce bookmark existe déjà.");
+    if (bookmarks.length >= 24) throw new Error("La limite est de 24 bookmarks personnalisés.");
+    save([...bookmarks, { name: name.trim().slice(0, 48), url: url.toString(), icon: "" }]);
+  };
+
+  const remove = (url: string) => save(bookmarks.filter((bookmark) => bookmark.url !== url));
+  return { bookmarks, add, remove };
+}
 
 const MEDIA_LINKS: AppLink[] = [
   { name: "Zucchini", url: "https://whatbox.ca/manage", icon: ICON("server") },
@@ -122,6 +157,11 @@ interface RSSItem {
   link: string;
   pubDate: string;
   source: string;
+}
+
+interface RSSFeedSource {
+  name: string;
+  url: string;
 }
 
 interface CalEvent {
@@ -658,12 +698,11 @@ function LinkCard({ link, theme, up }: { link: AppLink; theme: DashTheme; up?: b
   const c = cx(theme);
   return (
     <a href={link.url} target="_blank" rel="noopener noreferrer" className={c.linkCard}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={link.icon} alt="" width={18} height={18}
-        className={c.linkIcon}
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-      />
+      {link.icon && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={link.icon} alt="" width={18} height={18} className={c.linkIcon}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+      )}
       <span className={c.linkText}>{link.name}</span>
       <StatusLed up={up} theme={theme} />
     </a>
@@ -711,6 +750,73 @@ function SectionHeader({ title, icon, extra, theme }: { title: string; icon: str
         : c.sectionTitle}>{title}</h2>
       {ind && <div className="flex-1 h-px bg-[#BBB8AF] ml-2" />}
       {extra && <div className="shrink-0 ml-2">{extra}</div>}
+    </div>
+  );
+}
+
+function BookmarksSection({
+  theme,
+  customBookmarks,
+  onAdd,
+  onRemove,
+}: {
+  theme: DashTheme;
+  customBookmarks: AppLink[];
+  onAdd: (name: string, url: string) => void;
+  onRemove: (url: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState("");
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim() || !url.trim()) { setError("Renseigne un nom et une adresse."); return; }
+    try {
+      onAdd(name, url);
+      setName("");
+      setUrl("");
+      setError("");
+      setEditing(false);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Impossible d’ajouter ce bookmark.");
+    }
+  };
+
+  const fieldClass = ind
+    ? "border-[#BBB8AF] bg-[#F4F2EA] text-[#111111] focus:border-[#E51D2A] placeholder:text-[#8A867F]"
+    : "border-terminal-gray-light bg-terminal-black text-terminal-green focus:border-terminal-cyan placeholder:text-terminal-green-dim";
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#E51D2A" size={10} />}
+      <SectionHeader
+        title="Bookmarks"
+        icon="~"
+        theme={theme}
+        extra={<button type="button" onClick={() => { setEditing((value) => !value); setError(""); }} aria-expanded={editing} className={`font-mono text-[10px] uppercase tracking-wider ${c.accent}`}>{editing ? "Fermer" : "+ Ajouter"}</button>}
+      />
+      {editing && (
+        <form onSubmit={submit} className={`mb-3 grid grid-cols-1 sm:grid-cols-[1fr_1.4fr_auto] gap-2 border p-2 ${c.border}`}>
+          <input value={name} onChange={(event) => setName(event.target.value)} maxLength={48} required aria-label="Nom du bookmark" placeholder="Nom" className={`min-w-0 border px-2 py-1.5 text-xs font-mono outline-none ${fieldClass}`} />
+          <input value={url} onChange={(event) => setUrl(event.target.value)} type="text" inputMode="url" required aria-label="Adresse du bookmark" placeholder="exemple.com" className={`min-w-0 border px-2 py-1.5 text-xs font-mono outline-none ${fieldClass}`} />
+          <button type="submit" className={`border px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider ${ind ? "border-[#E51D2A] bg-[#E51D2A] text-white" : "border-terminal-green bg-terminal-green text-terminal-black"}`}>Ajouter</button>
+          {error && <p role="alert" className={`text-[10px] font-mono ${c.red} sm:col-span-3`}>{error}</p>}
+          <p className={`text-[9px] font-mono ${c.textMuted} sm:col-span-3`}>Enregistré dans ce navigateur uniquement.</p>
+        </form>
+      )}
+      <div className="grid grid-cols-2 gap-0.5">
+        {BOOKMARKS.map((link) => <LinkCard key={link.url} link={link} theme={theme} />)}
+        {customBookmarks.map((link) => (
+          <div key={link.url} className="flex min-w-0 items-center gap-1">
+            <div className="min-w-0 flex-1"><LinkCard link={link} theme={theme} /></div>
+            <button type="button" onClick={() => onRemove(link.url)} aria-label={`Supprimer ${link.name}`} title={`Supprimer ${link.name}`} className={`shrink-0 px-1 text-xs ${c.textMuted} hover:${ind ? "text-[#E51D2A]" : "text-terminal-red"}`}>×</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -763,28 +869,91 @@ function MiniChart({ data, color = "#00FF41", height = 40 }: { data: number[]; c
 // ── RSS Feed ────────────────────────────────────────────────
 
 const RSS_LIMIT_KEY = "fs0ciety_rss_limit";
+const RSS_CUSTOM_FEEDS_KEY = "fs0ciety_rss_custom_feeds_v1";
 const RSS_DEFAULT_LIMIT = 15;
 
 function RSSFeed({ theme }: { theme: DashTheme }) {
   const [items, setItems] = useState<RSSItem[]>([]);
+  const [sources, setSources] = useState<RSSFeedSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [limit, setLimitState] = useState(RSS_DEFAULT_LIMIT);
   const [collapsed, setCollapsed] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [feedName, setFeedName] = useState("");
+  const [feedUrl, setFeedUrl] = useState("");
+  const [feedError, setFeedError] = useState("");
   const c = cx(theme);
+
+  const refreshFeeds = useCallback(async (customSources: RSSFeedSource[]) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/dash/api/rss", {
+        method: customSources.length ? "POST" : "GET",
+        ...(customSources.length ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ feeds: customSources }) } : {}),
+      });
+      const data = await response.json();
+      setItems(data.items || []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     const saved = parseInt(localStorage.getItem(RSS_LIMIT_KEY) || "", 10);
     if (!isNaN(saved) && saved >= 5) setLimitState(saved);
-    fetch("/dash/api/rss")
-      .then((r) => r.json())
-      .then((data) => setItems(data.items || []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    try {
+      const custom = JSON.parse(localStorage.getItem(RSS_CUSTOM_FEEDS_KEY) || "[]");
+      const valid = Array.isArray(custom) ? custom.filter((feed): feed is RSSFeedSource =>
+        feed && typeof feed.name === "string" && typeof feed.url === "string" && /^https?:$/.test(new URL(feed.url).protocol)
+      ).slice(0, 8) : [];
+      setSources(valid);
+      void refreshFeeds(valid);
+    } catch {
+      void refreshFeeds([]);
+    }
+  }, [refreshFeeds]);
 
   const setLimit = (v: number) => {
     setLimitState(v);
     localStorage.setItem(RSS_LIMIT_KEY, String(v));
+  };
+
+  const saveSources = (next: RSSFeedSource[]) => {
+    setSources(next);
+    localStorage.setItem(RSS_CUSTOM_FEEDS_KEY, JSON.stringify(next));
+    void refreshFeeds(next);
+  };
+
+  const addFeed = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      if (!feedName.trim()) throw new Error("Ajoute un nom pour ce flux.");
+      const raw = feedUrl.trim();
+      const parsed = new URL(/^[a-z][a-z\d+.-]*:/i.test(raw) ? raw : `https://${raw}`);
+      const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+      const ip = hostname.split(".").map(Number);
+      const privateIPv4 = ip.length === 4 && ip.every((part) => Number.isInteger(part) && part >= 0 && part <= 255) &&
+        (ip[0] === 0 || ip[0] === 10 || ip[0] === 127 || ip[0] >= 224 || (ip[0] === 169 && ip[1] === 254) ||
+          (ip[0] === 172 && ip[1] >= 16 && ip[1] <= 31) || (ip[0] === 192 && (ip[1] === 0 || ip[1] === 2 || ip[1] === 168)) ||
+          (ip[0] === 198 && (ip[1] === 18 || ip[1] === 19)) || (ip[0] === 203 && ip[1] === 0));
+      if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password || hostname === "localhost" ||
+        hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".internal") || hostname.includes(":") || privateIPv4) {
+        throw new Error("Utilise une adresse HTTP ou HTTPS publique.");
+      }
+      const normalized = parsed.toString();
+      if (sources.some((source) => source.url === normalized)) throw new Error("Ce flux est déjà ajouté.");
+      if (sources.length >= 8) throw new Error("Maximum 8 flux personnalisés.");
+      const next = [...sources, { name: feedName.trim().slice(0, 48), url: normalized }];
+      saveSources(next);
+      setFeedName("");
+      setFeedUrl("");
+      setFeedError("");
+      setEditing(false);
+    } catch (error) {
+      setFeedError(error instanceof Error ? error.message : "Adresse de flux invalide.");
+    }
   };
 
   const maxItems = Math.max(items.length, RSS_DEFAULT_LIMIT);
@@ -828,6 +997,8 @@ function RSSFeed({ theme }: { theme: DashTheme }) {
             <span className={`text-[10px] font-mono ${c.textMuted} tabular-nums w-6 text-right`}>{limit}</span>
           </div>
         )}
+        <button type="button" onClick={() => { setEditing((value) => !value); setFeedError(""); }} aria-expanded={editing}
+          className={`text-[10px] font-mono uppercase tracking-wider shrink-0 ${c.accent}`}>{editing ? "Fermer" : "+ Ajouter"}</button>
         <button
           onClick={() => setCollapsed((v) => !v)}
           className={`text-[10px] font-mono ${c.textMuted} hover:${ind ? "text-[#E51D2A]" : "text-terminal-green"} transition-colors shrink-0 ml-auto`}
@@ -836,6 +1007,24 @@ function RSSFeed({ theme }: { theme: DashTheme }) {
           {collapsed ? `▼ ${items.length}` : "▲"}
         </button>
       </div>
+
+      {editing && (
+        <div className={`mb-3 border p-2 ${c.border}`}>
+          <form onSubmit={addFeed} className="grid grid-cols-1 sm:grid-cols-[1fr_1.5fr_auto] gap-2">
+            <input value={feedName} onChange={(event) => setFeedName(event.target.value)} maxLength={48} required aria-label="Nom du flux RSS" placeholder="Nom du flux" className={`min-w-0 border px-2 py-1.5 text-xs font-mono outline-none ${ind ? "border-[#BBB8AF] bg-[#F4F2EA] text-[#111111] focus:border-[#E51D2A]" : "border-terminal-gray-light bg-terminal-black text-terminal-green focus:border-terminal-cyan"}`} />
+            <input value={feedUrl} onChange={(event) => setFeedUrl(event.target.value)} type="text" inputMode="url" required aria-label="URL du flux RSS" placeholder="https://site.example/rss.xml" className={`min-w-0 border px-2 py-1.5 text-xs font-mono outline-none ${ind ? "border-[#BBB8AF] bg-[#F4F2EA] text-[#111111] focus:border-[#E51D2A]" : "border-terminal-gray-light bg-terminal-black text-terminal-green focus:border-terminal-cyan"}`} />
+            <button type="submit" className={`border px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider ${ind ? "border-[#E51D2A] bg-[#E51D2A] text-white" : "border-terminal-green bg-terminal-green text-terminal-black"}`}>Ajouter</button>
+          </form>
+          <p className={`mt-2 text-[9px] font-mono ${c.textMuted}`}>Flux HTTPS/HTTP public · jusqu’à 8 flux · enregistré dans ce navigateur</p>
+          {feedError && <p role="alert" className={`mt-1 text-[10px] font-mono ${c.red}`}>{feedError}</p>}
+          {sources.length > 0 && <ul className="mt-2 space-y-1 border-t pt-2">
+            {sources.map((source) => <li key={source.url} className={`flex items-center gap-2 text-[10px] font-mono ${c.textDim}`}>
+              <span className="min-w-0 flex-1 truncate">{source.name} <span className={c.textMuted2}>· {source.url}</span></span>
+              <button type="button" onClick={() => saveSources(sources.filter((item) => item.url !== source.url))} aria-label={`Supprimer le flux ${source.name}`} className={theme === "industrial" ? "text-[#68645D] hover:text-[#E51D2A]" : "text-terminal-green-dim hover:text-terminal-red"}>×</button>
+            </li>)}
+          </ul>}
+        </div>
+      )}
 
       {!collapsed && (
         <>
@@ -3474,6 +3663,7 @@ export default function StartPage() {
   const [mediaMode, setMediaMode] = useMediaMode();
   const [tabState, setTabState] = useState<{ current: DashTab; prev: DashTab }>({ current: "start", prev: "start" });
   const [cmdOpen, setCmdOpen] = useState(false);
+  const { bookmarks: customBookmarks, add: addBookmark, remove: removeBookmark } = useCustomBookmarks();
   const tab = tabState.current;
   const tabDir = (["start", "media"] as DashTab[]).indexOf(tabState.current) - (["start", "media"] as DashTab[]).indexOf(tabState.prev);
   const handleTabChange = useCallback((t: DashTab) => { setTabState((s) => ({ current: t, prev: s.current })); }, []);
@@ -3482,6 +3672,7 @@ export default function StartPage() {
   const serviceStatus = useServiceStatus(serviceUrls);
   const hub = useHubLinks();
   const hubLinks = useMemo(() => hub?.groups.flatMap((g) => g.links) ?? [], [hub]);
+  const paletteLinks = useMemo(() => [...hubLinks, ...customBookmarks], [hubLinks, customBookmarks]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -3511,7 +3702,7 @@ export default function StartPage() {
   return (
     <MotionConfig reducedMotion="user">
     <div className={c.page}>
-      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} theme={theme} extra={hubLinks} />
+      <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} theme={theme} extra={paletteLinks} />
 
       {/* ── Header ── */}
       <header className={`flex items-center justify-between mb-4 pb-3 border-b ${c.border}`}>
@@ -3595,13 +3786,7 @@ export default function StartPage() {
                     </div>
                   </div>
                 )}
-                <div className={c.card}>
-                  {theme === "industrial" && <CornerBrackets color="#E51D2A" size={10} />}
-                  <SectionHeader title="Bookmarks" icon="~" theme={theme} />
-                  <div className="grid grid-cols-2 gap-0.5">
-                    {BOOKMARKS.map((link) => <LinkCard key={link.name} link={link} theme={theme} />)}
-                  </div>
-                </div>
+                <BookmarksSection theme={theme} customBookmarks={customBookmarks} onAdd={addBookmark} onRemove={removeBookmark} />
                 <ImmichSection theme={theme} />
                 <BeszelSection theme={theme} />
                 <DiskStorageSection theme={theme} />

@@ -7,16 +7,29 @@ export default function DashLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState<"terminal" | "industrial">("industrial");
+  const [theme, setTheme] = useState<"terminal" | "industrial" | "observatory">("observatory");
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("fs0ciety_dash_theme");
-      if (saved === "terminal") setTheme("terminal");
+      const saved = localStorage.getItem("fs0ciety_dash_theme_v2");
+      if (saved === "terminal" || saved === "observatory") setTheme(saved);
     } catch { /* ignore */ }
   }, []);
 
   const ind = theme === "industrial";
+  const observatory = theme === "observatory";
+  const darkBg = observatory ? "#101722" : "#141514";
+  const darkPanel = observatory ? "#172130" : "#1C1E1B";
+  const darkLine = observatory ? "#344253" : "#3C403A";
+  const darkText = observatory ? "#F0F4F8" : "#F0EDE4";
+  const darkMuted = observatory ? "#A8B7C9" : "#A19F93";
+  const darkDim = observatory ? "#718196" : "#74776E";
+  const darkAccent = observatory ? "#D9BD82" : "#F25B38";
+
+  const chooseTheme = (value: "terminal" | "industrial" | "observatory") => {
+    setTheme(value);
+    localStorage.setItem("fs0ciety_dash_theme_v2", value);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,17 +62,9 @@ export default function DashLoginPage() {
   return (
     <div
       className={`min-h-screen flex items-center justify-center p-4 font-mono ${
-        ind ? "bg-[#0D0E11]" : "bg-terminal-black"
+        ind ? "bg-[#F4F2EA]" : "text-[#F0F4F8]"
       }`}
-      style={
-        ind
-          ? {
-              backgroundImage:
-                "linear-gradient(rgba(37,40,50,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(37,40,50,0.35) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-            }
-          : undefined
-      }
+      style={ind ? undefined : { backgroundColor: darkBg }}
     >
       <div className="w-full max-w-sm">
         {/* Logo / title */}
@@ -75,19 +80,21 @@ export default function DashLoginPage() {
           <h1
             className={
               ind
-                ? "font-mono text-2xl font-black uppercase tracking-[0.18em] text-[#E8E4DC]"
-                : "text-xl font-bold text-terminal-green"
+                ? "font-display text-2xl font-black uppercase tracking-[0.12em] text-[#111111]"
+                : "font-display text-2xl font-black uppercase tracking-[0.12em]"
             }
+            style={ind ? undefined : { color: darkText }}
           >
             fs0ciety
-            <span className={ind ? "text-[#F5622A]" : "text-terminal-green-dim"}>
+            <span className={ind ? "text-[#E51D2A]" : ""} style={ind ? undefined : { color: darkAccent }}>
               .dash
             </span>
           </h1>
           <p
             className={`text-[10px] mt-1 uppercase tracking-widest ${
-              ind ? "text-[#5A5550]" : "text-terminal-green-dim/50"
+              ind ? "text-[#68645D]" : ""
             }`}
+            style={ind ? undefined : { color: darkMuted }}
           >
             Jellyseerr authentication required
           </p>
@@ -98,71 +105,19 @@ export default function DashLoginPage() {
           onSubmit={handleSubmit}
           className={`relative p-6 border ${
             ind
-              ? "bg-[#141619] border-[#252830]"
-              : "bg-terminal-black-light border-terminal-green/20"
+              ? "bg-[#ECE9E0] border-[#111111]"
+              : ""
           }`}
+          style={ind ? undefined : { backgroundColor: darkPanel, borderColor: darkLine }}
         >
-          {/* Corner brackets for industrial theme */}
-          {ind && (
-            <>
-              <span
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "1.5px 0 0 1.5px",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "1.5px 1.5px 0 0",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "0 0 1.5px 1.5px",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "0 1.5px 1.5px 0",
-                }}
-              />
-            </>
-          )}
-
           <div className="space-y-4">
             {/* Email */}
             <div>
               <label
                 className={`block text-[10px] font-mono uppercase tracking-widest mb-1.5 ${
-                  ind ? "text-[#9A948C]" : "text-terminal-green-dim"
+                  ind ? "text-[#68645D]" : ""
                 }`}
+                style={ind ? undefined : { color: darkMuted }}
               >
                 Email
               </label>
@@ -174,9 +129,10 @@ export default function DashLoginPage() {
                 autoComplete="email"
                 className={`w-full px-3 py-2 text-sm font-mono border outline-none transition-colors ${
                   ind
-                    ? "bg-[#0D0E11] border-[#252830] text-[#E8E4DC] focus:border-[#F5622A]/50 placeholder-[#383530]"
-                    : "bg-terminal-black border-terminal-gray-light text-terminal-green focus:border-terminal-green/60 placeholder-terminal-green-dim/30"
+                    ? "bg-[#F4F2EA] border-[#BBB8AF] text-[#111111] focus:border-[#E51D2A] placeholder-[#68645D]"
+                    : "border focus:border-[var(--login-accent)] placeholder-[#74776E]"
                 }`}
+                style={ind ? undefined : { backgroundColor: darkBg, borderColor: darkLine, color: darkText, "--login-accent": darkAccent } as React.CSSProperties}
                 placeholder="user@example.com"
               />
             </div>
@@ -185,8 +141,9 @@ export default function DashLoginPage() {
             <div>
               <label
                 className={`block text-[10px] font-mono uppercase tracking-widest mb-1.5 ${
-                  ind ? "text-[#9A948C]" : "text-terminal-green-dim"
+                  ind ? "text-[#68645D]" : ""
                 }`}
+                style={ind ? undefined : { color: darkMuted }}
               >
                 Password
               </label>
@@ -198,9 +155,10 @@ export default function DashLoginPage() {
                 autoComplete="current-password"
                 className={`w-full px-3 py-2 text-sm font-mono border outline-none transition-colors ${
                   ind
-                    ? "bg-[#0D0E11] border-[#252830] text-[#E8E4DC] focus:border-[#F5622A]/50 placeholder-[#383530]"
-                    : "bg-terminal-black border-terminal-gray-light text-terminal-green focus:border-terminal-green/60 placeholder-terminal-green-dim/30"
+                    ? "bg-[#F4F2EA] border-[#BBB8AF] text-[#111111] focus:border-[#E51D2A] placeholder-[#68645D]"
+                    : "border focus:border-[var(--login-accent)] placeholder-[#74776E]"
                 }`}
+                style={ind ? undefined : { backgroundColor: darkBg, borderColor: darkLine, color: darkText, "--login-accent": darkAccent } as React.CSSProperties}
                 placeholder="••••••••"
               />
             </div>
@@ -210,8 +168,8 @@ export default function DashLoginPage() {
               <div
                 className={`text-[11px] font-mono px-3 py-2 border ${
                   ind
-                    ? "text-[#F87171] bg-[#F87171]/5 border-[#F87171]/20"
-                    : "text-terminal-red bg-terminal-red/5 border-terminal-red/20"
+                    ? "text-[#E51D2A] bg-[#E51D2A]/5 border-[#E51D2A]/20"
+                    : "text-[#F25B38] bg-[#F25B38]/5 border-[#F25B38]/20"
                 }`}
               >
                 {error}
@@ -224,9 +182,10 @@ export default function DashLoginPage() {
               disabled={loading}
               className={`w-full py-2.5 text-xs font-mono font-bold uppercase tracking-widest transition-all border ${
                 ind
-                  ? "bg-[#F5622A] border-[#F5622A] text-[#0D0E11] hover:bg-[#F5622A]/90 disabled:opacity-40"
-                  : "bg-terminal-green border-terminal-green text-terminal-black hover:bg-terminal-green/90 disabled:opacity-40"
+                  ? "bg-[#E51D2A] border-[#E51D2A] text-white hover:bg-[#E51D2A]/90 disabled:opacity-40"
+                  : "disabled:opacity-40"
               }`}
+              style={ind ? undefined : { backgroundColor: darkAccent, borderColor: darkAccent, color: darkBg }}
             >
               {loading ? "Authenticating..." : "Sign in"}
             </button>
@@ -234,19 +193,19 @@ export default function DashLoginPage() {
         </form>
 
         {/* Theme toggle */}
-        <div className="mt-4 text-center">
-          <button
-            onClick={() =>
-              setTheme(ind ? "terminal" : "industrial")
-            }
-            className={`text-[9px] font-mono uppercase tracking-widest transition-colors ${
-              ind
-                ? "text-[#383530] hover:text-[#5A5550]"
-                : "text-terminal-green-dim/30 hover:text-terminal-green-dim/60"
-            }`}
-          >
-            Switch to {ind ? "terminal" : "neo-industrial"} theme
-          </button>
+        <div className="mt-4 flex justify-center gap-1" role="group" aria-label="Dashboard theme">
+          {(["industrial", "terminal", "observatory"] as const).map((value) => {
+            const active = theme === value;
+            const label = value === "industrial" ? "SWISS" : value === "terminal" ? "KINETIC" : "NIGHT";
+            const accent = value === "industrial" ? "#E51D2A" : value === "terminal" ? "#F25B38" : "#D9BD82";
+            return (
+              <button key={value} type="button" onClick={() => chooseTheme(value)} aria-pressed={active}
+                className="border px-2.5 py-1.5 text-[9px] font-mono font-bold tracking-widest transition-colors"
+                style={{ color: active ? (value === "industrial" ? "white" : darkBg) : (ind ? "#68645D" : darkDim), backgroundColor: active ? accent : "transparent", borderColor: active ? accent : (ind ? "#BBB8AF" : darkLine) }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

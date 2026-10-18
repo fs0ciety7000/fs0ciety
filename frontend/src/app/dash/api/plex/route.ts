@@ -80,6 +80,11 @@ function mc(raw: unknown): any {
   return (raw as { MediaContainer?: unknown })?.MediaContainer;
 }
 
+function plexImageUrl(path: string | undefined): string | null {
+  if (!path || !path.startsWith("/library/metadata/")) return null;
+  return `/dash/api/plex/image?path=${encodeURIComponent(path)}`;
+}
+
 export async function GET() {
   if (!PLEX_TOKEN) {
     return NextResponse.json({ error: "PLEX_TOKEN not configured" }, { status: 503 });
@@ -140,7 +145,7 @@ export async function GET() {
       type: s.type,
       progress: Math.round(((s.viewOffset || 0) / Math.max(s.duration || 1, 1)) * 100),
       isPaused: s.Player?.state === "paused",
-      imageUrl: s.thumb ? `${PLEX_URL}${s.thumb}?X-Plex-Token=${PLEX_TOKEN}` : null,
+      imageUrl: plexImageUrl(s.thumb),
     }));
 
     // Recent movies
@@ -153,7 +158,7 @@ export async function GET() {
       id: item.ratingKey,
       name: item.title,
       year: item.year,
-      imageUrl: item.thumb ? `${PLEX_URL}${item.thumb}?X-Plex-Token=${PLEX_TOKEN}` : null,
+      imageUrl: plexImageUrl(item.thumb),
       href: machineId
         ? `https://app.plex.tv/desktop/#!/server/${machineId}/details?key=/library/metadata/${item.ratingKey}`
         : "#",
@@ -184,11 +189,7 @@ export async function GET() {
         name: item.grandparentTitle || item.title,
         seriesName: item.grandparentTitle,
         seasonLabel: item.parentTitle || undefined,
-        imageUrl: item.grandparentThumb
-          ? `${PLEX_URL}${item.grandparentThumb}?X-Plex-Token=${PLEX_TOKEN}`
-          : item.thumb
-          ? `${PLEX_URL}${item.thumb}?X-Plex-Token=${PLEX_TOKEN}`
-          : null,
+        imageUrl: plexImageUrl(item.grandparentThumb || item.thumb),
         href: machineId && seriesKey
           ? `https://app.plex.tv/desktop/#!/server/${machineId}/details?key=${seriesKey}`
           : machineId

@@ -1,15 +1,7 @@
 import { NextResponse } from "next/server";
+import { PLEX_TOKEN, PLEX_URL, plexHeaders } from "./config";
 
 export const dynamic = "force-dynamic";
-
-const PLEX_URL =
-  process.env.PLEX_URL ||
-  "https://185-203-56-82.c92770c35f2f4a72a1ad6b1e8f07da83.plex.direct:18825";
-const PLEX_TOKEN = process.env.PLEX_TOKEN || "r5NL-YGRroXoxyRpN8nk";
-
-function plexHeaders(): HeadersInit {
-  return { "X-Plex-Token": PLEX_TOKEN, Accept: "application/json" };
-}
 
 async function plexFetch(path: string): Promise<unknown | null> {
   const controller = new AbortController();

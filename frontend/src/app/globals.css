@@ -888,8 +888,15 @@ html {
 }
 
 /* Signal-red scrollbar on the printed control surface */
+.dash-industrial {
+  scrollbar-color: #9D9990 #F4F2EA;
+  scrollbar-width: thin;
+}
+.dash-industrial ::-webkit-scrollbar { width: 6px; height: 6px; }
+.dash-industrial ::-webkit-scrollbar-track { background: #F4F2EA; }
 .dash-industrial ::-webkit-scrollbar-thumb {
   background: #9D9990;
+  border-radius: 2px;
 }
 
 .dash-industrial ::-webkit-scrollbar-thumb:hover {
@@ -978,6 +985,16 @@ html:has(.dash-foundry) body::-webkit-scrollbar-thumb { background: #3C403A; }
 
 html:has(.dash-foundry)::-webkit-scrollbar-thumb:hover,
 html:has(.dash-foundry) body::-webkit-scrollbar-thumb:hover { background: #F25B38; }
+
+/* Theme nested rails as well as the document scrollbar (e.g. Recent Films). */
+.dash-foundry {
+  scrollbar-color: #3C403A #141514;
+  scrollbar-width: thin;
+}
+.dash-foundry ::-webkit-scrollbar { width: 6px; height: 6px; }
+.dash-foundry ::-webkit-scrollbar-track { background: #141514; }
+.dash-foundry ::-webkit-scrollbar-thumb { background: #3C403A; border-radius: 2px; }
+.dash-foundry ::-webkit-scrollbar-thumb:hover { background: #F25B38; }
 
 .dash-foundry-masthead {
   position: relative;
@@ -1151,6 +1168,15 @@ html:has(.dash-observatory)::-webkit-scrollbar-thumb,
 html:has(.dash-observatory) body::-webkit-scrollbar-thumb { background: #344253; }
 html:has(.dash-observatory)::-webkit-scrollbar-thumb:hover,
 html:has(.dash-observatory) body::-webkit-scrollbar-thumb:hover { background: #A6C7E2; }
+
+.dash-observatory {
+  scrollbar-color: #344253 #101722;
+  scrollbar-width: thin;
+}
+.dash-observatory ::-webkit-scrollbar { width: 6px; height: 6px; }
+.dash-observatory ::-webkit-scrollbar-track { background: #101722; }
+.dash-observatory ::-webkit-scrollbar-thumb { background: #344253; border-radius: 2px; }
+.dash-observatory ::-webkit-scrollbar-thumb:hover { background: #A6C7E2; }
 
 .dash-observatory .dash-foundry-masthead .dash-swiss-masthead-title h2 span { color: #D9BD82; }
 .dash-observatory .dash-foundry-masthead .dash-swiss-masthead-readout strong i { color: #D9BD82; }

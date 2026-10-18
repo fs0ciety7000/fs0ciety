@@ -11,7 +11,7 @@ export default function DashLoginPage() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("fs0ciety_dash_theme");
+      const saved = localStorage.getItem("fs0ciety_dash_theme_v2");
       if (saved === "terminal") setTheme("terminal");
     } catch { /* ignore */ }
   }, []);
@@ -49,17 +49,8 @@ export default function DashLoginPage() {
   return (
     <div
       className={`min-h-screen flex items-center justify-center p-4 font-mono ${
-        ind ? "bg-[#0D0E11]" : "bg-terminal-black"
+        ind ? "bg-[#F4F2EA]" : "bg-[#141514] text-[#F0EDE4]"
       }`}
-      style={
-        ind
-          ? {
-              backgroundImage:
-                "linear-gradient(rgba(37,40,50,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(37,40,50,0.35) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-            }
-          : undefined
-      }
     >
       <div className="w-full max-w-sm">
         {/* Logo / title */}
@@ -75,18 +66,18 @@ export default function DashLoginPage() {
           <h1
             className={
               ind
-                ? "font-mono text-2xl font-black uppercase tracking-[0.18em] text-[#E8E4DC]"
-                : "text-xl font-bold text-terminal-green"
+                ? "font-display text-2xl font-black uppercase tracking-[0.12em] text-[#111111]"
+                : "font-display text-2xl font-black uppercase tracking-[0.12em] text-[#F0EDE4]"
             }
           >
             fs0ciety
-            <span className={ind ? "text-[#F5622A]" : "text-terminal-green-dim"}>
+            <span className={ind ? "text-[#E51D2A]" : "text-[#F25B38]"}>
               .dash
             </span>
           </h1>
           <p
             className={`text-[10px] mt-1 uppercase tracking-widest ${
-              ind ? "text-[#5A5550]" : "text-terminal-green-dim/50"
+              ind ? "text-[#68645D]" : "text-[#A19F93]"
             }`}
           >
             Jellyseerr authentication required
@@ -98,70 +89,16 @@ export default function DashLoginPage() {
           onSubmit={handleSubmit}
           className={`relative p-6 border ${
             ind
-              ? "bg-[#141619] border-[#252830]"
-              : "bg-terminal-black-light border-terminal-green/20"
+              ? "bg-[#ECE9E0] border-[#111111]"
+              : "bg-[#1C1E1B] border-[#3C403A]"
           }`}
         >
-          {/* Corner brackets for industrial theme */}
-          {ind && (
-            <>
-              <span
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "1.5px 0 0 1.5px",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "1.5px 1.5px 0 0",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "0 0 1.5px 1.5px",
-                }}
-              />
-              <span
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  width: 10,
-                  height: 10,
-                  borderColor: "#F5622A",
-                  borderStyle: "solid",
-                  borderWidth: "0 1.5px 1.5px 0",
-                }}
-              />
-            </>
-          )}
-
           <div className="space-y-4">
             {/* Email */}
             <div>
               <label
                 className={`block text-[10px] font-mono uppercase tracking-widest mb-1.5 ${
-                  ind ? "text-[#9A948C]" : "text-terminal-green-dim"
+                  ind ? "text-[#68645D]" : "text-[#A19F93]"
                 }`}
               >
                 Email
@@ -174,8 +111,8 @@ export default function DashLoginPage() {
                 autoComplete="email"
                 className={`w-full px-3 py-2 text-sm font-mono border outline-none transition-colors ${
                   ind
-                    ? "bg-[#0D0E11] border-[#252830] text-[#E8E4DC] focus:border-[#F5622A]/50 placeholder-[#383530]"
-                    : "bg-terminal-black border-terminal-gray-light text-terminal-green focus:border-terminal-green/60 placeholder-terminal-green-dim/30"
+                    ? "bg-[#F4F2EA] border-[#BBB8AF] text-[#111111] focus:border-[#E51D2A] placeholder-[#68645D]"
+                    : "bg-[#141514] border-[#3C403A] text-[#F0EDE4] focus:border-[#F25B38] placeholder-[#74776E]"
                 }`}
                 placeholder="user@example.com"
               />
@@ -185,7 +122,7 @@ export default function DashLoginPage() {
             <div>
               <label
                 className={`block text-[10px] font-mono uppercase tracking-widest mb-1.5 ${
-                  ind ? "text-[#9A948C]" : "text-terminal-green-dim"
+                  ind ? "text-[#68645D]" : "text-[#A19F93]"
                 }`}
               >
                 Password
@@ -198,8 +135,8 @@ export default function DashLoginPage() {
                 autoComplete="current-password"
                 className={`w-full px-3 py-2 text-sm font-mono border outline-none transition-colors ${
                   ind
-                    ? "bg-[#0D0E11] border-[#252830] text-[#E8E4DC] focus:border-[#F5622A]/50 placeholder-[#383530]"
-                    : "bg-terminal-black border-terminal-gray-light text-terminal-green focus:border-terminal-green/60 placeholder-terminal-green-dim/30"
+                    ? "bg-[#F4F2EA] border-[#BBB8AF] text-[#111111] focus:border-[#E51D2A] placeholder-[#68645D]"
+                    : "bg-[#141514] border-[#3C403A] text-[#F0EDE4] focus:border-[#F25B38] placeholder-[#74776E]"
                 }`}
                 placeholder="••••••••"
               />
@@ -210,8 +147,8 @@ export default function DashLoginPage() {
               <div
                 className={`text-[11px] font-mono px-3 py-2 border ${
                   ind
-                    ? "text-[#F87171] bg-[#F87171]/5 border-[#F87171]/20"
-                    : "text-terminal-red bg-terminal-red/5 border-terminal-red/20"
+                    ? "text-[#E51D2A] bg-[#E51D2A]/5 border-[#E51D2A]/20"
+                    : "text-[#F25B38] bg-[#F25B38]/5 border-[#F25B38]/20"
                 }`}
               >
                 {error}
@@ -224,8 +161,8 @@ export default function DashLoginPage() {
               disabled={loading}
               className={`w-full py-2.5 text-xs font-mono font-bold uppercase tracking-widest transition-all border ${
                 ind
-                  ? "bg-[#F5622A] border-[#F5622A] text-[#0D0E11] hover:bg-[#F5622A]/90 disabled:opacity-40"
-                  : "bg-terminal-green border-terminal-green text-terminal-black hover:bg-terminal-green/90 disabled:opacity-40"
+                  ? "bg-[#E51D2A] border-[#E51D2A] text-white hover:bg-[#E51D2A]/90 disabled:opacity-40"
+                  : "bg-[#F25B38] border-[#F25B38] text-[#141514] hover:bg-[#F25B38]/90 disabled:opacity-40"
               }`}
             >
               {loading ? "Authenticating..." : "Sign in"}
@@ -241,11 +178,11 @@ export default function DashLoginPage() {
             }
             className={`text-[9px] font-mono uppercase tracking-widest transition-colors ${
               ind
-                ? "text-[#383530] hover:text-[#5A5550]"
-                : "text-terminal-green-dim/30 hover:text-terminal-green-dim/60"
+                ? "text-[#68645D] hover:text-[#111111]"
+                : "text-[#74776E] hover:text-[#A19F93]"
             }`}
           >
-            Switch to {ind ? "terminal" : "neo-industrial"} theme
+            Switch to {ind ? "Kinetic Foundry" : "Swiss Control"} theme
           </button>
         </div>
       </div>

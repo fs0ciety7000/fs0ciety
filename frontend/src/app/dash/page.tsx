@@ -409,6 +409,18 @@ interface NowPlayingItem {
   thumbUrl: string | null;
 }
 
+interface ResumeItem {
+  id: string;
+  source: "jellyfin" | "plex";
+  title: string;
+  subtitle: string;
+  type: string;
+  progress: number;
+  remaining: string;
+  imageUrl: string | null;
+  href: string;
+}
+
 interface WeatherData {
   current: {
     temp: number;
@@ -2004,6 +2016,11 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
   const [loading, setLoading] = useState(true);
   const c = cx(theme);
 
+  const requestStage = (status: string) => {
+    const stages: Record<string, number> = { pending: 0, approved: 1, processing: 2, available: 3 };
+    return stages[status] ?? -1;
+  };
+
   useEffect(() => {
     fetch("/dash/api/seerr")
       .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
@@ -2061,6 +2078,20 @@ function SeerrSection({ theme }: { theme: DashTheme }) {
                   <span className={`text-[10px] font-mono font-bold uppercase ${statusColor(req.status)}`}>{req.status}</span>
                   <span className={`text-[10px] font-mono ${c.textMuted2}`}>{req.requestedBy}</span>
                 </div>
+                {requestStage(req.status) >= 0 && (
+                  <ol className="mt-2 grid grid-cols-4 gap-1" aria-label={`Request progress: ${req.status}`}>
+                    {["REQUESTED", "APPROVED", "DOWNLOADING", "READY"].map((label, step) => {
+                      const active = step <= requestStage(req.status);
+                      const color = theme === "industrial" ? "#E51D2A" : theme === "observatory" ? "#A6C7E2" : "#F25B38";
+                      return (
+                        <li key={label} className="min-w-0">
+                          <div className={`h-0.5 ${active ? "opacity-100" : "opacity-30"}`} style={{ backgroundColor: active ? color : theme === "industrial" ? "#BBB8AF" : "#46505A" }} />
+                          <span className={`mt-1 block truncate text-[7px] font-mono tracking-wide ${active ? c.textDim : c.textMuted2}`}>{label}</span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
               </div>
               <span className={`text-[10px] font-mono ${c.textMuted2} shrink-0 tabular-nums`}>{timeAgo(req.createdAt)}</span>
             </div>
@@ -3188,6 +3219,70 @@ function NowPlayingSection({ theme }: { theme: DashTheme }) {
   );
 }
 
+function ContinueWatchingSection({ theme }: { theme: DashTheme }) {
+  const [items, setItems] = useState<ResumeItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const c = cx(theme);
+  const ind = theme === "industrial";
+
+  useEffect(() => {
+    fetch("/dash/api/resume")
+      .then((response) => { if (!response.ok) throw new Error("Resume feed unavailable"); return response.json(); })
+      .then((data) => setItems(Array.isArray(data.items) ? data.items : []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || items.length === 0) return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#E51D2A" size={10} />}
+      <SectionHeader title="Continue Watching" icon="↗" theme={theme} />
+      <div className={`py-2 text-xs font-mono ${loading ? `${c.textDim} animate-pulse` : c.textMuted}`}>
+        {loading ? "Syncing playback history…" : "No unfinished films or episodes to resume."}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={c.card}>
+      {ind && <CornerBrackets color="#E51D2A" size={10} />}
+      <SectionHeader title="Continue Watching" icon="↗" theme={theme}
+        extra={<span className={`text-[9px] font-mono ${c.textMuted2}`}>{items.length} READY TO RESUME</span>} />
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        {items.map((item) => (
+          <a key={item.id} href={item.href} target="_blank" rel="noopener noreferrer"
+            className={`group flex min-w-0 gap-3 border p-2 transition-colors ${ind ? "border-[#BBB8AF] bg-[#ECE9E0] hover:border-[#E51D2A]/60" : "border-terminal-gray-light bg-terminal-black hover:border-terminal-cyan/50"}`}>
+            <div className={`relative aspect-[2/3] w-[58px] shrink-0 overflow-hidden ${ind ? "bg-[#DEDAD0]" : "bg-terminal-black-light"}`}>
+              <span className={`absolute inset-0 flex items-center justify-center text-[7px] font-mono tracking-wider ${ind ? "text-[#68645D]" : "text-terminal-green-dim/40"}`}>NO ART</span>
+              {item.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.imageUrl} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover"
+                  onError={(event) => { event.currentTarget.style.display = "none"; }} />
+              )}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+              <div>
+                <div className="mb-1 flex items-center justify-between gap-1">
+                  <span className={`truncate text-[8px] font-mono font-bold uppercase tracking-widest ${item.source === "plex" ? c.amber : c.cyan}`}>{item.source}</span>
+                  <span className={`shrink-0 text-[8px] font-mono ${c.textMuted2}`}>{item.progress}%</span>
+                </div>
+                <div className={`truncate text-[11px] font-mono font-bold ${c.textMain}`} title={item.title}>{item.title}</div>
+                <div className={`mt-0.5 truncate text-[9px] font-mono ${c.textMuted}`} title={item.subtitle}>{item.subtitle}</div>
+              </div>
+              <div>
+                <div className={`h-1 w-full overflow-hidden ${c.progressBg}`}>
+                  <div className={`h-full ${c.progressFill}`} style={{ width: `${item.progress}%` }} />
+                </div>
+                <div className={`mt-1 truncate text-[8px] font-mono ${c.textMuted2}`}>{item.remaining} <span className={c.accent}>↗</span></div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Weather Section ──────────────────────────────────────────
 
 function WeatherSection({ theme }: { theme: DashTheme }) {
@@ -3848,11 +3943,16 @@ export default function StartPage() {
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.07 }}>
-                <MediaRequestSection theme={theme} />
+                <ContinueWatchingSection theme={theme} />
               </motion.div>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: 0.10 }}>
+                <MediaRequestSection theme={theme} />
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: 0.13 }}>
                 <NowPlayingSection theme={theme} />
               </motion.div>
 

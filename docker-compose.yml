@@ -48,7 +48,7 @@ services:
       - SURREAL_NS=${SURREAL_NS:-fs0ciety}
       - SURREAL_DB=${SURREAL_DB:-main}
       - SURREAL_USER=${SURREAL_USER:-root}
-      - SURREAL_PASS=${SURREAL_PASS:-changeme}
+      - SURREAL_PASS=${SURREAL_PASS:?SURREAL_PASS must be set}
       - JWT_SECRET=${JWT_SECRET}
       - SONARR_URL=${SONARR_URL}
       - SONARR_API_KEY=${SONARR_API_KEY}
@@ -84,7 +84,7 @@ services:
   surrealdb:
     image: surrealdb/surrealdb:v2
     user: root
-    command: start --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:-changeme} rocksdb:/data/srdb.db
+    command: start --user ${SURREAL_USER:-root} --pass ${SURREAL_PASS:?SURREAL_PASS must be set} rocksdb:/data/srdb.db
     expose:
       - "8000"
     volumes:

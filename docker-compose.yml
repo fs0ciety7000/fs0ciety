@@ -6,7 +6,7 @@
 # ║  Subdomain setup (Coolify UI → per service):               ║
 # ║    frontend: fs0ciety.org, blog.fs0ciety.org,              ║
 # ║              dash.fs0ciety.org                              ║
-# ║    surrealdb: db.fs0ciety.org                              ║
+# ║    surrealdb: aucun (réseau interne seulement)             ║
 # ║  Next.js middleware rewrites blog./dash. to /blog /dash.   ║
 # ║                                                            ║
 # ║  Tor hidden service:                                       ║
@@ -79,8 +79,8 @@ services:
     restart: unless-stopped
 
   # ── Database (SurrealDB) ──────────────────────────────────
-  # Expose port 8000 so Coolify can route db.fs0ciety.org to it.
-  # Configure in Coolify UI → surrealdb service → Domains: db.fs0ciety.org
+  # Internal only: the backend reaches it at ws://surrealdb:8000. Never publish it
+  # (no domain, no Traefik router): the public db.fs0ciety.org was removed on 2026-11-08.
   surrealdb:
     image: surrealdb/surrealdb:v2
     user: root
@@ -92,11 +92,7 @@ services:
     restart: unless-stopped
     
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.surrealdb.rule=Host(`db.fs0ciety.org`)
-      - traefik.http.routers.surrealdb.entrypoints=https
-      - traefik.http.routers.surrealdb.tls.certresolver=letsencrypt
-      - traefik.http.services.surrealdb.loadbalancer.server.port=8000
+      - traefik.enable=false
 
 
   # ── Tor Hidden Service ────────────────────────────────────

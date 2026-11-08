@@ -45,14 +45,7 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
-  # ── SurrealDB — Traefik labels (optional, for db.domain) ───
-  surrealdb:
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.surrealdb.rule=Host(`db.${DOMAIN}`)"
-      - "traefik.http.routers.surrealdb.entrypoints=websecure"
-      - "traefik.http.routers.surrealdb.tls.certresolver=letsencrypt"
-      - "traefik.http.services.surrealdb.loadbalancer.server.port=8000"
+  # SurrealDB is never published (internal network only, backend: ws://surrealdb:8000).
 
 volumes:
   letsencrypt_data:

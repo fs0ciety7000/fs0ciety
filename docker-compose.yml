@@ -96,17 +96,16 @@ services:
 
 
   # ── Tor Hidden Service ────────────────────────────────────
-  # Runs a Tor daemon that exposes the frontend as a .onion site.
-  # After first boot, find the address at:
-  #   docker compose exec tor cat /var/lib/tor/hidden_service/hostname
+  # Runs a Tor daemon that exposes the frontend as a .onion site (image built from ./tor:
+  # Alpine pinned + tor from Alpine, instead of the unmaintained goldy/tor-hidden-service).
+  # Address:
+  #   docker compose exec tor cat /var/lib/tor/hidden_service/frontend/hostname
   # The key is persisted in the tor_data volume — do NOT delete it
   # or you will lose your .onion address.
   tor:
-    image: goldy/tor-hidden-service:latest
-    environment:
-      # service_name=container:port
-      FRONTEND_TOR_SERVICE_HOSTS: "80:frontend:3000"
-      FRONTEND_TOR_SERVICE_VERSION: "3"
+    build:
+      context: ./tor
+      dockerfile: Dockerfile
     volumes:
       - tor_data:/var/lib/tor/hidden_service/
     depends_on:

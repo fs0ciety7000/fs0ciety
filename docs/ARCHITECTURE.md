@@ -274,6 +274,6 @@ API keys never reach the browser. The backend makes authenticated requests and r
 
 ### Tor
 
-- `goldy/tor-hidden-service` image
+- Tor image built from `tor/` (Alpine pinned)
 - Auto-generates v3 `.onion` address
 - Proxies port 80 to frontend:3000

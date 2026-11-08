@@ -356,7 +356,7 @@ The Tor container automatically generates a `.onion` address on first boot.
 ### Finding your .onion address
 
 ```bash
-docker compose exec tor cat /var/lib/tor/hidden_service/hostname
+docker compose exec tor cat /var/lib/tor/hidden_service/frontend/hostname
 ```
 
 ### How it works
@@ -483,7 +483,7 @@ Error: Connection refused (ws://surrealdb:8000)
 ### Tor .onion address not working
 
 - Check Tor logs: `docker compose logs tor`
-- Verify the hostname exists: `docker compose exec tor cat /var/lib/tor/hidden_service/hostname`
+- Verify the hostname exists: `docker compose exec tor cat /var/lib/tor/hidden_service/frontend/hostname`
 - Ensure the frontend container is reachable from the Tor container on port 3000
 
 ### Dashboard shows all services offline
